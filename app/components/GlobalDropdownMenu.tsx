@@ -74,12 +74,8 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 				<TouchableWithoutFeedback
 					testID="overlay"
 					onPress={onCloseDropdown}
-					pointerEvents="box-none"
 				>
-					<View
-						style={styleHelper.dropdownStyles.overlay}
-						pointerEvents="box-none"
-					>
+					<View style={styleHelper.dropdownStyles.overlay}>
 						<View
 							style={styleHelper.dropdownStyles.dropdown}
 							pointerEvents="auto"
