@@ -16,55 +16,50 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
-import SelectableFlatList from "./components/SelectableFlatList";
-import MultiSelectBar from "./components/MultiSelectBar";
 import * as authHelper from "../helpers/auth";
 import { getWithAuth } from "../helpers/api";
-import * as styleHelper from "../styles/commonStyles";
 import { Feed } from "../models/Feed";
 import { useMenu } from "./components/GlobalDropdownMenu";
+import Screen from "./components/Screen";
+import { styles } from "../styles/ManageFeedsListScreen.styles";
+import ListScreen from "./components/ListScreen";
+import { listStyles } from "../styles/commonStyles";
 
 const ManageFeedsListScreen: React.FC = () => {
-	const {
-		data: feeds,
-		loading,
-		error,
-		execute: fetchFeeds,
-	} = useApi<Feed[]>("get", "/feeds/all.json");
+	const listRef = useRef<{ handleRefresh: () => void }>(null);
 	const [selectedFeeds, setSelectedFeeds] = useState<number[]>([]);
-	const [isMultiSelectActive, setMultiSelectActive] =
-		useState<boolean>(false);
-	const [refreshing, setRefreshing] = useState<boolean>(false);
-	const [multiSelectBarHeight, setMultiSelectBarHeight] = useState<number>(0);
+	const [isMultiSelectActive, setMultiSelectActive] = useState<boolean>(false);
 	const router = useRouter();
 	const navigation = useNavigation();
 	const { setMenuItems, onToggleDropdown } = useMenu();
 
-	const onRefresh = useCallback(() => {
-		setRefreshing(true);
-		fetchFeeds().finally(() => setRefreshing(false));
-	}, [fetchFeeds]);
+	const handleSelectionChange = useCallback((selectedIds: number[]) => {
+		setSelectedFeeds(selectedIds);
+		if (selectedIds.length > 0) {
+			setMultiSelectActive(true);
+		} else {
+			setMultiSelectActive(false);
+		}
+	}, []);
 
-	const handleDeleteSelected = useCallback(async () => {
-		for (const feedId of selectedFeeds) {
+	const handleDeleteSelected = useCallback(async (ids: number[]) => {
+		for (const feedId of ids) {
 			await getWithAuth(`/feeds/remove/${feedId}`);
 		}
 		setMultiSelectActive(false);
 		setSelectedFeeds([]);
-		fetchFeeds();
-	}, [selectedFeeds, fetchFeeds]);
+		listRef.current?.handleRefresh();
+	}, []);
 
 	useFocusEffect(
 		useCallback(() => {
-			fetchFeeds();
-
 			const menuItems = [
 				{
 					label: "Log-out",
@@ -73,7 +68,7 @@ const ManageFeedsListScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [fetchFeeds, setMenuItems, router]),
+		}, [setMenuItems, router]),
 	);
 
 	useEffect(() => {
@@ -85,89 +80,44 @@ const ManageFeedsListScreen: React.FC = () => {
 		});
 	}, [navigation, onToggleDropdown]);
 
-	const renderItem = ({ item }: { item: Feed }) => (
-		<View>
+	const renderItem = ({ item, onPress, onLongPress, isItemSelected }: { item: Feed, onPress: () => void, onLongPress: () => void, isItemSelected: boolean }) => (
+		<TouchableOpacity testID={`feed-item-${item.id}`} style={[styles.listItem, isItemSelected && listStyles.selectedItem]} onPress={onPress} onLongPress={onLongPress}>
 			<Text numberOfLines={2}>{item?.name || "No Name"}</Text>
-			<Text numberOfLines={1} style={styleHelper.listStyles.link}>
+			<Text numberOfLines={1} style={styles.link}>
 				{item?.uri || "No Link"}
 			</Text>
-		</View>
+		</TouchableOpacity>
 	);
 
 	const renderEmptyComponent = () => (
-		<View style={styleHelper.containerStyles.emptyContainer}>
+		<View style={styles.emptyContainer}>
 			<Ionicons name="skull-outline" size={240} color="black" />
-			<Text style={styleHelper.containerStyles.emptyText}>
+			<Text style={styles.emptyText}>
 				No feeds to manage!
 			</Text>
 		</View>
 	);
 
-	if (loading && !refreshing) {
-		return (
-			<View style={styleHelper.containerStyles.loadingContainer}>
-				<Text>Loading feeds...</Text>
-			</View>
-		);
-	}
+	const multiSelectActions = [
+		{
+			label: "Delete",
+			onPress: handleDeleteSelected,
+		},
+	];
 
 	return (
-		<View style={styleHelper.containerStyles.container}>
-			{error ? (
-				<Text style={styleHelper.errorStyles.errorText}>{error}</Text>
-			) : null}
-			<SelectableFlatList
-				data={feeds || []}
-				renderItem={renderItem}
-				onRefresh={onRefresh}
-				refreshing={refreshing}
-				multiSelectActive={isMultiSelectActive}
-				onSelectionChange={(selected) => {
-					setSelectedFeeds(selected);
-					if (!isMultiSelectActive && selected.length > 0) {
-						setMultiSelectActive(true);
-					}
-				}}
-				selectedItems={selectedFeeds}
-				ListEmptyComponent={renderEmptyComponent}
-				onItemPress={() => {}}
-				contentContainerStyle={
-					isMultiSelectActive
-						? { paddingTop: multiSelectBarHeight }
-						: {}
-				}
-			/>
-			{isMultiSelectActive && (
-				<MultiSelectBar onHeightMeasured={setMultiSelectBarHeight}>
-					<TouchableOpacity
-						onPress={() =>
-							setSelectedFeeds(feeds?.map((f) => f.id) || [])
-						}
-						style={styleHelper.multiSelectStyles.button}
-					>
-						<Text style={styleHelper.multiSelectStyles.buttonText}>
-							Select All
-						</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						onPress={handleDeleteSelected}
-						style={styleHelper.multiSelectStyles.button}
-					>
-						<Text style={styleHelper.multiSelectStyles.buttonText}>
-							Delete
-						</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						onPress={() => setMultiSelectActive(false)}
-						style={styleHelper.multiSelectStyles.button}
-					>
-						<Text style={styleHelper.multiSelectStyles.buttonText}>
-							Done
-						</Text>
-					</TouchableOpacity>
-				</MultiSelectBar>
-			)}
-		</View>
+		<ListScreen<Feed>
+			ref={listRef}
+			fetchUrl="/feeds/all.json"
+			renderItem={renderItem}
+			keyExtractor={(item) => item.id.toString()}
+			onItemPress={() => {}}
+			emptyComponent={renderEmptyComponent()}
+			multiSelectActions={multiSelectActions}
+			onSelectionChange={handleSelectionChange}
+			selectedItems={selectedFeeds}
+			multiSelectActive={isMultiSelectActive}
+		/>
 	);
 };
 

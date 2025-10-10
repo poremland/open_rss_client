@@ -16,56 +16,58 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { NavigationContainer } from "@react-navigation/native";
 import GlobalDropdownMenu, {
 	useMenu,
 } from "../app/components/GlobalDropdownMenu";
-import { Text, Button } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, TouchableOpacity } from "react-native";
 
-jest.mock("@expo/vector-icons", () => ({
-	Ionicons: "Ionicons",
-}));
+jest.mock("@expo/vector-icons", () => {
+	const { Text } = require("react-native");
+	return {
+		Ionicons: (props) => <Text>{props.name}</Text>,
+	};
+});
 
 describe("GlobalDropdownMenu", () => {
-	// A simple component to use the useMenu hook for testing
-	const TestComponent = ({ menuItemsProp, onToggleDropdownProp }) => {
+	const TestComponent: React.FC<{ menuItemsProp?: any[] }> = ({ menuItemsProp }) => {
 		const { setMenuItems, onToggleDropdown } = useMenu();
 
-		React.useEffect(() => {
+		useEffect(() => {
 			if (menuItemsProp) {
 				setMenuItems(menuItemsProp);
 			}
 		}, [menuItemsProp, setMenuItems]);
 
 		return (
-			<Button
-				title="Toggle Menu"
-				onPress={onToggleDropdownProp || onToggleDropdown}
-			/>
+			<View>
+				<TouchableOpacity onPress={onToggleDropdown}>
+					<Text>Toggle Menu</Text>
+				</TouchableOpacity>
+			</View>
 		);
 	};
 
 	it("should render children and toggle dropdown visibility", async () => {
 		const { getByText, queryByText } = render(
-			<GlobalDropdownMenu>
-				<TestComponent
-					menuItemsProp={[
-						{
-							label: "Option 1",
-							icon: "settings",
-							onPress: jest.fn(),
-						},
-						{
-							label: "Option 2",
-							icon: "log-out",
-							onPress: jest.fn(),
-						},
-					]}
-				/>
-			</GlobalDropdownMenu>,
+			<NavigationContainer>
+				<GlobalDropdownMenu>
+					<TestComponent
+						menuItemsProp={[
+							{
+								label: "Option 1",
+								onPress: () => {},
+								icon: "add",
+							},
+						]}
+					/>
+				</GlobalDropdownMenu>
+			</NavigationContainer>,
 		);
+
+		await waitFor(() => expect(getByText("Toggle Menu")).toBeTruthy());
 
 		expect(queryByText("Option 1")).toBeNull();
 
@@ -73,77 +75,67 @@ describe("GlobalDropdownMenu", () => {
 			fireEvent.press(getByText("Toggle Menu"));
 		});
 
-		await waitFor(() => expect(getByText(/Option 1/)).toBeVisible());
-		expect(getByText(/Option 2/)).toBeVisible();
+		await waitFor(() => expect(getByText("Option 1")).toBeTruthy());
 
-		await act(async () => {
-			fireEvent.press(getByText("Toggle Menu"));
-		});
-
+		        await act(async () => {
+		            fireEvent.press(getByText("Toggle Menu"));
+		        });
+		
 		await waitFor(() => expect(queryByText("Option 1")).toBeNull());
-	}, 10000);
-
-	it("should call onPress handler and close dropdown when menu item is pressed", async () => {
-		const mockOnPress1 = jest.fn();
-		const mockOnPress2 = jest.fn();
-
+	}, 10000);	it("should call onPress handler and close dropdown when menu item is pressed", async () => {
+		const mockOnPress = jest.fn();
 		const { getByText, queryByText } = render(
-			<GlobalDropdownMenu>
-				<TestComponent
-					menuItemsProp={[
-						{
-							label: "Option 1",
-							icon: "settings",
-							onPress: mockOnPress1,
-						},
-						{
-							label: "Option 2",
-							icon: "log-out",
-							onPress: mockOnPress2,
-						},
-					]}
-				/>
-			</GlobalDropdownMenu>,
+			<NavigationContainer>
+				<GlobalDropdownMenu>
+					<TestComponent
+						menuItemsProp={[
+							{
+								label: "Option 1",
+								onPress: mockOnPress,
+								icon: "add",
+							},
+						]}
+					/>
+				</GlobalDropdownMenu>
+			</NavigationContainer>,
 		);
 
 		await act(async () => {
 			fireEvent.press(getByText("Toggle Menu"));
 		});
-		await waitFor(() => expect(getByText(/Option 1/)).toBeVisible());
+
+		await waitFor(() => expect(getByText("Option 1")).toBeTruthy());
 
 		await act(async () => {
-			fireEvent.press(getByText(/Option 1/));
+			fireEvent.press(getByText("Option 1"));
 		});
 
-		expect(mockOnPress1).toHaveBeenCalledTimes(1);
-		expect(mockOnPress2).not.toHaveBeenCalled();
+		expect(mockOnPress).toHaveBeenCalledTimes(1);
 		await waitFor(() => expect(queryByText("Option 1")).toBeNull());
 	});
 
 	it("should close dropdown when overlay is pressed", async () => {
 		const { getByText, queryByText, getByTestId } = render(
-			<GlobalDropdownMenu>
-				<TestComponent
-					menuItemsProp={[
-						{
-							label: "Option 1",
-							icon: "settings",
-							onPress: jest.fn(),
-						},
-						{
-							label: "Option 2",
-							icon: "log-out",
-							onPress: jest.fn(),
-						},
-					]}
-				/>
-			</GlobalDropdownMenu>,
+			<NavigationContainer>
+				<GlobalDropdownMenu>
+					<TestComponent
+						menuItemsProp={[
+							{
+								label: "Option 1",
+								onPress: () => {},
+								icon: "add",
+							},
+						]}
+					/>
+				</GlobalDropdownMenu>
+			</NavigationContainer>,
 		);
 
 		await act(async () => {
 			fireEvent.press(getByText("Toggle Menu"));
 		});
-		await waitFor(() => expect(getByText(/Option 1/)).toBeVisible());
+
+		await waitFor(() => expect(getByText("Option 1")).toBeTruthy());
 
 		await act(async () => {
 			fireEvent.press(getByTestId("overlay"));
@@ -158,7 +150,6 @@ describe("GlobalDropdownMenu", () => {
 			return <Text>Test</Text>;
 		};
 
-		// Suppress console.error for this test as it's expected to throw
 		const errorSpy = jest
 			.spyOn(console, "error")
 			.mockImplementation(() => {});

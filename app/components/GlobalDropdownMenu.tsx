@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import {
 	View,
 	Text,
@@ -30,6 +30,7 @@ interface MenuItem {
 	label: string;
 	onPress: () => void;
 	icon: keyof typeof Ionicons.glyphMap;
+	testID?: string;
 }
 
 interface MenuContextType {
@@ -65,7 +66,10 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 		setIsDropdownVisible(false);
 	}, []);
 
-	const contextValue = { setMenuItems, onToggleDropdown };
+	const contextValue = useMemo(
+		() => ({ setMenuItems, onToggleDropdown }),
+		[setMenuItems, onToggleDropdown],
+	);
 
 	return (
 		<MenuContext.Provider value={contextValue}>
@@ -93,6 +97,7 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
 									key={index}
+									testID={item.testID}
 									style={
 										styleHelper.dropdownStyles.dropdownItem
 									}
@@ -106,10 +111,9 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 										size={24}
 										color="black"
 									/>
-									<Text> | {item.label}</Text>
+									<Text>{item.label}</Text>
 								</TouchableOpacity>
-							))}
-						</View>
+							))}						</View>
 					</View>
 				</TouchableWithoutFeedback>
 			)}

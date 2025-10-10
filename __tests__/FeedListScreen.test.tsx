@@ -17,31 +17,20 @@
  */
 
 import React from "react";
-import { render, waitFor, act } from "@testing-library/react-native";
-import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
+import { render, waitFor } from "@testing-library/react-native";
 import FeedListScreen from "../app/FeedListScreen";
 import useApi from "../app/components/useApi";
 import * as authHelper from "../helpers/auth";
-import { useRouter, useNavigation } from "expo-router";
-import GlobalDropdownMenu from "../app/components/GlobalDropdownMenu";
-import { useMenu } from "../app/components/GlobalDropdownMenu";
+
+jest.mock("../helpers/auth");
 
 const mockSetMenuItems = jest.fn();
-const mockOnToggleDropdown = jest.fn();
+const mockRouter = {
+	push: jest.fn(),
+	dismissAll: jest.fn(),
+};
 
-jest.mock("../app/components/GlobalDropdownMenu", () => ({
-	__esModule: true,
-	...jest.requireActual("../app/components/GlobalDropdownMenu"),
-	useMenu: () => ({
-		setMenuItems: mockSetMenuItems,
-		onToggleDropdown: mockOnToggleDropdown,
-	}),
-}));
-
-jest.mock("@react-navigation/native", () => ({
-	...jest.requireActual("@react-navigation/native"),
-	useFocusEffect: jest.fn(),
-}));
+jest.mock("../app/components/useApi");
 
 jest.mock("@expo/vector-icons", () => {
 	const { Text } = require("react-native");
@@ -50,37 +39,31 @@ jest.mock("@expo/vector-icons", () => {
 	};
 });
 
-jest.mock("../app/components/useApi");
-jest.mock("../helpers/auth");
-
-const mockRouter = {
-	push: jest.fn(),
-	replace: jest.fn(),
-};
-const mockNavigation = {
-	setOptions: jest.fn((options) => {
-		if (options.headerRight) {
-			const HeaderRightComponent = options.headerRight();
-			mockNavigation.headerRightProps = HeaderRightComponent.props;
-		}
-	}),
-};
-
 jest.mock("expo-router", () => ({
 	useRouter: () => mockRouter,
-	useNavigation: () => mockNavigation,
+	useNavigation: () => ({ setOptions: jest.fn() }),
+}));
+
+jest.mock("@react-navigation/native", () => {
+	const React = require("react");
+	return {
+		...jest.requireActual("@react-navigation/native"),
+		useFocusEffect: (callback) => {
+			React.useEffect(callback);
+		},
+	};
+});
+
+jest.mock("../app/components/GlobalDropdownMenu", () => ({
+	__esModule: true,
+	...jest.requireActual("../app/components/GlobalDropdownMenu"),
+	useMenu: () => ({
+		setMenuItems: mockSetMenuItems,
+		onToggleDropdown: jest.fn(),
+	}),
 }));
 
 describe("FeedListScreen", () => {
-	beforeEach(() => {
-		mockRouter.push.mockClear();
-		mockRouter.replace.mockClear();
-		mockNavigation.setOptions.mockClear();
-		(useApi as jest.Mock).mockClear();
-		(authHelper.getUser as jest.Mock).mockResolvedValue("testuser");
-		(authHelper.clearAuthData as jest.Mock).mockClear();
-	});
-
 	it("should display a list of feeds", async () => {
 		const mockFeeds = [
 			{ feed: { id: 1, name: "Feed 1", count: 10 } },
@@ -93,19 +76,7 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		const { getByText } = render(<FeedListScreen />);
 
 		await waitFor(() => {
 			expect(getByText("Feed 1 (10)")).toBeTruthy();
@@ -121,19 +92,7 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		render(<FeedListScreen />);
 
 		await waitFor(() => {
 			expect(mockSetMenuItems).toHaveBeenCalled();
@@ -159,19 +118,7 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		render(<FeedListScreen />);
 
 		await waitFor(() => {
 			expect(mockSetMenuItems).toHaveBeenCalled();
@@ -199,19 +146,7 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		render(<FeedListScreen />);
 
 		await waitFor(() => {
 			expect(mockSetMenuItems).toHaveBeenCalled();
@@ -237,22 +172,10 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		const { getByText } = render(<FeedListScreen />);
 
 		await waitFor(() => {
-			expect(getByText("Loading feeds...")).toBeTruthy();
+			expect(getByText("Loading...")).toBeTruthy();
 		});
 	});
 
@@ -264,19 +187,7 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		const { getByText } = render(<FeedListScreen />);
 
 		await waitFor(() => {
 			expect(getByText(/API Error/)).toBeTruthy();
@@ -291,19 +202,7 @@ describe("FeedListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		act(() => {
-			const focusEffectCallback = (useFocusEffect as jest.Mock).mock
-				.calls[0][0];
-			focusEffectCallback();
-		});
+		const { getByText } = render(<FeedListScreen />);
 
 		await waitFor(() => {
 			expect(

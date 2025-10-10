@@ -106,7 +106,7 @@ describe("AddFeedScreen", () => {
 			execute: mockExecute,
 		});
 
-		const { getByTestId } = render(<AddFeedScreen />);
-		expect(getByTestId("activity-indicator")).toBeTruthy();
+		const { getByText } = render(<AddFeedScreen />);
+		expect(getByText("Loading...")).toBeTruthy();
 	});
 });

@@ -44,8 +44,6 @@ export const containerStyles = StyleSheet.create({
 export const listStyles = StyleSheet.create({
 	listItem: {
 		padding: 15,
-		borderBottomWidth: 1,
-		borderBottomColor: '#A9A9A9',
 	},
 	link: {
 		color: 'blue',

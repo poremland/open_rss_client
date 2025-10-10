@@ -19,8 +19,9 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import Index from "../app/index";
 import { post } from "../helpers/api";
+import Index from "../app/index";
+
 import * as authHelper from "../helpers/auth";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,9 +31,7 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 	setItem: jest.fn(),
 }));
 
-jest.mock("../helpers/api", () => ({
-	post: jest.fn(),
-}));
+
 
 jest.mock("../helpers/auth", () => ({
 	storeUser: jest.fn(),
@@ -52,6 +51,7 @@ describe("Login Screen", () => {
 	beforeEach(() => {
 		(useRouter as jest.Mock).mockReturnValue(mockRouter);
 		(post as jest.Mock).mockClear();
+
 		(authHelper.storeUser as jest.Mock).mockClear();
 		(authHelper.storeAuthToken as jest.Mock).mockClear();
 		(authHelper.checkLoggedIn as jest.Mock).mockClear();

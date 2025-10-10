@@ -16,32 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+jest.unmock("../../helpers/api");
+
+jest.doMock("@react-native-async-storage/async-storage", () =>
+  require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+);
+
 import { post, postWithAuth, get, getWithAuth } from "../../helpers/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-const mockAsyncStorage = {
-	getItem: jest.fn(),
-};
-
-jest.mock("@react-native-async-storage/async-storage", () => ({
-	getItem: (key: string) => mockAsyncStorage.getItem(key),
-}));
-
 describe("API Helper", () => {
 	const MOCK_BASE_URL = "http://localhost:3000";
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		mockFetch.mockClear();
-		mockAsyncStorage.getItem.mockClear();
-		mockAsyncStorage.getItem.mockImplementation((key) => {
-			if (key === "serverUrl") {
-				return Promise.resolve(MOCK_BASE_URL);
-			}
-			return Promise.resolve(null);
-		});
+		await AsyncStorage.clear();
+		await AsyncStorage.setItem("serverUrl", MOCK_BASE_URL);
 	});
 
 	describe("post", () => {
@@ -93,11 +86,7 @@ describe("API Helper", () => {
 	describe("postWithAuth", () => {
 		it("should make an authenticated POST request with form data", async () => {
 			const mockData = { message: "Success" };
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve("test-token");
-				return Promise.resolve(null);
-			});
+			await AsyncStorage.setItem("authToken", "test-token");
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => mockData,
@@ -119,11 +108,7 @@ describe("API Helper", () => {
 
 		it("should make an authenticated POST request with JSON data", async () => {
 			const mockData = { message: "Success" };
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve("test-token");
-				return Promise.resolve(null);
-			});
+			await AsyncStorage.setItem("authToken", "test-token");
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => mockData,
@@ -148,12 +133,6 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if no auth token is found", async () => {
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve(null);
-				return Promise.resolve(null);
-			});
-
 			await expect(postWithAuth("/test", { foo: "bar" })).rejects.toThrow(
 				"No authentication token found.",
 			);
@@ -163,11 +142,6 @@ describe("API Helper", () => {
 	describe("get", () => {
 		it("should make a GET request without auth", async () => {
 			const mockData = { message: "Success" };
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve(null);
-				return Promise.resolve(null);
-			});
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => mockData,
@@ -184,11 +158,7 @@ describe("API Helper", () => {
 
 		it("should make a GET request with auth if token exists", async () => {
 			const mockData = { message: "Success" };
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve("test-token");
-				return Promise.resolve(null);
-			});
+			await AsyncStorage.setItem("authToken", "test-token");
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => mockData,
@@ -234,11 +204,7 @@ describe("API Helper", () => {
 	describe("getWithAuth", () => {
 		it("should make an authenticated GET request", async () => {
 			const mockData = { message: "Success" };
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve("test-token");
-				return Promise.resolve(null);
-			});
+			await AsyncStorage.setItem("authToken", "test-token");
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => mockData,
@@ -259,23 +225,13 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if no auth token is found", async () => {
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve(null);
-				return Promise.resolve(null);
-			});
-
 			await expect(getWithAuth("/test")).rejects.toThrow("No authentication token found.",
 			);
 		});
 
 		it("should retry a failed GET request up to 3 times", async () => {
 			const mockError = new Error("Network error");
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve("test-token");
-				return Promise.resolve(null);
-			});
+			await AsyncStorage.setItem("authToken", "test-token");
 			mockFetch.mockRejectedValue(mockError);
 
 			await expect(getWithAuth("/test")).rejects.toThrow("Network error");
@@ -284,11 +240,7 @@ describe("API Helper", () => {
 
 		it("should succeed if one of the retry attempts is successful", async () => {
 			const mockData = { message: "Success" };
-			mockAsyncStorage.getItem.mockImplementation((key) => {
-				if (key === "serverUrl") return Promise.resolve(MOCK_BASE_URL);
-				if (key === "authToken") return Promise.resolve("test-token");
-				return Promise.resolve(null);
-			});
+			await AsyncStorage.setItem("authToken", "test-token");
 			mockFetch
 				.mockRejectedValueOnce(new Error("Network error"))
 				.mockResolvedValueOnce({

@@ -26,20 +26,11 @@ import { useRouter, useNavigation } from "expo-router";
 import GlobalDropdownMenu, {
 	useMenu,
 } from "../app/components/GlobalDropdownMenu";
+import { listStyles } from "../styles/commonStyles";
+import { styles } from "../styles/ManageFeedsListScreen.styles";
+import ListScreen from "../app/components/ListScreen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-jest.mock("@expo/vector-icons", () => {
-	const { Text } = require("react-native");
-	return {
-		Ionicons: (props) => <Text testID={props.name}>{props.name}</Text>,
-	};
-});
-
-jest.mock("../app/components/useApi");
-jest.mock("../helpers/api", () => ({
-	getWithAuth: jest.fn(),
-}));
-jest.mock("../helpers/auth");
+import { StyleSheet } from "react-native";
 
 const mockRouter = {
 	push: jest.fn(),
@@ -54,6 +45,17 @@ const mockNavigation = {
 jest.mock("expo-router", () => ({
 	useRouter: () => mockRouter,
 	useNavigation: () => mockNavigation,
+}));
+
+jest.mock("../app/components/useApi", () => ({
+	__esModule: true,
+	default: jest.fn(),
+}));
+
+jest.mock("../helpers/auth", () => ({
+	...jest.requireActual("../helpers/auth"),
+	getUser: jest.fn(),
+	clearAuthData: jest.fn(),
 }));
 
 describe("ManageFeedsListScreen", () => {
@@ -72,6 +74,7 @@ describe("ManageFeedsListScreen", () => {
 		(authHelper.getUser as jest.Mock).mockResolvedValue("testuser");
 		(authHelper.clearAuthData as jest.Mock).mockClear();
 		AsyncStorage.setItem("authToken", "test-token");
+		AsyncStorage.setItem("serverUrl", "http://localhost:8080");
 	});
 
 	it("should display a list of all feeds", async () => {
@@ -140,7 +143,7 @@ describe("ManageFeedsListScreen", () => {
 	};
 
 	it("should call clearAuthData when Log-out is pressed", async () => {
-		await testHeaderInteraction(" | Log-out", authHelper.clearAuthData, [
+		await testHeaderInteraction("Log-out", authHelper.clearAuthData, [
 			mockRouter,
 		]);
 	});
@@ -216,7 +219,7 @@ describe("ManageFeedsListScreen", () => {
 		);
 
 		await waitFor(() => {
-			expect(getByText("Loading feeds...")).toBeTruthy();
+			expect(getByText("Loading...")).toBeTruthy();
 		});
 	});
 
@@ -262,6 +265,7 @@ describe("ManageFeedsListScreen", () => {
 		});
 	});
 
+
 	it("should select all feeds when Select All is pressed", async () => {
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
@@ -270,7 +274,7 @@ describe("ManageFeedsListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		const { getByText } = render(
+		const { getByText, getByTestId } = render(
 			<NavigationContainer>
 				<GlobalDropdownMenu>
 					<ManageFeedsListScreen />
@@ -285,7 +289,12 @@ describe("ManageFeedsListScreen", () => {
 		fireEvent.press(getByText("Select All"));
 
 		await waitFor(() => {
-			expect(getByText("Delete")).toBeTruthy();
+			const item1 = getByTestId("feed-item-1");
+			const item2 = getByTestId("feed-item-2");
+			const style1 = StyleSheet.flatten(item1.props.style);
+			const style2 = StyleSheet.flatten(item2.props.style);
+			expect(style1.backgroundColor).toEqual(listStyles.selectedItem.backgroundColor);
+			expect(style2.backgroundColor).toEqual(listStyles.selectedItem.backgroundColor);
 		});
 	});
 
