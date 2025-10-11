@@ -113,7 +113,8 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 									/>
 									<Text>{item.label}</Text>
 								</TouchableOpacity>
-							))}						</View>
+							))}
+						</View>
 					</View>
 				</TouchableWithoutFeedback>
 			)}
