@@ -60,6 +60,7 @@ const ManageFeedsListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			listRef.current?.handleRefresh();
 			const menuItems = [
 				{
 					label: "Log-out",

@@ -77,6 +77,28 @@ describe("ManageFeedsListScreen", () => {
 		AsyncStorage.setItem("serverUrl", "http://localhost:8080");
 	});
 
+		it("should fetch feeds when the screen is focused", async () => {
+		const execute = jest.fn();
+		(useApi as jest.Mock).mockReturnValue({
+			data: [],
+			loading: false,
+			error: null,
+			execute,
+		});
+
+		render(
+			<NavigationContainer>
+				<GlobalDropdownMenu>
+					<ManageFeedsListScreen />
+				</GlobalDropdownMenu>
+			</NavigationContainer>,
+		);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
+	});
+
 	it("should display a list of all feeds", async () => {
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
