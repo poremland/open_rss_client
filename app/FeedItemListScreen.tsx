@@ -80,6 +80,14 @@ const FeedItemListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			const refreshAndCheck = async () => {
+				const refreshedData = await listRef.current?.handleRefresh();
+				if (refreshedData?.length === 0) {
+					navigation.goBack();
+				}
+			};
+			refreshAndCheck();
+
 			const menuItems = [
 				{
 					label: "Mark All As Read",
@@ -117,6 +125,7 @@ const FeedItemListScreen: React.FC = () => {
 			handleDeleteFeed,
 			setMenuItems,
 			onToggleDropdown,
+			listRef,
 		]),
 	);
 

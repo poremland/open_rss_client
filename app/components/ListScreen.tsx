@@ -25,7 +25,7 @@ interface ListScreenProps<T, U = T> {
 
 const ListScreen = React.forwardRef(<T, U extends { id: number }>(
 	props: ListScreenProps<T, U>,
-	ref: React.Ref<{ handleRefresh: () => void, getData: () => U[], setData: (data: U[]) => void }>
+	ref: React.Ref<{ handleRefresh: () => Promise<U[] | undefined>, getData: () => U[], setData: (data: U[]) => void }>
 ) => {
 	const {
 		fetchUrl,
@@ -66,10 +66,19 @@ const ListScreen = React.forwardRef(<T, U extends { id: number }>(
 
 
 
-	const handleRefresh = useCallback(() => {
+	const handleRefresh = useCallback(async () => {
 		setRefreshing(true);
-		fetchData().finally(() => setRefreshing(false));
-	}, [fetchData]);
+		try {
+			const refreshedRawData = await fetchData();
+			const dataToTransform = refreshedRawData || [];
+			const refreshedTransformedData = transformData
+				? transformData(dataToTransform)
+				: (dataToTransform as unknown as U[]);
+			return refreshedTransformedData;
+		} finally {
+			setRefreshing(false);
+		}
+	}, [fetchData, transformData]);
 
 	React.useImperativeHandle(ref, () => ({
 		handleRefresh,
