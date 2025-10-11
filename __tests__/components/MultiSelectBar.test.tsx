@@ -22,23 +22,13 @@ import { View, Text } from "react-native";
 import MultiSelectBar from "../../app/components/MultiSelectBar";
 
 describe("MultiSelectBar", () => {
-	it("should render children and measure height on layout", () => {
-		const onHeightMeasured = jest.fn();
-		const ref = React.createRef<View>();
-
+	it("should render children", () => {
 		const { getByText } = render(
-			<MultiSelectBar onHeightMeasured={onHeightMeasured} ref={ref}>
+			<MultiSelectBar>
 				<Text>Child Component</Text>
 			</MultiSelectBar>,
 		);
 
 		expect(getByText("Child Component")).toBeTruthy();
-
-		const mockMeasure = (callback) => callback(0, 0, 100, 50, 0, 0);
-		ref.current.measure = mockMeasure;
-
-		fireEvent(getByText("Child Component").parent.parent, "layout");
-
-		expect(onHeightMeasured).toHaveBeenCalledWith(50);
 	});
 });

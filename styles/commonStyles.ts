@@ -138,10 +138,6 @@ export const swipeStyles = StyleSheet.create({
 
 export const multiSelectStyles = StyleSheet.create({
 	topBar: {
-		position: 'absolute',
-		top: 0,
-		left: 0,
-		right: 0,
 		backgroundColor: 'white',
 		flexDirection: 'row',
 		justifyContent: 'space-around',

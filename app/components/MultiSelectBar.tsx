@@ -20,24 +20,13 @@ import React, { useRef } from "react";
 import { View, ViewProps } from "react-native";
 import * as styleHelper from "../../styles/commonStyles";
 
-interface MultiSelectBarProps extends ViewProps {
-	onHeightMeasured: (height: number) => void;
-}
+interface MultiSelectBarProps extends ViewProps {}
 
 const MultiSelectBar = React.forwardRef<View, MultiSelectBarProps>(
-	({ children, onHeightMeasured, ...props }, ref) => {
+	({ children, ...props }, ref) => {
 		return (
 			<View
 				ref={ref}
-				onLayout={() => {
-					if (ref && "current" in ref && ref.current) {
-						ref.current.measure(
-							(_x, _y, _width, height, _pageX, _pageY) => {
-								onHeightMeasured(height);
-							},
-						);
-					}
-				}}
 				style={styleHelper.multiSelectStyles.topBar}
 				{...props}
 			>
@@ -46,7 +35,5 @@ const MultiSelectBar = React.forwardRef<View, MultiSelectBarProps>(
 		);
 	},
 );
-
-export default MultiSelectBar;
 
 export default MultiSelectBar;

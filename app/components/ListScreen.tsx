@@ -55,7 +55,6 @@ const ListScreen = React.forwardRef(<T, U extends { id: number }>(
 	const [refreshing, setRefreshing] = useState<boolean>(false);
 	const [internalSelectedItems, setInternalSelectedItems] = useState<number[]>([]);
 	const [internalMultiSelectActive, setInternalMultiSelectActive] = useState<boolean>(false);
-	const [multiSelectBarHeight, setMultiSelectBarHeight] = useState<number>(0);
 
 	const isMultiSelectActive = controlledMultiSelectActive !== undefined ? controlledMultiSelectActive : internalMultiSelectActive;
 	const selectedItems = controlledSelectedItems !== undefined ? controlledSelectedItems : internalSelectedItems;
@@ -120,51 +119,53 @@ const ListScreen = React.forwardRef(<T, U extends { id: number }>(
 
 	return (
 		<Screen loading={loading && !refreshing} error={error}>
-					<SelectableFlatList
-						testID="flat-list"
-						style={styles.container}
-						data={transformedData || []}
-						renderItem={renderItem}
-						keyExtractor={keyExtractor}
-						onRefresh={handleRefresh}
-						refreshing={refreshing}
-						multiSelectActive={isMultiSelectActive}
-						onSelectionChange={handleSelectionChange}
-						selectedItems={selectedItems}
-						onItemPress={onItemPress}
-						ListEmptyComponent={emptyComponent || defaultEmptyComponent}
-					/>
-			{isMultiSelectActive && multiSelectActions && (
-				<MultiSelectBar onHeightMeasured={setMultiSelectBarHeight}>
-					<TouchableOpacity
-						onPress={handleSelectAll}
-						style={styles.multiSelectButton}
-					>
-						<Text style={styles.multiSelectButtonText}>
-							Select All
-						</Text>
-					</TouchableOpacity>
-					{multiSelectActions.map((action, index) => (
+			<View style={{ flex: 1 }}>
+				{isMultiSelectActive && multiSelectActions && (
+					<MultiSelectBar>
 						<TouchableOpacity
-							key={index}
-							onPress={() => action.onPress(selectedItems)}
+							onPress={handleSelectAll}
 							style={styles.multiSelectButton}
 						>
 							<Text style={styles.multiSelectButtonText}>
-								{action.label}
+								Select All
 							</Text>
 						</TouchableOpacity>
-					))}
-					<TouchableOpacity
-						onPress={handleDoneMultiSelect}
-						style={styles.multiSelectButton}
-					>
-						<Text style={styles.multiSelectButtonText}>
-							Done
-						</Text>
-					</TouchableOpacity>
-				</MultiSelectBar>
-			)}
+						{multiSelectActions.map((action, index) => (
+							<TouchableOpacity
+								key={index}
+								onPress={() => action.onPress(selectedItems)}
+								style={styles.multiSelectButton}
+							>
+								<Text style={styles.multiSelectButtonText}>
+									{action.label}
+								</Text>
+							</TouchableOpacity>
+						))}
+						<TouchableOpacity
+							onPress={handleDoneMultiSelect}
+							style={styles.multiSelectButton}
+						>
+							<Text style={styles.multiSelectButtonText}>
+								Done
+							</Text>
+						</TouchableOpacity>
+					</MultiSelectBar>
+				)}
+				<SelectableFlatList
+					testID="flat-list"
+					style={styles.container}
+					data={transformedData || []}
+					renderItem={renderItem}
+					keyExtractor={keyExtractor}
+					onRefresh={handleRefresh}
+					refreshing={refreshing}
+					multiSelectActive={isMultiSelectActive}
+					onSelectionChange={handleSelectionChange}
+					selectedItems={selectedItems}
+					onItemPress={onItemPress}
+					ListEmptyComponent={emptyComponent || defaultEmptyComponent}
+				/>
+			</View>
 		</Screen>
 	);
 });

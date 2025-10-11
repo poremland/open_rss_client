@@ -63,12 +63,11 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 	}),
 }));
 
-describe("FeedListScreen", () => {
+	describe("FeedListScreen", () => {
 	beforeEach(() => {
 		mockUseFocusEffect.mockClear();
 		mockUseFocusEffect.mockImplementation(React.useEffect);
 	});
-
 	it("should display a list of feeds", async () => {
 		const mockFeeds = [
 			{ feed: { id: 1, name: "Feed 1", count: 10 } },
@@ -82,7 +81,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		const { getByText } = render(<FeedListScreen />);
+		const { getByText } = await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -103,7 +102,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		render(<FeedListScreen />);
+		await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -134,7 +133,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		render(<FeedListScreen />);
+		await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -167,7 +166,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		render(<FeedListScreen />);
+		await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -198,7 +197,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		const { getByText } = render(<FeedListScreen />);
+		const { getByText } = await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -218,7 +217,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		const { getByText } = render(<FeedListScreen />);
+		const { getByText } = await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -238,7 +237,7 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		const { getByText } = render(<FeedListScreen />);
+		const { getByText } = await waitFor(() => render(<FeedListScreen />));
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
