@@ -17,11 +17,7 @@
  */
 
 import React, { useCallback } from "react";
-import {
-	View,
-	Text,
-	Image,
-} from "react-native";
+import { View, Text, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 

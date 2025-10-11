@@ -54,9 +54,7 @@ const requestWithRetry = async (
 		} catch (error) {
 			lastError = error;
 			if (i < retries - 1) {
-				await new Promise((resolve) =>
-					setTimeout(resolve, 200 * (i + 1)),
-				);
+				await new Promise((resolve) => setTimeout(resolve, 200 * (i + 1)));
 			}
 		}
 	}
@@ -73,8 +71,7 @@ export const post = async (url: string, body: any) => {
 		},
 		body: Object.keys(body)
 			.map(
-				(key) =>
-					`${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
+				(key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
 			)
 			.join("&"),
 	});
@@ -107,8 +104,7 @@ export const postWithAuth = async (
 		headers["Content-Type"] = "application/x-www-form-urlencoded";
 		requestBody = Object.keys(body)
 			.map(
-				(key) =>
-					`${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
+				(key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
 			)
 			.join("&");
 	}
@@ -178,8 +174,7 @@ export const putWithAuth = async (
 		headers["Content-Type"] = "application/x-www-form-urlencoded";
 		requestBody = Object.keys(body)
 			.map(
-				(key) =>
-					`${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
+				(key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
 			)
 			.join("&");
 	}

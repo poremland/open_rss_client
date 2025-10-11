@@ -31,8 +31,6 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 	setItem: jest.fn(),
 }));
 
-
-
 jest.mock("../helpers/auth", () => ({
 	storeUser: jest.fn(),
 	storeAuthToken: jest.fn(),
@@ -71,18 +69,14 @@ describe("Login Screen", () => {
 	});
 
 	it("should load server URL from AsyncStorage on mount", async () => {
-		(AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-			"http://test.com",
-		);
+		(AsyncStorage.getItem as jest.Mock).mockResolvedValue("http://test.com");
 		const { getByTestId } = render(
 			<NavigationContainer>
 				<Index />
 			</NavigationContainer>,
 		);
 		await waitFor(() => {
-			expect(getByTestId("serverUrlInput").props.value).toBe(
-				"http://test.com",
-			);
+			expect(getByTestId("serverUrlInput").props.value).toBe("http://test.com");
 		});
 	});
 
@@ -96,10 +90,7 @@ describe("Login Screen", () => {
 			</NavigationContainer>,
 		);
 
-		fireEvent.changeText(
-			getByTestId("serverUrlInput"),
-			"http://newurl.com",
-		);
+		fireEvent.changeText(getByTestId("serverUrlInput"), "http://newurl.com");
 		fireEvent.changeText(getByPlaceholderText("Username"), "testuser");
 		fireEvent.press(getByTestId("requestOtpButton"));
 
@@ -182,9 +173,7 @@ describe("Login Screen", () => {
 		fireEvent.press(getByTestId("loginButton"));
 
 		await waitFor(() => {
-			expect(
-				getByText("Login Failed: Invalid token in response"),
-			).toBeTruthy();
+			expect(getByText("Login Failed: Invalid token in response")).toBeTruthy();
 			expect(authHelper.storeUser).not.toHaveBeenCalled();
 			expect(authHelper.storeAuthToken).not.toHaveBeenCalled();
 			expect(mockRouter.replace).not.toHaveBeenCalled();

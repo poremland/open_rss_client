@@ -32,7 +32,9 @@ jest.mock("@expo/vector-icons", () => {
 });
 
 describe("GlobalDropdownMenu", () => {
-	const TestComponent: React.FC<{ menuItemsProp?: any[] }> = ({ menuItemsProp }) => {
+	const TestComponent: React.FC<{ menuItemsProp?: any[] }> = ({
+		menuItemsProp,
+	}) => {
 		const { setMenuItems, onToggleDropdown } = useMenu();
 
 		useEffect(() => {
@@ -77,12 +79,13 @@ describe("GlobalDropdownMenu", () => {
 
 		await waitFor(() => expect(getByText("Option 1")).toBeTruthy());
 
-		        await act(async () => {
-		            fireEvent.press(getByText("Toggle Menu"));
-		        });
-		
+		await act(async () => {
+			fireEvent.press(getByText("Toggle Menu"));
+		});
+
 		await waitFor(() => expect(queryByText("Option 1")).toBeNull());
-	}, 10000);	it("should call onPress handler and close dropdown when menu item is pressed", async () => {
+	}, 10000);
+	it("should call onPress handler and close dropdown when menu item is pressed", async () => {
 		const mockOnPress = jest.fn();
 		const { getByText, queryByText } = render(
 			<NavigationContainer>
@@ -150,9 +153,7 @@ describe("GlobalDropdownMenu", () => {
 			return <Text>Test</Text>;
 		};
 
-		const errorSpy = jest
-			.spyOn(console, "error")
-			.mockImplementation(() => {});
+		const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
 		expect(() => render(<TestComponentWithoutProvider />)).toThrow(
 			"useMenu must be used within a MenuProvider",

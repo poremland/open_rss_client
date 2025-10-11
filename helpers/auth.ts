@@ -56,8 +56,13 @@ export const checkLoggedIn = async (
 	}
 };
 
-export const handleSessionExpired = async (router: ReturnType<typeof useRouter>) => {
-	Alert.alert("Session Expired", "Your session has expired. Please log in again.");
+export const handleSessionExpired = async (
+	router: ReturnType<typeof useRouter>,
+) => {
+	Alert.alert(
+		"Session Expired",
+		"Your session has expired. Please log in again.",
+	);
 	await clearAuthData(router);
 };
 

@@ -28,7 +28,17 @@ import * as styleHelper from "../../styles/commonStyles";
 
 interface SelectableFlatListProps<T> {
 	data: T[];
-	renderItem: ({ item, onPress, onLongPress, isItemSelected }: { item: T, onPress: () => void, onLongPress: () => void, isItemSelected: boolean }) => React.ReactElement;
+	renderItem: ({
+		item,
+		onPress,
+		onLongPress,
+		isItemSelected,
+	}: {
+		item: T;
+		onPress: () => void;
+		onLongPress: () => void;
+		isItemSelected: boolean;
+	}) => React.ReactElement;
 	onRefresh: () => void;
 	refreshing: boolean;
 	multiSelectActive: boolean;
@@ -39,18 +49,18 @@ interface SelectableFlatListProps<T> {
 	contentContainerStyle?: ViewStyle;
 }
 
-const SelectableFlatList = <T extends { id: number }>({ 
-    data,
-    renderItem,
-    onRefresh,
-    refreshing,
-    multiSelectActive,
-    onSelectionChange,
-    selectedItems,
-    onItemPress,
-    ListEmptyComponent,
-    contentContainerStyle,
- }: SelectableFlatListProps<T>) => {
+const SelectableFlatList = <T extends { id: number }>({
+	data,
+	renderItem,
+	onRefresh,
+	refreshing,
+	multiSelectActive,
+	onSelectionChange,
+	selectedItems,
+	onItemPress,
+	ListEmptyComponent,
+	contentContainerStyle,
+}: SelectableFlatListProps<T>) => {
 	const toggleSelection = useCallback(
 		(itemId: number) => {
 			const isSelected = selectedItems.includes(itemId);

@@ -19,7 +19,7 @@
 jest.unmock("../../helpers/api");
 
 jest.doMock("@react-native-async-storage/async-storage", () =>
-  require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
 
 import { post, postWithAuth, get, getWithAuth } from "../../helpers/api";
@@ -225,7 +225,8 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if no auth token is found", async () => {
-			await expect(getWithAuth("/test")).rejects.toThrow("No authentication token found.",
+			await expect(getWithAuth("/test")).rejects.toThrow(
+				"No authentication token found.",
 			);
 		});
 

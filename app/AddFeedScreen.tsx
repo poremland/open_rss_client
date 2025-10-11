@@ -17,12 +17,7 @@
  */
 
 import React, { useState } from "react";
-import {
-	View,
-	Text,
-	TextInput,
-	Button,
-} from "react-native";
+import { View, Text, TextInput, Button } from "react-native";
 import { useNavigation } from "expo-router";
 import useApi from "./components/useApi";
 import * as authHelper from "../helpers/auth";

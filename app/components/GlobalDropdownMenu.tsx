@@ -16,7 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
+import React, {
+	createContext,
+	useContext,
+	useState,
+	useCallback,
+	useMemo,
+} from "react";
 import {
 	View,
 	Text,
@@ -75,10 +81,7 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 		<MenuContext.Provider value={contextValue}>
 			{children}
 			{isDropdownVisible && (
-				<TouchableWithoutFeedback
-					testID="overlay"
-					onPress={onCloseDropdown}
-				>
+				<TouchableWithoutFeedback testID="overlay" onPress={onCloseDropdown}>
 					<View style={styleHelper.dropdownStyles.overlay}>
 						<View
 							style={styleHelper.dropdownStyles.dropdown}
@@ -88,29 +91,19 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 								style={styleHelper.dropdownStyles.dropdownItem}
 								onPress={onCloseDropdown}
 							>
-								<Ionicons
-									name="close-sharp"
-									size={24}
-									color="black"
-								/>
+								<Ionicons name="close-sharp" size={24} color="black" />
 							</TouchableOpacity>
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
 									key={index}
 									testID={item.testID}
-									style={
-										styleHelper.dropdownStyles.dropdownItem
-									}
+									style={styleHelper.dropdownStyles.dropdownItem}
 									onPress={() => {
 										onCloseDropdown();
 										item.onPress();
 									}}
 								>
-									<Ionicons
-										name={item.icon}
-										size={24}
-										color="black"
-									/>
+									<Ionicons name={item.icon} size={24} color="black" />
 									<Text>{item.label}</Text>
 								</TouchableOpacity>
 							))}

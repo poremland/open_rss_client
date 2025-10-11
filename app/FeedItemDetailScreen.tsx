@@ -37,7 +37,12 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const { feedItemId } = useLocalSearchParams<{ feedItemId: string }>();
-	const { data: selectedFeedItem, loading, error, execute: fetchFeedItem } = useApi<FeedItem>(
+	const {
+		data: selectedFeedItem,
+		loading,
+		error,
+		execute: fetchFeedItem,
+	} = useApi<FeedItem>(
 		"get",
 		feedItemId ? `/feed_items/${feedItemId}.json` : "",
 	);
@@ -106,8 +111,7 @@ const FeedItemDetailScreen: React.FC = () => {
 				label: "Open Full Site",
 				icon: "open-outline",
 				onPress: () =>
-					selectedFeedItem?.link &&
-					Linking.openURL(selectedFeedItem.link),
+					selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
 			},
 			{
 				label: "Share",

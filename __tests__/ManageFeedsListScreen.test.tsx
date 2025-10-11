@@ -77,7 +77,7 @@ describe("ManageFeedsListScreen", () => {
 		AsyncStorage.setItem("serverUrl", "http://localhost:8080");
 	});
 
-		it("should fetch feeds when the screen is focused", async () => {
+	it("should fetch feeds when the screen is focused", async () => {
 		const execute = jest.fn();
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
@@ -287,7 +287,6 @@ describe("ManageFeedsListScreen", () => {
 		});
 	});
 
-
 	it("should select all feeds when Select All is pressed", async () => {
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
@@ -315,8 +314,12 @@ describe("ManageFeedsListScreen", () => {
 			const item2 = getByTestId("feed-item-2");
 			const style1 = StyleSheet.flatten(item1.props.style);
 			const style2 = StyleSheet.flatten(item2.props.style);
-			expect(style1.backgroundColor).toEqual(listStyles.selectedItem.backgroundColor);
-			expect(style2.backgroundColor).toEqual(listStyles.selectedItem.backgroundColor);
+			expect(style1.backgroundColor).toEqual(
+				listStyles.selectedItem.backgroundColor,
+			);
+			expect(style2.backgroundColor).toEqual(
+				listStyles.selectedItem.backgroundColor,
+			);
 		});
 	});
 

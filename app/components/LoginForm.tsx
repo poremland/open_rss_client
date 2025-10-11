@@ -51,10 +51,7 @@ const LoginForm: React.FC = () => {
 					setServerUrl(storedUrl);
 				}
 			} catch (error) {
-				console.error(
-					"Failed to load server URL from AsyncStorage",
-					error,
-				);
+				console.error("Failed to load server URL from AsyncStorage", error);
 			}
 		};
 		loadServerUrl();
@@ -81,10 +78,7 @@ const LoginForm: React.FC = () => {
 			setError("");
 
 			const credentials = { username, otp };
-			const response: LoginResponse = await post(
-				"/api/login",
-				credentials,
-			);
+			const response: LoginResponse = await post("/api/login", credentials);
 
 			if (response?.token) {
 				await authHelper.storeUser(username);
@@ -139,11 +133,7 @@ const LoginForm: React.FC = () => {
 							testID="requestOtpButton"
 						/>
 					) : (
-						<Button
-							title="Login"
-							onPress={handleLogin}
-							testID="loginButton"
-						/>
+						<Button title="Login" onPress={handleLogin} testID="loginButton" />
 					)}
 				</>
 			)}

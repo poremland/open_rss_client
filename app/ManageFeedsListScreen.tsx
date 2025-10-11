@@ -81,8 +81,23 @@ const ManageFeedsListScreen: React.FC = () => {
 		});
 	}, [navigation, onToggleDropdown]);
 
-	const renderItem = ({ item, onPress, onLongPress, isItemSelected }: { item: Feed, onPress: () => void, onLongPress: () => void, isItemSelected: boolean }) => (
-		<TouchableOpacity testID={`feed-item-${item.id}`} style={[styles.listItem, isItemSelected && listStyles.selectedItem]} onPress={onPress} onLongPress={onLongPress}>
+	const renderItem = ({
+		item,
+		onPress,
+		onLongPress,
+		isItemSelected,
+	}: {
+		item: Feed;
+		onPress: () => void;
+		onLongPress: () => void;
+		isItemSelected: boolean;
+	}) => (
+		<TouchableOpacity
+			testID={`feed-item-${item.id}`}
+			style={[styles.listItem, isItemSelected && listStyles.selectedItem]}
+			onPress={onPress}
+			onLongPress={onLongPress}
+		>
 			<Text numberOfLines={2}>{item?.name || "No Name"}</Text>
 			<Text numberOfLines={1} style={styles.link}>
 				{item?.uri || "No Link"}
@@ -93,9 +108,7 @@ const ManageFeedsListScreen: React.FC = () => {
 	const renderEmptyComponent = () => (
 		<View style={styles.emptyContainer}>
 			<Ionicons name="skull-outline" size={240} color="black" />
-			<Text style={styles.emptyText}>
-				No feeds to manage!
-			</Text>
+			<Text style={styles.emptyText}>No feeds to manage!</Text>
 		</View>
 	);
 

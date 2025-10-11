@@ -16,55 +16,55 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 module.exports = ({ config }) => {
-  // This function will be executed after the "publish" step but before the build.
+	// This function will be executed after the "publish" step but before the build.
 
-  const keystorePassword = process.env.ANDROID_KEYSTORE_PASSWORD;
-  const keystoreAlias = process.env.ANDROID_KEYSTORE_ALIAS;
-  const keyPassword = process.env.ANDROID_KEYSTORE_PASSWORD;
-  const keystorePath = './open.rss.client.release.keystore';
+	const keystorePassword = process.env.ANDROID_KEYSTORE_PASSWORD;
+	const keystoreAlias = process.env.ANDROID_KEYSTORE_ALIAS;
+	const keyPassword = process.env.ANDROID_KEYSTORE_PASSWORD;
+	const keystorePath = "./open.rss.client.release.keystore";
 
-  if (!keystorePassword || !keystoreAlias || !keyPassword) {
-    console.error(
-      'Error: Android keystore passwords and alias environment variables must be set.'
-    );
-    process.exit(1);
-  }
+	if (!keystorePassword || !keystoreAlias || !keyPassword) {
+		console.error(
+			"Error: Android keystore passwords and alias environment variables must be set.",
+		);
+		process.exit(1);
+	}
 
-  // Load your base app.json template
-  const baseConfig = require('./app.config.base.json');
+	// Load your base app.json template
+	const baseConfig = require("./app.config.base.json");
 
-  // Inject the keystore configuration
-  baseConfig.android = {
-    useProguard: true,
-    build: {
-      gradleCommand: ':app:assembleRelease',
-      adaptiveIcon: {
-        foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#ffffff'
-      },
-      package: 'open.rss.client.expo',
-      keystore: {
-        path: keystorePath,
-        alias: keystoreAlias,
-        password: keystorePassword,
-        keyPassword: keyPassword,
-      },
-    },
-  };
+	// Inject the keystore configuration
+	baseConfig.android = {
+		useProguard: true,
+		build: {
+			gradleCommand: ":app:assembleRelease",
+			adaptiveIcon: {
+				foregroundImage: "./assets/images/adaptive-icon.png",
+				backgroundColor: "#ffffff",
+			},
+			package: "open.rss.client.expo",
+			keystore: {
+				path: keystorePath,
+				alias: keystoreAlias,
+				password: keystorePassword,
+				keyPassword: keyPassword,
+			},
+		},
+	};
 
-  // Write the modified configuration to app.json
-  fs.writeFileSync(
-    path.join(__dirname, 'app.json'),
-    JSON.stringify(baseConfig, null, 2)
-  );
+	// Write the modified configuration to app.json
+	fs.writeFileSync(
+		path.join(__dirname, "app.json"),
+		JSON.stringify(baseConfig, null, 2),
+	);
 
-  // You might want to delete app.json after the build completes.
-  // However, Expo's build process might rely on it being present.
-  // A safer approach might be to clean up in a post-build script if needed.
+	// You might want to delete app.json after the build completes.
+	// However, Expo's build process might rely on it being present.
+	// A safer approach might be to clean up in a post-build script if needed.
 
-  return config; // Ensure you return the config
+	return config; // Ensure you return the config
 };

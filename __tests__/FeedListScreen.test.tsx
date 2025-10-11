@@ -63,7 +63,7 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 	}),
 }));
 
-	describe("FeedListScreen", () => {
+describe("FeedListScreen", () => {
 	beforeEach(() => {
 		mockUseFocusEffect.mockClear();
 		mockUseFocusEffect.mockImplementation(React.useEffect);
@@ -113,9 +113,7 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 		});
 
 		const menuItems = mockSetMenuItems.mock.calls[0][0];
-		const addFeedMenuItem = menuItems.find(
-			(item) => item.label === "Add Feed",
-		);
+		const addFeedMenuItem = menuItems.find((item) => item.label === "Add Feed");
 
 		addFeedMenuItem.onPress();
 
@@ -151,9 +149,7 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 		manageFeedsMenuItem.onPress();
 
 		await waitFor(() => {
-			expect(mockRouter.push).toHaveBeenCalledWith(
-				"/ManageFeedsListScreen",
-			);
+			expect(mockRouter.push).toHaveBeenCalledWith("/ManageFeedsListScreen");
 		});
 	});
 
@@ -177,9 +173,7 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 		});
 
 		const menuItems = mockSetMenuItems.mock.calls[0][0];
-		const logoutMenuItem = menuItems.find(
-			(item) => item.label === "Log-out",
-		);
+		const logoutMenuItem = menuItems.find((item) => item.label === "Log-out");
 
 		logoutMenuItem.onPress();
 

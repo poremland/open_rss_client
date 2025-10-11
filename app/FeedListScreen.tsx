@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-	TouchableOpacity,
-	View,
-	Text,
-} from "react-native";
+import { TouchableOpacity, View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -77,11 +73,23 @@ const FeedListScreen: React.FC = () => {
 		[router],
 	);
 
-	const renderFeedItem = ({ item, onPress, onLongPress }: { item: Feed, onPress: () => void, onLongPress: () => void }) => (
-		<TouchableOpacity style={styles.listItem} onPress={onPress} onLongPress={onLongPress}>
-				<Text>
-					{item?.name || "No Name"} ({item?.count})
-				</Text>
+	const renderFeedItem = ({
+		item,
+		onPress,
+		onLongPress,
+	}: {
+		item: Feed;
+		onPress: () => void;
+		onLongPress: () => void;
+	}) => (
+		<TouchableOpacity
+			style={styles.listItem}
+			onPress={onPress}
+			onLongPress={onLongPress}
+		>
+			<Text>
+				{item?.name || "No Name"} ({item?.count})
+			</Text>
 		</TouchableOpacity>
 	);
 

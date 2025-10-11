@@ -25,11 +25,7 @@ interface MultiSelectBarProps extends ViewProps {}
 const MultiSelectBar = React.forwardRef<View, MultiSelectBarProps>(
 	({ children, ...props }, ref) => {
 		return (
-			<View
-				ref={ref}
-				style={styleHelper.multiSelectStyles.topBar}
-				{...props}
-			>
+			<View ref={ref} style={styleHelper.multiSelectStyles.topBar} {...props}>
 				{children}
 			</View>
 		);

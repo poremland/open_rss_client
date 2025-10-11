@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, {
+	useState,
+	useCallback,
+	useRef,
+	useEffect,
+	useMemo,
+} from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -17,7 +23,11 @@ const FeedItemListScreen: React.FC = () => {
 	const [isMultiSelectActive, setMultiSelectActive] = useState<boolean>(false);
 	const router = useRouter();
 	const navigation = useNavigation();
-	const listRef = useRef<{ handleRefresh: () => void, setData: (data: FeedItem[]) => void, getData: () => FeedItem[] }>(null);
+	const listRef = useRef<{
+		handleRefresh: () => void;
+		setData: (data: FeedItem[]) => void;
+		getData: () => FeedItem[];
+	}>(null);
 	const { setMenuItems, onToggleDropdown } = useMenu();
 	const { feed, removedItemId } = useLocalSearchParams<{
 		feed: string;
@@ -43,15 +53,18 @@ const FeedItemListScreen: React.FC = () => {
 		selectedFeed ? `/feeds/remove/${selectedFeed.id}` : "",
 	);
 
-	const handleMarkSelectedAsRead = useCallback(async (ids: number[]) => {
-		await markItemsAsRead({ items: JSON.stringify(ids) });
-		setMultiSelectActive(false);
-		setSelectedItems([]);
-		listRef.current?.handleRefresh();
-	}, [markItemsAsRead]);
+	const handleMarkSelectedAsRead = useCallback(
+		async (ids: number[]) => {
+			await markItemsAsRead({ items: JSON.stringify(ids) });
+			setMultiSelectActive(false);
+			setSelectedItems([]);
+			listRef.current?.handleRefresh();
+		},
+		[markItemsAsRead],
+	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
-		const allItemIds = listRef.current?.getData()?.map(item => item.id) || [];
+		const allItemIds = listRef.current?.getData()?.map((item) => item.id) || [];
 		await markItemsAsRead({ items: JSON.stringify(allItemIds) });
 		navigation.goBack();
 	}, [markItemsAsRead, navigation]);
@@ -129,8 +142,23 @@ const FeedItemListScreen: React.FC = () => {
 		]),
 	);
 
-	const renderItem = ({ item, onPress, onLongPress, isItemSelected }: { item: FeedItem, onPress: () => void, onLongPress: () => void, isItemSelected: boolean }) => (
-		<TouchableOpacity testID={`feed-item-${item.id}`} style={[styles.listItem, isItemSelected && listStyles.selectedItem]} onPress={onPress} onLongPress={onLongPress}>
+	const renderItem = ({
+		item,
+		onPress,
+		onLongPress,
+		isItemSelected,
+	}: {
+		item: FeedItem;
+		onPress: () => void;
+		onLongPress: () => void;
+		isItemSelected: boolean;
+	}) => (
+		<TouchableOpacity
+			testID={`feed-item-${item.id}`}
+			style={[styles.listItem, isItemSelected && listStyles.selectedItem]}
+			onPress={onPress}
+			onLongPress={onLongPress}
+		>
 			<View>
 				<Text numberOfLines={2}>{decode(item?.title || "")}</Text>
 				<Text numberOfLines={1} style={styles.link}>

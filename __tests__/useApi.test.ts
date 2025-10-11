@@ -121,9 +121,7 @@ describe("useApi", () => {
 
 	it("should handle API error", async () => {
 		const errorMessage = "Network Error";
-		(api.getWithAuth as jest.Mock).mockRejectedValue(
-			new Error(errorMessage),
-		);
+		(api.getWithAuth as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
 		const { result } = renderHook(() => useApi("get", "/error-get"));
 
