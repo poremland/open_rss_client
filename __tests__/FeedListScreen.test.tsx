@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { render, waitFor, act } from "@testing-library/react-native";
 import FeedListScreen from "../app/FeedListScreen";
 import useApi from "../app/components/useApi";
 import * as authHelper from "../helpers/auth";
@@ -44,13 +44,13 @@ jest.mock("expo-router", () => ({
 	useNavigation: () => ({ setOptions: jest.fn() }),
 }));
 
+const mockUseFocusEffect = jest.fn();
+
 jest.mock("@react-navigation/native", () => {
 	const React = require("react");
 	return {
 		...jest.requireActual("@react-navigation/native"),
-		useFocusEffect: (callback) => {
-			React.useEffect(callback);
-		},
+		useFocusEffect: (callback) => mockUseFocusEffect(callback),
 	};
 });
 
@@ -64,35 +64,50 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 }));
 
 describe("FeedListScreen", () => {
+	beforeEach(() => {
+		mockUseFocusEffect.mockClear();
+		mockUseFocusEffect.mockImplementation(React.useEffect);
+	});
+
 	it("should display a list of feeds", async () => {
 		const mockFeeds = [
 			{ feed: { id: 1, name: "Feed 1", count: 10 } },
 			{ feed: { id: 2, name: "Feed 2", count: 5 } },
 		];
+		const execute = jest.fn().mockResolvedValue(mockFeeds);
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			execute,
 		});
 
 		const { getByText } = render(<FeedListScreen />);
 
 		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
+
+		await waitFor(() => {
 			expect(getByText("Feed 1 (10)")).toBeTruthy();
 			expect(getByText("Feed 2 (5)")).toBeTruthy();
 		});
-	});
+	}, 15000);
 
 	it("should navigate to AddFeedScreen when Add Feed is pressed", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			execute,
 		});
 
 		render(<FeedListScreen />);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
 
 		await waitFor(() => {
 			expect(mockSetMenuItems).toHaveBeenCalled();
@@ -111,14 +126,19 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should navigate to ManageFeedsListScreen when Manage Feeds is pressed", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			execute,
 		});
 
 		render(<FeedListScreen />);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
 
 		await waitFor(() => {
 			expect(mockSetMenuItems).toHaveBeenCalled();
@@ -139,14 +159,19 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should call clearAuthData when Log-out is pressed", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			execute,
 		});
 
 		render(<FeedListScreen />);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
 
 		await waitFor(() => {
 			expect(mockSetMenuItems).toHaveBeenCalled();
@@ -165,14 +190,19 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should display loading message when feeds are loading", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
 			loading: true,
 			error: null,
-			execute: jest.fn(),
+			execute,
 		});
 
 		const { getByText } = render(<FeedListScreen />);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
 
 		await waitFor(() => {
 			expect(getByText("Loading...")).toBeTruthy();
@@ -180,14 +210,19 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should display error message when api call fails", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
 			loading: false,
 			error: "API Error",
-			execute: jest.fn(),
+			execute,
 		});
 
 		const { getByText } = render(<FeedListScreen />);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
 
 		await waitFor(() => {
 			expect(getByText(/API Error/)).toBeTruthy();
@@ -195,19 +230,38 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should display no feeds message when there are no feeds", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
 		(useApi as jest.Mock).mockReturnValue({
 			data: [],
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			execute,
 		});
 
 		const { getByText } = render(<FeedListScreen />);
+
+		await waitFor(() => {
+			expect(execute).toHaveBeenCalled();
+		});
 
 		await waitFor(() => {
 			expect(
 				getByText("Congratulations! No more feeds with unread items."),
 			).toBeTruthy();
 		});
+	});
+
+	it("refreshes the feed list on focus", async () => {
+		const execute = jest.fn().mockResolvedValue([]);
+		(useApi as jest.Mock).mockReturnValue({
+			data: [],
+			loading: false,
+			error: null,
+			execute,
+		});
+
+		render(<FeedListScreen />);
+
+		await waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
 	});
 });

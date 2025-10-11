@@ -60,9 +60,9 @@ const ListScreen = React.forwardRef(<T, U extends { id: number }>(
 	const isMultiSelectActive = controlledMultiSelectActive !== undefined ? controlledMultiSelectActive : internalMultiSelectActive;
 	const selectedItems = controlledSelectedItems !== undefined ? controlledSelectedItems : internalSelectedItems;
 
-	useEffect(() => {
-		fetchData();
-	}, [fetchData]);
+
+
+
 
 
 

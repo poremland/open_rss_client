@@ -15,11 +15,16 @@ import { useMenu } from "./components/GlobalDropdownMenu";
 import { styles } from "../styles/FeedListScreen.styles";
 import ListScreen from "./components/ListScreen";
 
+interface ListScreenHandle {
+	handleRefresh: () => void;
+}
+
 const FeedListScreen: React.FC = () => {
 	const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
 	const router = useRouter();
 	const navigation = useNavigation();
 	const { setMenuItems, onToggleDropdown } = useMenu();
+	const listRef = React.useRef<ListScreenHandle>(null);
 
 	useEffect(() => {
 		const loadUser = async () => {
@@ -31,6 +36,7 @@ const FeedListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			listRef.current?.handleRefresh();
 			const menuItems = [
 				{
 					label: "Add Feed",
@@ -94,6 +100,7 @@ const FeedListScreen: React.FC = () => {
 
 	return (
 		<ListScreen<FeedItemFromAPI, Feed>
+			ref={listRef}
 			fetchUrl="/feeds/tree.json"
 			renderItem={renderFeedItem}
 			keyExtractor={(item) => item.id.toString()}
