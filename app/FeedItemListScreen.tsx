@@ -58,7 +58,10 @@ const FeedItemListScreen: React.FC = () => {
 			await markItemsAsRead({ items: JSON.stringify(ids) });
 			setMultiSelectActive(false);
 			setSelectedItems([]);
-			listRef.current?.handleRefresh();
+			const refreshedData = await listRef.current?.handleRefresh();
+			if (refreshedData?.length === 0) {
+				navigation.goBack();
+			}
 		},
 		[markItemsAsRead],
 	);

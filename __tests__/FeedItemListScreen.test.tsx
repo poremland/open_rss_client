@@ -189,7 +189,7 @@ describe("FeedItemListScreen", () => {
 		});
 	};
 
-	it("should mark all items as read when Mark All As Read is pressed", async () => {
+	it("should mark all items as read when Mark All As Read is pressed and pop back to previous screen", async () => {
 		await testHeaderInteraction("Mark All As Read", mockNavigation.goBack, []);
 	});
 
@@ -208,14 +208,17 @@ describe("FeedItemListScreen", () => {
 			data: mockFeedItems,
 			loading: false,
 			error: null,
-			execute: jest.fn().mockResolvedValue({}),
+			execute: jest.fn(),
 		});
 
 		const { getByText } = render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
+			<NavigationContainer>
+				<GlobalDropdownMenu>
+					<FeedItemListScreen />
+				</GlobalDropdownMenu>
+			</NavigationContainer>,
 		);
+
 		await waitFor(() => getByText("Item 1"));
 		fireEvent(getByText("Item 1"), "longPress");
 
@@ -223,6 +226,7 @@ describe("FeedItemListScreen", () => {
 			expect(getByText("Select All")).toBeTruthy();
 			expect(getByText("Mark Read")).toBeTruthy();
 			expect(getByText("Done")).toBeTruthy();
+			expect(mockNavigation.goBack).toHaveBeenCalled();
 		});
 	});
 
