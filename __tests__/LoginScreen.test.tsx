@@ -19,8 +19,9 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import Index from "../app/index";
 import { post } from "../helpers/api";
+import Index from "../app/index";
+
 import * as authHelper from "../helpers/auth";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -28,10 +29,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 jest.mock("@react-native-async-storage/async-storage", () => ({
 	getItem: jest.fn(),
 	setItem: jest.fn(),
-}));
-
-jest.mock("../helpers/api", () => ({
-	post: jest.fn(),
 }));
 
 jest.mock("../helpers/auth", () => ({
@@ -52,6 +49,7 @@ describe("Login Screen", () => {
 	beforeEach(() => {
 		(useRouter as jest.Mock).mockReturnValue(mockRouter);
 		(post as jest.Mock).mockClear();
+
 		(authHelper.storeUser as jest.Mock).mockClear();
 		(authHelper.storeAuthToken as jest.Mock).mockClear();
 		(authHelper.checkLoggedIn as jest.Mock).mockClear();
@@ -71,18 +69,14 @@ describe("Login Screen", () => {
 	});
 
 	it("should load server URL from AsyncStorage on mount", async () => {
-		(AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-			"http://test.com",
-		);
+		(AsyncStorage.getItem as jest.Mock).mockResolvedValue("http://test.com");
 		const { getByTestId } = render(
 			<NavigationContainer>
 				<Index />
 			</NavigationContainer>,
 		);
 		await waitFor(() => {
-			expect(getByTestId("serverUrlInput").props.value).toBe(
-				"http://test.com",
-			);
+			expect(getByTestId("serverUrlInput").props.value).toBe("http://test.com");
 		});
 	});
 
@@ -96,10 +90,7 @@ describe("Login Screen", () => {
 			</NavigationContainer>,
 		);
 
-		fireEvent.changeText(
-			getByTestId("serverUrlInput"),
-			"http://newurl.com",
-		);
+		fireEvent.changeText(getByTestId("serverUrlInput"), "http://newurl.com");
 		fireEvent.changeText(getByPlaceholderText("Username"), "testuser");
 		fireEvent.press(getByTestId("requestOtpButton"));
 
@@ -182,9 +173,7 @@ describe("Login Screen", () => {
 		fireEvent.press(getByTestId("loginButton"));
 
 		await waitFor(() => {
-			expect(
-				getByText("Login Failed: Invalid token in response"),
-			).toBeTruthy();
+			expect(getByText("Login Failed: Invalid token in response")).toBeTruthy();
 			expect(authHelper.storeUser).not.toHaveBeenCalled();
 			expect(authHelper.storeAuthToken).not.toHaveBeenCalled();
 			expect(mockRouter.replace).not.toHaveBeenCalled();

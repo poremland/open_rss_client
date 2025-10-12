@@ -34,6 +34,7 @@ These instructions will get you a copy of the project up and running on your loc
 ### Installation
 
 1.  **Clone the repository:**
+
     ```bash
     git clone https://github.com/poremland/open_rss_client.git
     cd open_rss_client
@@ -53,6 +54,7 @@ npx expo start
 ```
 
 This will open the Expo developer tools in your browser. From there, you can:
+
 - Run on an Android emulator or connected device.
 - Run on an iOS simulator or connected device (macOS only).
 - Run in a web browser.
@@ -90,6 +92,7 @@ npx expo start --clear
 ### Web
 
 1.  **Generate the web build:**
+
     ```bash
     npx expo export --platform web
     ```
@@ -103,15 +106,18 @@ npx expo start --clear
 
 1.  **Configure Keystore:**
     Before building, you need to set up your Android Keystore credentials as environment variables. These are used to sign your application for release.
+
     ```bash
     export ANDROID_KEYSTORE_PASSWORD="<YOUR_KEYSTORE_PASSWORD>"
     export ANDROID_KEYSTORE_ALIAS="<YOUR_KEY_ALIAS>"
     ```
+
     Ensure you have a `open.rss.client.release.keystore` file in the project root, or update `app.config.js` to point to your keystore file.
 
 2.  **Build the APK/AAB:**
 
     Update `./android/app/build.gradle` to include the following in the `android { ... }` section:
+
     ```groovy
     splits {
             abi {
@@ -124,18 +130,22 @@ npx expo start --clear
     ```
 
     **Note:** if you don't have the ./android directory you need to run prebuild
-	```bash
-	npx expo prebuild
-	```
-	now you should be able to make the above update to `./android/app/build.gradle` 
+
+    ```bash
+    npx expo prebuild
+    ```
+
+    now you should be able to make the above update to `./android/app/build.gradle`
 
     Set the required keystone password variables:
+
     ```bash
     export ANDROID_KEYSTORE_PASSWORD="<YOUR PASSWORD>"
     export ANDROID_KEYSTORE_ALIAS="<YOUR ALIAS>"
     ```
 
     Then run the build command:
+
     ```bash
     (npx expo prebuild && cd android/ && ./gradlew app:assembleRelease && rm ../app.json)
     ```
@@ -151,6 +161,7 @@ For a more automated process, you can use Expo Application Services (EAS). Note 
 ```bash
 eas build -p android --profile production
 ```
+
 This requires installing and configuring the [EAS CLI](https://docs.expo.dev/build/introduction/).
 
 ### iOS
@@ -159,6 +170,7 @@ This requires installing and configuring the [EAS CLI](https://docs.expo.dev/bui
 
 1.  **Prebuild the project:**
     This step generates the native `ios` directory if it doesn't exist.
+
     ```bash
     npx expo prebuild --platform ios
     ```
@@ -177,4 +189,5 @@ For a simpler process that handles code signing and building for you, you can us
 ```bash
 eas build -p ios --profile production
 ```
+
 This requires installing and configuring the [EAS CLI](https://docs.expo.dev/build/introduction/).

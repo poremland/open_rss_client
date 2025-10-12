@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
 export const containerStyles = StyleSheet.create({
 	container: {
@@ -25,37 +25,35 @@ export const containerStyles = StyleSheet.create({
 	},
 	loadingContainer: {
 		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	emptyContainer: {
 		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		textAlign: 'center',
+		justifyContent: "center",
+		alignItems: "center",
+		textAlign: "center",
 	},
 	emptyText: {
 		fontSize: 18,
-		color: '#555',
-		textAlign: 'center',
+		color: "#555",
+		textAlign: "center",
 	},
 });
 
 export const listStyles = StyleSheet.create({
 	listItem: {
 		padding: 15,
-		borderBottomWidth: 1,
-		borderBottomColor: '#A9A9A9',
 	},
 	link: {
-		color: 'blue',
+		color: "blue",
 	},
 	selectedItem: {
-		backgroundColor: 'lightblue',
+		backgroundColor: "lightblue",
 	},
 	listItemContainer: {
-		flexDirection: 'row',
-		alignItems: 'center',
+		flexDirection: "row",
+		alignItems: "center",
 	},
 	checkboxContainer: {
 		paddingRight: 10,
@@ -64,18 +62,18 @@ export const listStyles = StyleSheet.create({
 		width: 20,
 		height: 20,
 		borderWidth: 1,
-		borderColor: 'gray',
+		borderColor: "gray",
 		borderRadius: 3,
-		justifyContent: 'center',
-		alignItems: 'center',
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	checkboxSelected: {
-		backgroundColor: 'lightblue', // Optional: style when the checkbox itself is visually selected
+		backgroundColor: "lightblue", // Optional: style when the checkbox itself is visually selected
 	},
 	checkmark: {
 		width: 12,
 		height: 12,
-		backgroundColor: 'blue',
+		backgroundColor: "blue",
 		borderRadius: 1,
 	},
 	libraryCheckboxContainer: {
@@ -89,7 +87,7 @@ export const listStyles = StyleSheet.create({
 
 export const dropdownStyles = StyleSheet.create({
 	overlay: {
-		position: 'absolute',
+		position: "absolute",
 		top: 0,
 		left: 0,
 		right: 0,
@@ -98,62 +96,58 @@ export const dropdownStyles = StyleSheet.create({
 		zIndex: 999, // Very high zIndex to be above most content
 	},
 	dropdown: {
-		position: 'absolute',
+		position: "absolute",
 		top: 10,
 		right: 10,
-		backgroundColor: 'white',
+		backgroundColor: "white",
 		borderRadius: 5,
 		elevation: 5,
 		zIndex: 1000, // Even higher zIndex to be above the overlay
-		shadowColor: '#000',
+		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.25,
 		shadowRadius: 3.84,
 		minWidth: 150,
-		pointerEvents: 'auto'
+		pointerEvents: "auto",
 	},
 	dropdownItem: {
-		flexDirection: 'row',
-		alignItems: 'right',
+		flexDirection: "row",
+		alignItems: "right",
 		paddingVertical: 15,
 		paddingHorizontal: 15,
 		borderBottomWidth: 1,
-		borderBottomColor: '#eee',
-		pointerEvents: 'auto'
+		borderBottomColor: "#eee",
+		pointerEvents: "auto",
 	},
 });
 
 export const errorStyles = StyleSheet.create({
 	errorText: {
-		color: 'red',
+		color: "red",
 		marginTop: 10,
 	},
 });
 
 export const swipeStyles = StyleSheet.create({
 	leftAction: {
-		backgroundColor: 'lightblue',
-		justifyContent: 'center',
+		backgroundColor: "lightblue",
+		justifyContent: "center",
 		width: 100,
 	},
 });
 
 export const multiSelectStyles = StyleSheet.create({
 	topBar: {
-		position: 'absolute',
-		top: 0,
-		left: 0,
-		right: 0,
-		backgroundColor: 'white',
-		flexDirection: 'row',
-		justifyContent: 'space-around',
+		backgroundColor: "white",
+		flexDirection: "row",
+		justifyContent: "space-around",
 		paddingVertical: 10,
 		borderBottomWidth: 1,
-		borderBottomColor: '#eee',
+		borderBottomColor: "#eee",
 		zIndex: 1000,
 	},
 	buttonText: {
-		color: 'blue',
+		color: "blue",
 		fontSize: 16,
 	},
 	button: {

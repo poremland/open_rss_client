@@ -16,22 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface FeedItem {
-	id?: number;
-	feed_id?: number;
-	title?: string;
-	link?: string;
-	description?: string;
-	display?: boolean;
-	timestamp?: string;
-	created_at?: string;
-	updated_at?: string;
-	favorite?: boolean;
-	key?: string;
-	media?: string;
-	decodedTitle?: string;
-}
+import { StyleSheet } from "react-native";
 
-export type FeedItemFromAPI = {
-	feedItem: FeedItem;
-};
+export const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	errorText: {
+		color: "red",
+		marginTop: 10,
+		textAlign: "center",
+	},
+});

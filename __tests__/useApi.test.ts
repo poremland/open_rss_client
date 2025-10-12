@@ -61,6 +61,7 @@ describe("useApi", () => {
 		});
 		await waitFor(() => expect(result.current.loading).toBe(false)); // Wait for loading state to be false
 		expect(api.getWithAuth).toHaveBeenCalledWith("/test-get");
+		expect(result.current.loading).toBe(false);
 		expect(result.current.data).toEqual(mockData);
 		expect(result.current.error).toBe("");
 	});
@@ -121,9 +122,7 @@ describe("useApi", () => {
 
 	it("should handle API error", async () => {
 		const errorMessage = "Network Error";
-		(api.getWithAuth as jest.Mock).mockRejectedValue(
-			new Error(errorMessage),
-		);
+		(api.getWithAuth as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
 		const { result } = renderHook(() => useApi("get", "/error-get"));
 

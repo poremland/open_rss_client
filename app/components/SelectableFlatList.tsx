@@ -28,7 +28,17 @@ import * as styleHelper from "../../styles/commonStyles";
 
 interface SelectableFlatListProps<T> {
 	data: T[];
-	renderItem: ({ item }: { item: T }) => React.ReactElement;
+	renderItem: ({
+		item,
+		onPress,
+		onLongPress,
+		isItemSelected,
+	}: {
+		item: T;
+		onPress: () => void;
+		onLongPress: () => void;
+		isItemSelected: boolean;
+	}) => React.ReactElement;
 	onRefresh: () => void;
 	refreshing: boolean;
 	multiSelectActive: boolean;
@@ -66,48 +76,20 @@ const SelectableFlatList = <T extends { id: number }>({
 	const renderSelectableItem = ({ item }: { item: T }) => {
 		const isItemSelected = selectedItems.includes(item.id);
 
-		return (
-			<TouchableOpacity
-				style={[
-					styleHelper.listStyles.listItem,
-					styleHelper.listStyles.listItemContainer,
-					isItemSelected && styleHelper.listStyles.selectedItem,
-				]}
-				onLongPress={() => {
-					if (!multiSelectActive) onSelectionChange([item.id]);
-				}}
-				onPress={() => {
-					if (multiSelectActive) {
-						toggleSelection(item.id);
-					} else {
-						onItemPress(item);
-					}
-				}}
-				activeOpacity={0.7}
-			>
-				{multiSelectActive && (
-					<View style={styleHelper.listStyles.checkboxContainer}>
-						<TouchableOpacity
-							style={[
-								styleHelper.listStyles.checkbox,
-								isItemSelected &&
-									styleHelper.listStyles.checkboxSelected,
-							]}
-							onPress={() => toggleSelection(item.id)}
-						>
-							{isItemSelected && (
-								<View
-									style={styleHelper.listStyles.checkmark}
-								/>
-							)}
-						</TouchableOpacity>
-					</View>
-				)}
-				<View style={styleHelper.listStyles.itemTextContainer}>
-					{renderItem({ item })}
-				</View>
-			</TouchableOpacity>
-		);
+		return renderItem({
+			item,
+			onPress: () => {
+				if (multiSelectActive) {
+					toggleSelection(item.id);
+				} else {
+					onItemPress(item);
+				}
+			},
+			onLongPress: () => {
+				if (!multiSelectActive) onSelectionChange([item.id]);
+			},
+			isItemSelected,
+		});
 	};
 
 	return (

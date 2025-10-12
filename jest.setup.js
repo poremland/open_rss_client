@@ -16,8 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
+import mockAsyncStorage from "@react-native-async-storage/async-storage/jest/async-storage-mock";
 
+jest.mock("@react-native-async-storage/async-storage", () => mockAsyncStorage);
 
+jest.mock("expo-font");
+jest.mock("./helpers/api", () => ({
+	get: jest.fn(),
+	getWithAuth: jest.fn(),
+	post: jest.fn(),
+	postWithAuth: jest.fn(),
+	putWithAuth: jest.fn(),
+	refreshToken: jest.fn(),
+}));
 
-jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
+jest.mock("@expo/vector-icons", () => {
+	const { View } = require("react-native");
+	return {
+		Ionicons: View,
+		AntDesign: View,
+		MaterialIcons: View,
+	};
+});

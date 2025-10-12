@@ -18,8 +18,8 @@
 
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
-import { Text } from "react-native";
 import SelectableFlatList from "../../app/components/SelectableFlatList";
+import { TouchableOpacity, Text } from "react-native";
 
 const mockData = [
 	{ id: 1, name: "Item 1" },
@@ -28,7 +28,11 @@ const mockData = [
 ];
 
 describe("SelectableFlatList", () => {
-	const renderItem = ({ item }) => <Text>{item.name}</Text>;
+	const renderItem = ({ item, onPress, onLongPress }) => (
+		<TouchableOpacity onPress={onPress} onLongPress={onLongPress}>
+			<Text>{item.name}</Text>
+		</TouchableOpacity>
+	);
 
 	it("should render a list of items", () => {
 		const { getByText } = render(

@@ -16,7 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, {
+	createContext,
+	useContext,
+	useState,
+	useCallback,
+	useMemo,
+} from "react";
 import {
 	View,
 	Text,
@@ -30,6 +36,7 @@ interface MenuItem {
 	label: string;
 	onPress: () => void;
 	icon: keyof typeof Ionicons.glyphMap;
+	testID?: string;
 }
 
 interface MenuContextType {
@@ -65,16 +72,16 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 		setIsDropdownVisible(false);
 	}, []);
 
-	const contextValue = { setMenuItems, onToggleDropdown };
+	const contextValue = useMemo(
+		() => ({ setMenuItems, onToggleDropdown }),
+		[setMenuItems, onToggleDropdown],
+	);
 
 	return (
 		<MenuContext.Provider value={contextValue}>
 			{children}
 			{isDropdownVisible && (
-				<TouchableWithoutFeedback
-					testID="overlay"
-					onPress={onCloseDropdown}
-				>
+				<TouchableWithoutFeedback testID="overlay" onPress={onCloseDropdown}>
 					<View style={styleHelper.dropdownStyles.overlay}>
 						<View
 							style={styleHelper.dropdownStyles.dropdown}
@@ -84,29 +91,20 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 								style={styleHelper.dropdownStyles.dropdownItem}
 								onPress={onCloseDropdown}
 							>
-								<Ionicons
-									name="close-sharp"
-									size={24}
-									color="black"
-								/>
+								<Ionicons name="close-sharp" size={24} color="black" />
 							</TouchableOpacity>
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
 									key={index}
-									style={
-										styleHelper.dropdownStyles.dropdownItem
-									}
+									testID={item.testID}
+									style={styleHelper.dropdownStyles.dropdownItem}
 									onPress={() => {
 										onCloseDropdown();
 										item.onPress();
 									}}
 								>
-									<Ionicons
-										name={item.icon}
-										size={24}
-										color="black"
-									/>
-									<Text> | {item.label}</Text>
+									<Ionicons name={item.icon} size={24} color="black" />
+									<Text>{item.label}</Text>
 								</TouchableOpacity>
 							))}
 						</View>

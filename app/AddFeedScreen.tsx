@@ -17,18 +17,13 @@
  */
 
 import React, { useState } from "react";
-import {
-	StyleSheet,
-	View,
-	Text,
-	TextInput,
-	Button,
-	ActivityIndicator,
-} from "react-native";
+import { View, Text, TextInput, Button } from "react-native";
 import { useNavigation } from "expo-router";
 import useApi from "./components/useApi";
 import * as authHelper from "../helpers/auth";
 import { NewFeedResponse } from "../models/Feed";
+import Screen from "./components/Screen";
+import { styles } from "../styles/AddFeedScreen.styles";
 
 const AddFeedScreen: React.FC = () => {
 	const [feedName, setFeedName] = useState<string>("");
@@ -55,57 +50,24 @@ const AddFeedScreen: React.FC = () => {
 	};
 
 	return (
-		<View style={styles.container}>
-			<Text style={styles.title}>Add New Feed</Text>
-			{error ? <Text style={styles.errorText}>{error}</Text> : null}
-			<TextInput
-				style={styles.input}
-				placeholder="FeedName"
-				value={feedName}
-				onChangeText={setFeedName}
-			/>
-			<TextInput
-				style={styles.input}
-				placeholder="FeedUri"
-				value={feedUri}
-				onChangeText={setFeedUri}
-			/>
-			{loading ? (
-				<ActivityIndicator
-					testID="activity-indicator"
-					size="large"
-					color="#0000ff"
+		<Screen loading={loading} error={error}>
+			<View style={styles.container}>
+				<TextInput
+					style={styles.input}
+					placeholder="FeedName"
+					value={feedName}
+					onChangeText={setFeedName}
 				/>
-			) : (
+				<TextInput
+					style={styles.input}
+					placeholder="FeedUri"
+					value={feedUri}
+					onChangeText={setFeedUri}
+				/>
 				<Button title="Add Feed" onPress={handleAddFeed} />
-			)}
-		</View>
+			</View>
+		</Screen>
 	);
 };
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	title: {
-		fontSize: 24,
-		marginBottom: 20,
-	},
-	input: {
-		width: "100%",
-		padding: 10,
-		marginBottom: 15,
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 5,
-	},
-	errorText: {
-		color: "red",
-		marginTop: 10,
-	},
-});
 
 export default AddFeedScreen;

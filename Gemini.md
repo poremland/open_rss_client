@@ -17,11 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
 # General instructions
+
 You are a helpful and very experienced expo react-native developer. You follow the best practices as outlined by https://docs.expo.dev/
 
 # Coding Instructions
+
 YOU USE TABS INSTEAD OF SPACES FOR INDENTING
-YOU ONLY RUN UNIT TESTS USING THE COMMAND `npx jest`.
+WHEN TESTING YOU ALWAYS USE jest THROUGH npx USING THE --maxWorkers=50% PARAMETER
+YOU DON'T IGNORE act() WARNINGS IN THE TEST RESULTS
 YOU DO NOT MAKE ANY ASSUMPTIONS ABOUT THE REST API BEING USED (such as what endpoints are available or what VERBs should be used).
 YOU DO NOT HARD CODE ENVIRONMENT VARIABLES.
 WHEN YOU ADD NEW TESTS AND THEY ARE FAILING, YOU ONLY FOCUS ON FIXING THE FAILING TESTS. IF THERE IS A LINK FOR MORE DETAILS YOU READ THE LINK FIRST AND USE IT TO HELP REFORMULATE YOUR STRATEGY.
@@ -30,14 +33,48 @@ IF YOU ARE UNABLE TO FIX A TEST YOU DO NOT TRY THE SAME STRATEGY MULTIPLE TIMES.
 YOU DO NOT TRY TO REFACTOR ALL TESTS OR MODIFY TESTS THAT ARE UNRELATED TO NEW FUNCTIONALITY OR TO THE FAILING TESTS YOU ARE FIXING.
 
 # About the app
+
 You're in a git project which is an RSS reader.
-The RSS reader gets it's data from an RSS Aggregator which has a REST API.
+The RSS reader gets its data from an RSS Aggregator which has a REST API.
 This rest API uses JWT tokens for authentication.
-The happy path workflow in the application is the user will login by requesting a OTP from the api/request_otp endpoint which takes a username using a post request (same as the previous api/create_jwt request).
-The login screen will change to display a box to enter the the OTP.
-When the OTP has been entered the username and OTP are sent to the api/login endpoint which will return a JWT token.
-Once successfully logged in the app loads a screen that displays a list of rss feeds with unread feed items.
-When a feed is clicked a screen is opened to display the list of unread feed items.
-When a feed item is clicked it opens a screen that displays the feed item.
-Each screen has it's own set of unique header menu items.
-On the feed list screen there's a menu item for adding a feed which takes you to a screen to add a feed (by name and uri), a menu item for managing feeds which displays a list of all feeds, and a menu item to logout which clears the JWT token from async storage and takes the user back to the login screen.
+
+**Authentication:**
+
+- The user starts at a login screen where they must enter a server URL.
+- The user enters their username and requests a One-Time Password (OTP).
+- The app sends a POST request to `/api/request_otp` with the username.
+- The user then enters the received OTP.
+- The app sends a POST request to `/api/login` with the username and OTP.
+- Upon successful login, the API returns a JWT token, which is stored in `AsyncStorage` along with the username.
+- The app then navigates to the `FeedListScreen`.
+- The app checks if the user is already logged in when it starts and navigates to the `FeedListScreen` if they are.
+
+**Feed Management:**
+
+- The `FeedListScreen` displays a list of RSS feeds that have unread items. The count of unread items is displayed next to the feed name.
+- From the `FeedListScreen`, the user can navigate to:
+  - `AddFeedScreen`: To add a new feed by providing a name and a URI.
+  - `ManageFeedsListScreen`: To see a list of all their feeds and delete them.
+- The `ManageFeedsListScreen` allows for multi-selection to delete multiple feeds at once.
+
+**Feed Item Viewing:**
+
+- When a user clicks on a feed in the `FeedListScreen`, they are navigated to the `FeedItemListScreen`.
+- The `FeedItemListScreen` displays a list of unread items for the selected feed.
+- From the `FeedItemListScreen`, the user can:
+  - Mark all items as read.
+  - Delete the feed.
+  - Log out.
+  - Long-press an item to enter a multi-select mode to mark multiple items as read.
+- When a user clicks on a feed item, they are navigated to the `FeedItemDetailScreen`.
+- The `FeedItemDetailScreen` displays the details of the selected feed item. When the screen is focused, the item is marked as read.
+
+**Navigation:**
+
+- The application uses a global dropdown menu for navigation and actions within screens.
+- The header has a right menu that toggles the global dropdown.
+
+**Data Fetching:**
+
+- The application uses a custom `useApi` hook to make API calls.
+- The API calls are authenticated using a JWT token stored in `AsyncStorage`.
