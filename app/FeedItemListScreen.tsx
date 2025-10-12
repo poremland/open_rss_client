@@ -180,12 +180,18 @@ const FeedItemListScreen: React.FC = () => {
 		},
 	];
 
+	const renderEmptyFeedsComponent = () => (
+		<View style={styles.emptyContainer}>
+		</View>
+	);
+
 	return (
 		<ListScreen<FeedItem>
 			ref={listRef}
 			fetchUrl={selectedFeed ? `/feeds/${selectedFeed.id}.json` : ""}
 			renderItem={renderItem}
 			keyExtractor={(item) => item.id.toString()}
+			emptyComponent={renderEmptyFeedsComponent()}
 			onItemPress={displayFeedItemDetails}
 			multiSelectActions={multiSelectActions}
 			onSelectionChange={handleSelectionChange}

@@ -46,7 +46,7 @@ describe("useApi", () => {
 
 		const { result } = renderHook(() => useApi("get", "/test-get"));
 
-		expect(result.current.loading).toBe(false);
+		expect(result.current.loading).toBe(true);
 		expect(result.current.data).toBeNull();
 		expect(result.current.error).toBe("");
 
@@ -61,6 +61,7 @@ describe("useApi", () => {
 		});
 		await waitFor(() => expect(result.current.loading).toBe(false)); // Wait for loading state to be false
 		expect(api.getWithAuth).toHaveBeenCalledWith("/test-get");
+		expect(result.current.loading).toBe(false);
 		expect(result.current.data).toEqual(mockData);
 		expect(result.current.error).toBe("");
 	});
