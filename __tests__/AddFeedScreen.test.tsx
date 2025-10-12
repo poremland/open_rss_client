@@ -46,7 +46,6 @@ describe("AddFeedScreen", () => {
 
 	it("renders correctly", () => {
 		const { getByText, getByPlaceholderText } = render(<AddFeedScreen />);
-		expect(getByText("Add New Feed")).toBeTruthy();
 		expect(getByPlaceholderText("FeedName")).toBeTruthy();
 		expect(getByPlaceholderText("FeedUri")).toBeTruthy();
 		expect(getByText("Add Feed")).toBeTruthy();

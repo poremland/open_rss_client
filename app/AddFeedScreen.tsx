@@ -51,20 +51,21 @@ const AddFeedScreen: React.FC = () => {
 
 	return (
 		<Screen loading={loading} error={error}>
-			<Text style={styles.title}>Add New Feed</Text>
-			<TextInput
-				style={styles.input}
-				placeholder="FeedName"
-				value={feedName}
-				onChangeText={setFeedName}
-			/>
-			<TextInput
-				style={styles.input}
-				placeholder="FeedUri"
-				value={feedUri}
-				onChangeText={setFeedUri}
-			/>
-			<Button title="Add Feed" onPress={handleAddFeed} />
+			<View style={styles.container}>
+				<TextInput
+					style={styles.input}
+					placeholder="FeedName"
+					value={feedName}
+					onChangeText={setFeedName}
+				/>
+				<TextInput
+					style={styles.input}
+					placeholder="FeedUri"
+					value={feedUri}
+					onChangeText={setFeedUri}
+				/>
+				<Button title="Add Feed" onPress={handleAddFeed} />
+			</View>
 		</Screen>
 	);
 };
