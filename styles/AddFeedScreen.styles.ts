@@ -28,6 +28,7 @@ export const styles = StyleSheet.create({
 	title: {
 		fontSize: 24,
 		marginBottom: 20,
+		color: "#333",
 	},
 	input: {
 		width: "100%",
@@ -36,9 +37,16 @@ export const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: "#ccc",
 		borderRadius: 5,
+		backgroundColor: "#fff",
+		fontSize: 16,
 	},
 	errorText: {
 		color: "red",
 		marginTop: 10,
+	},
+	logo: {
+		width: 100,
+		height: 100,
+		marginBottom: 30,
 	},
 });
