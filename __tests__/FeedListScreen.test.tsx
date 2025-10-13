@@ -253,7 +253,9 @@ describe("FeedListScreen", () => {
 			execute,
 		});
 
-		render(<FeedListScreen />);
+		await waitFor(() => {
+			render(<FeedListScreen />);
+		});
 
 		await waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
 	});

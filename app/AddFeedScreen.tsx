@@ -17,7 +17,7 @@
  */
 
 import React, { useState } from "react";
-import { View, Text, TextInput, Button } from "react-native";
+import { View, Text, TextInput, Button, Image } from "react-native";
 import { useNavigation } from "expo-router";
 import useApi from "./components/useApi";
 import * as authHelper from "../helpers/auth";
@@ -52,6 +52,11 @@ const AddFeedScreen: React.FC = () => {
 	return (
 		<Screen loading={loading} error={error}>
 			<View style={styles.container}>
+				<Image
+					source={require("../assets/images/icon.png")}
+					style={styles.logo}
+				/>
+				<Text style={styles.title}>Open RSS Client</Text>
 				<TextInput
 					style={styles.input}
 					placeholder="FeedName"

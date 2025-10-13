@@ -181,8 +181,7 @@ const FeedItemListScreen: React.FC = () => {
 	];
 
 	const renderEmptyFeedsComponent = () => (
-		<View style={styles.emptyContainer}>
-		</View>
+		<View style={styles.emptyContainer}></View>
 	);
 
 	return (

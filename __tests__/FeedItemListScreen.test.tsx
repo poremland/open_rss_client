@@ -49,12 +49,11 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 
 jest.mock("@react-navigation/native", () => {
 	const React = require("react");
-	const { act } = require("@testing-library/react-native");
 	return {
 		...jest.requireActual("@react-navigation/native"),
 		useFocusEffect: jest.fn((callback) => {
 			React.useEffect(() => {
-				act(() => callback());
+				callback();
 			}, [callback]);
 		}),
 	};
