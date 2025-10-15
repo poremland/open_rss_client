@@ -5,18 +5,17 @@ import React, {
 	useEffect,
 	useMemo,
 } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth";
 import { styles } from "../styles/FeedItemListScreen.styles";
-import { listStyles } from "../styles/commonStyles";
 import { FeedItem } from "../models/FeedItem";
 import { useMenu } from "./components/GlobalDropdownMenu";
-import { decode } from "he";
 import ListScreen from "./components/ListScreen";
+import FeedItemCard from "./components/FeedItemCard";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -156,22 +155,12 @@ const FeedItemListScreen: React.FC = () => {
 		onLongPress: () => void;
 		isItemSelected: boolean;
 	}) => (
-		<TouchableOpacity
-			testID={`feed-item-${item.id}`}
-			style={[styles.listItem, isItemSelected && listStyles.selectedItem]}
+		<FeedItemCard
+			item={item}
 			onPress={onPress}
 			onLongPress={onLongPress}
-		>
-			<View>
-				<Text numberOfLines={2}>{decode(item?.title || "")}</Text>
-				<Text numberOfLines={1} style={styles.link}>
-					{item?.link || "No Link"}
-				</Text>
-				<Text numberOfLines={1}>
-					{item?.description.replace(/<[^>]*>/g, "") || "No Description"}
-				</Text>
-			</View>
-		</TouchableOpacity>
+			isItemSelected={isItemSelected}
+		/>
 	);
 	const multiSelectActions = [
 		{

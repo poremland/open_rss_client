@@ -88,8 +88,10 @@ describe("FeedListScreen", () => {
 		});
 
 		await waitFor(() => {
-			expect(getByText("Feed 1 (10)")).toBeTruthy();
-			expect(getByText("Feed 2 (5)")).toBeTruthy();
+			expect(getByText("Feed 1")).toBeTruthy();
+			expect(getByText("10")).toBeTruthy();
+			expect(getByText("Feed 2")).toBeTruthy();
+			expect(getByText("5")).toBeTruthy();
 		});
 	}, 15000);
 
