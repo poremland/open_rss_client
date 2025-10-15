@@ -97,7 +97,7 @@ export const dropdownStyles = StyleSheet.create({
 	},
 	dropdown: {
 		position: "absolute",
-		top: 10,
+		top: 60,
 		right: 10,
 		backgroundColor: "white",
 		borderRadius: 5,
