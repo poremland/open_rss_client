@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
 	},
 	feedName: {
 		fontSize: 18,
-		fontWeight: "bold",
+		fontWeight: "normal",
 	},
 	unreadCount: {
 		fontSize: 18,
