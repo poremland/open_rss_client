@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { TouchableOpacity, View, Text } from "react-native";
+import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -10,6 +10,7 @@ import HeaderRightMenu from "./components/HeaderRightMenu";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import { styles } from "../styles/FeedListScreen.styles";
 import ListScreen from "./components/ListScreen";
+import FeedCard from "./components/FeedCard";
 
 interface ListScreenHandle {
 	handleRefresh: () => void;
@@ -82,15 +83,7 @@ const FeedListScreen: React.FC = () => {
 		onPress: () => void;
 		onLongPress: () => void;
 	}) => (
-		<TouchableOpacity
-			style={styles.listItem}
-			onPress={onPress}
-			onLongPress={onLongPress}
-		>
-			<Text>
-				{item?.name || "No Name"} ({item?.count})
-			</Text>
-		</TouchableOpacity>
+		<FeedCard item={item} onPress={onPress} onLongPress={onLongPress} />
 	);
 
 	const renderEmptyFeedsComponent = () => (

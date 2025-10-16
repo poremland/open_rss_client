@@ -29,8 +29,8 @@ import { Feed } from "../models/Feed";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import Screen from "./components/Screen";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
-import ListScreen from "./components/ListScreen";
 import { listStyles } from "../styles/commonStyles";
+import ListScreen from "./components/ListScreen";
 
 const ManageFeedsListScreen: React.FC = () => {
 	const listRef = useRef<{ handleRefresh: () => void }>(null);
@@ -94,14 +94,13 @@ const ManageFeedsListScreen: React.FC = () => {
 	}) => (
 		<TouchableOpacity
 			testID={`feed-item-${item.id}`}
-			style={[styles.listItem, isItemSelected && listStyles.selectedItem]}
 			onPress={onPress}
 			onLongPress={onLongPress}
+			style={[styles.card, isItemSelected && listStyles.selectedItem]}
 		>
-			<Text numberOfLines={2}>{item?.name || "No Name"}</Text>
-			<Text numberOfLines={1} style={styles.link}>
-				{item?.uri || "No Link"}
-			</Text>
+			<View style={styles.cardContent}>
+				<Text style={styles.feedName}>{item.name}</Text>
+			</View>
 		</TouchableOpacity>
 	);
 

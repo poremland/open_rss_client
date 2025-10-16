@@ -18,36 +18,20 @@
 
 import { StyleSheet } from "react-native";
 
+import { cardStyles } from "./commonStyles";
+
 export const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		padding: 10,
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
+	card: {
+		...cardStyles.card,
+		flexDirection: "row",
+		justifyContent: "space-between",
 		alignItems: "center",
-		textAlign: "center",
 	},
-	emptyText: {
+	cardContent: {
+		flex: 1,
+	},
+	feedName: {
 		fontSize: 18,
-		color: "#555",
-		textAlign: "center",
-	},
-	link: {
-		color: "blue",
-	},
-	multiSelectButton: {
-		paddingHorizontal: 10,
-	},
-	multiSelectButtonText: {
-		color: "blue",
-		fontSize: 16,
-	},
-	listItem: {
-		paddingVertical: 15,
-		paddingHorizontal: 10,
-		borderBottomWidth: 1,
-		borderBottomColor: "#A9A9A9",
+		fontWeight: "bold",
 	},
 });

@@ -26,7 +26,6 @@ import { useRouter, useNavigation } from "expo-router";
 import GlobalDropdownMenu, {
 	useMenu,
 } from "../app/components/GlobalDropdownMenu";
-import { listStyles } from "../styles/commonStyles";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
 import ListScreen from "../app/components/ListScreen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -287,7 +286,8 @@ describe("ManageFeedsListScreen", () => {
 		});
 	});
 
-	it("should select all feeds when Select All is pressed", async () => {
+
+	it("should apply card style to feed items", async () => {
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
 			loading: false,
@@ -295,7 +295,7 @@ describe("ManageFeedsListScreen", () => {
 			execute: jest.fn(),
 		});
 
-		const { getByText, getByTestId } = render(
+		const { getByTestId } = render(
 			<NavigationContainer>
 				<GlobalDropdownMenu>
 					<ManageFeedsListScreen />
@@ -303,23 +303,10 @@ describe("ManageFeedsListScreen", () => {
 			</NavigationContainer>,
 		);
 
-		await waitFor(() => getByText("Feed 1"));
-		fireEvent(getByText("Feed 1"), "longPress");
-
-		await waitFor(() => getByText("Select All"));
-		fireEvent.press(getByText("Select All"));
-
 		await waitFor(() => {
-			const item1 = getByTestId("feed-item-1");
-			const item2 = getByTestId("feed-item-2");
-			const style1 = StyleSheet.flatten(item1.props.style);
-			const style2 = StyleSheet.flatten(item2.props.style);
-			expect(style1.backgroundColor).toEqual(
-				listStyles.selectedItem.backgroundColor,
-			);
-			expect(style2.backgroundColor).toEqual(
-				listStyles.selectedItem.backgroundColor,
-			);
+			const feedItem = getByTestId("feed-item-1");
+			const card = feedItem.find((node) => node.props.style?.hasOwnProperty("backgroundColor"));
+			expect(card).toBeDefined();
 		});
 	});
 

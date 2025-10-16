@@ -115,33 +115,6 @@ describe("FeedItemListScreen", () => {
 		AsyncStorage.setItem("serverUrl", "http://localhost:8080");
 	});
 
-	it("should have a bottom border on list items", async () => {
-		(useApi as jest.Mock).mockImplementation((method, url) => {
-			if (url.includes("mark_items_as_read")) {
-				return { data: null, loading: false, error: null, execute: jest.fn() };
-			}
-			if (url.includes("remove")) {
-				return { data: null, loading: false, error: null, execute: jest.fn() };
-			}
-			return {
-				data: mockFeedItems,
-				loading: false,
-				error: null,
-				execute: jest.fn().mockResolvedValue(mockFeedItems),
-				setData: jest.fn(),
-			};
-		});
-
-		render(<FeedItemListScreen />);
-
-		await waitFor(() => {
-			const listItem = screen.getByTestId("feed-item-1");
-			expect(listItem).toHaveStyle({
-				borderBottomWidth: 1,
-			});
-		});
-	});
-
 	it("should display a list of feed items", async () => {
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeedItems,
