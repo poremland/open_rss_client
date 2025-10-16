@@ -31,6 +31,7 @@ import { useMenu } from "./components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
 
 import Screen from "./components/Screen";
+import { styles } from "../styles/FeedItemDetailScreen.styles";
 
 const FeedItemDetailScreen: React.FC = () => {
 	const [webViewSource, setWebViewSource] = useState<string>("");
@@ -140,20 +141,24 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	return (
 		<Screen loading={loading} error={error}>
-			<Text>{selectedFeedItem?.title || "No Title"}</Text>
-			{Platform.OS === "web" ? (
-				<iframe
-					src={webViewSource}
-					style={{ width: "100%", height: "100%", border: "none" }}
-					title="Content"
-				/>
-			) : (
-				<WebView
-					originWhitelist={["*"]}
-					source={{ html: webViewSource }}
-					style={{ flex: 1 }}
-				/>
-			)}
+			<View
+				testID="webViewContainer"
+				style={styles.webViewContainer}
+			>
+				{Platform.OS === "web" ? (
+					<iframe
+						src={webViewSource}
+						style={{ width: "100%", height: "100%", border: "none" }}
+						title="Content"
+					/>
+				) : (
+					<WebView
+						originWhitelist={["*"]}
+						source={{ html: webViewSource }}
+						style={{ flex: 1 }}
+					/>
+				)}
+			</View>
 		</Screen>
 	);
 };

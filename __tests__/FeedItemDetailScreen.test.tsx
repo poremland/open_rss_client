@@ -19,6 +19,7 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
 import FeedItemDetailScreen from "../app/FeedItemDetailScreen";
+import Screen from "../app/components/Screen";
 import useApi from "../app/components/useApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -56,6 +57,11 @@ jest.mock("../app/components/GlobalDropdownMenu", () => ({
 	}),
 }));
 
+jest.mock("../app/components/Screen", () => {
+	const { View } = require("react-native");
+	return (props) => <View>{props.children}</View>;
+});
+
 jest.mock("react-native-webview", () => ({ WebView: () => <></> }));
 
 describe("FeedItemDetailScreen", () => {
@@ -80,10 +86,37 @@ describe("FeedItemDetailScreen", () => {
 			};
 		});
 
-		const { getByText } = render(<FeedItemDetailScreen />);
+		const { getByTestId } = render(<FeedItemDetailScreen />);
 
 		await waitFor(() => {
-			expect(getByText("Item 1")).toBeTruthy();
+			const webViewContainer = getByTestId("webViewContainer");
+			expect(webViewContainer).toBeTruthy();
+		});
+	});
+
+	it("should apply webViewContainer style", async () => {
+		(useApi as jest.Mock).mockImplementation((method, url) => {
+			if (url.includes("mark_as_read")) {
+				return {
+					data: null,
+					loading: false,
+					error: null,
+					execute: jest.fn(),
+				};
+			}
+			return {
+				data: { id: 1, title: "Item 1", link: "link1", description: "desc1" },
+				loading: false,
+				error: null,
+				execute: jest.fn(),
+			};
+		});
+
+		const { getByTestId } = render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			const webViewContainer = getByTestId("webViewContainer");
+			expect(webViewContainer.props.style).toHaveProperty("backgroundColor");
 		});
 	});
 });
