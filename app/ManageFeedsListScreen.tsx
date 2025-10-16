@@ -29,6 +29,7 @@ import { Feed } from "../models/Feed";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import Screen from "./components/Screen";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
+import { listStyles } from "../styles/commonStyles";
 import ListScreen from "./components/ListScreen";
 
 const ManageFeedsListScreen: React.FC = () => {
@@ -95,11 +96,10 @@ const ManageFeedsListScreen: React.FC = () => {
 			testID={`feed-item-${item.id}`}
 			onPress={onPress}
 			onLongPress={onLongPress}
+			style={[styles.card, isItemSelected && listStyles.selectedItem]}
 		>
-			<View style={styles.card}>
-				<View style={styles.cardContent}>
-					<Text style={styles.feedName}>{item.name}</Text>
-				</View>
+			<View style={styles.cardContent}>
+				<Text style={styles.feedName}>{item.name}</Text>
 			</View>
 		</TouchableOpacity>
 	);
