@@ -155,7 +155,7 @@ const ListScreen = React.forwardRef(
 		);
 
 		return (
-			<Screen loading={loading && !refreshing} error={error}>
+			<Screen loading={loading && !refreshing} error={error} style={styles.container}>
 				<View style={{ flex: 1 }}>
 					{isMultiSelectActive && multiSelectActions && (
 						<MultiSelectBar>
@@ -186,7 +186,6 @@ const ListScreen = React.forwardRef(
 					)}
 					<SelectableFlatList
 						testID="flat-list"
-						style={styles.container}
 						data={transformedData || []}
 						renderItem={renderItem}
 						keyExtractor={keyExtractor}

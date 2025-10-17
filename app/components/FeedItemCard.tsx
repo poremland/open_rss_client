@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import { decode } from "he";
 import { FeedItem } from "../../models/FeedItem";
 import { styles } from "../../styles/FeedItemCard.styles";
-import { listStyles } from "../../styles/commonStyles";
+import { commonStyles } from "../../styles/commonStyles";
 
 interface FeedItemCardProps {
 	item: FeedItem;
@@ -27,7 +27,7 @@ const FeedItemCard: React.FC<FeedItemCardProps> = ({ item, onPress, onLongPress,
 	return (
 		<TouchableOpacity
 			testID={`feed-item-${item.id}`}
-			style={[styles.card, isItemSelected && listStyles.selectedItem]}
+			style={[styles.card, isItemSelected && commonStyles.selectedItem]}
 			onPress={onPress}
 			onLongPress={onLongPress}
 		>

@@ -1,9 +1,9 @@
 import { StyleSheet } from "react-native";
-import { cardStyles } from "./commonStyles";
+import { commonStyles } from "./commonStyles";
 
 export const styles = StyleSheet.create({
 	card: {
-		...cardStyles.card,
+		...commonStyles.card,
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",

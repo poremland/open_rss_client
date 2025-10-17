@@ -25,7 +25,7 @@ import { decode } from "he";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth";
-import * as styleHelper from "../styles/commonStyles";
+import { commonStyles } from "../styles/commonStyles";
 import { FeedItem } from "../models/FeedItem";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
@@ -140,7 +140,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	}, [selectedFeedItem, navigation, handleMarkAsRead, handleShare, error]);
 
 	return (
-		<Screen loading={loading} error={error}>
+		<Screen loading={loading} error={error} style={styles.container}>
 			<View
 				testID="webViewContainer"
 				style={styles.webViewContainer}

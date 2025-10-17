@@ -18,7 +18,7 @@
 
 import { StyleSheet } from "react-native";
 
-export const containerStyles = StyleSheet.create({
+const containerStyles = StyleSheet.create({
 	container: {
 		flex: 1,
 		padding: 10,
@@ -41,7 +41,7 @@ export const containerStyles = StyleSheet.create({
 	},
 });
 
-export const listStyles = StyleSheet.create({
+const listStyles = StyleSheet.create({
 	listItem: {
 		padding: 15,
 	},
@@ -85,7 +85,7 @@ export const listStyles = StyleSheet.create({
 	},
 });
 
-export const dropdownStyles = StyleSheet.create({
+const dropdownStyles = StyleSheet.create({
 	overlay: {
 		position: "absolute",
 		top: 0,
@@ -121,14 +121,14 @@ export const dropdownStyles = StyleSheet.create({
 	},
 });
 
-export const errorStyles = StyleSheet.create({
+const errorStyles = StyleSheet.create({
 	errorText: {
 		color: "red",
 		marginTop: 10,
 	},
 });
 
-export const swipeStyles = StyleSheet.create({
+const swipeStyles = StyleSheet.create({
 	leftAction: {
 		backgroundColor: "lightblue",
 		justifyContent: "center",
@@ -136,7 +136,7 @@ export const swipeStyles = StyleSheet.create({
 	},
 });
 
-export const multiSelectStyles = StyleSheet.create({
+const multiSelectStyles = StyleSheet.create({
 	topBar: {
 		backgroundColor: "white",
 		flexDirection: "row",
@@ -155,7 +155,7 @@ export const multiSelectStyles = StyleSheet.create({
 	},
 });
 
-export const cardStyles = StyleSheet.create({
+const cardStyles = StyleSheet.create({
 	card: {
 		backgroundColor: "white",
 		borderRadius: 10,
@@ -172,3 +172,13 @@ export const cardStyles = StyleSheet.create({
 		elevation: 5,
 	},
 });
+
+export const commonStyles = {
+	...containerStyles,
+	...listStyles,
+	...dropdownStyles,
+	...errorStyles,
+	...swipeStyles,
+	...multiSelectStyles,
+	...cardStyles,
+};

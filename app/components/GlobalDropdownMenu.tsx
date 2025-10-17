@@ -30,7 +30,7 @@ import {
 	TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as styleHelper from "../../styles/commonStyles";
+import { commonStyles } from "../../styles/commonStyles";
 
 interface MenuItem {
 	label: string;
@@ -82,22 +82,21 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 			{children}
 			{isDropdownVisible && (
 				<TouchableWithoutFeedback testID="overlay" onPress={onCloseDropdown}>
-					<View style={styleHelper.dropdownStyles.overlay}>
-						<View
-							style={styleHelper.dropdownStyles.dropdown}
-							pointerEvents="auto"
-						>
-							<TouchableOpacity
-								style={styleHelper.dropdownStyles.dropdownItem}
-								onPress={onCloseDropdown}
-							>
-								<Ionicons name="close-sharp" size={24} color="black" />
+					<View style={commonStyles.overlay}>
+						                        <View
+						                            style={commonStyles.dropdown}
+						                            pointerEvents="auto"
+						                        >
+						                            <TouchableOpacity
+						                                style={commonStyles.dropdownItem}
+						                                onPress={onCloseDropdown}
+						                            >								<Ionicons name="close-sharp" size={24} color="black" />
 							</TouchableOpacity>
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
 									key={index}
 									testID={item.testID}
-									style={styleHelper.dropdownStyles.dropdownItem}
+									style={commonStyles.dropdownItem}
 									onPress={() => {
 										onCloseDropdown();
 										item.onPress();

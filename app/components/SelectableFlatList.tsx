@@ -24,7 +24,7 @@ import {
 	RefreshControl,
 	ViewStyle,
 } from "react-native";
-import * as styleHelper from "../../styles/commonStyles";
+import { commonStyles } from "../../styles/commonStyles";
 
 interface SelectableFlatListProps<T> {
 	data: T[];
