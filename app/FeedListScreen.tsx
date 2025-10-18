@@ -88,7 +88,7 @@ const FeedListScreen: React.FC = () => {
 
 	const renderEmptyFeedsComponent = () => (
 		<View style={styles.emptyContainer}>
-			<Ionicons name="cloud-done-outline" size={240} color="black" />
+			<Ionicons name="cloud-done-outline" size={styles.emptyIcon.fontSize} color={styles.emptyIcon.color} />
 			<Text style={styles.emptyText}>
 				Congratulations! No more feeds with unread items.
 			</Text>

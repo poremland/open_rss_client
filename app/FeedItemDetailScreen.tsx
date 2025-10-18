@@ -89,6 +89,7 @@ const FeedItemDetailScreen: React.FC = () => {
 		if (selectedFeedItem) {
 			const decodedItem = { ...selectedFeedItem };
 			decodedItem.title = decode(decodedItem.title || "");
+			// The following styles are for the HTML content displayed in the WebView and cannot be moved to a React Native stylesheet.
 			const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
 			if (Platform.OS === "web") {
 				setWebViewSource(
@@ -148,14 +149,14 @@ const FeedItemDetailScreen: React.FC = () => {
 				{Platform.OS === "web" ? (
 					<iframe
 						src={webViewSource}
-						style={{ width: "100%", height: "100%", border: "none" }}
+						style={styles.iframe}
 						title="Content"
 					/>
 				) : (
 					<WebView
 						originWhitelist={["*"]}
 						source={{ html: webViewSource }}
-						style={{ flex: 1 }}
+						style={styles.webview}
 					/>
 				)}
 			</View>

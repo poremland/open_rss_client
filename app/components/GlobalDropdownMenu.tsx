@@ -31,6 +31,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { commonStyles } from "../../styles/commonStyles";
+import { styles } from "../../styles/GlobalDropdownMenu.styles";
 
 interface MenuItem {
 	label: string;
@@ -90,7 +91,7 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 						                            <TouchableOpacity
 						                                style={commonStyles.dropdownItem}
 						                                onPress={onCloseDropdown}
-						                            >								<Ionicons name="close-sharp" size={24} color="black" />
+						                            >								<Ionicons name="close-sharp" size={styles.icon.fontSize} color={styles.icon.color} style={styles.icon} />
 							</TouchableOpacity>
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
@@ -102,8 +103,8 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 										item.onPress();
 									}}
 								>
-									<Ionicons name={item.icon} size={24} color="black" />
-									<Text>{item.label}</Text>
+									<Ionicons name={item.icon} size={styles.icon.fontSize} color={styles.icon.color} style={styles.icon} />
+									<Text style={styles.text}>{item.label}</Text>
 								</TouchableOpacity>
 							))}
 						</View>

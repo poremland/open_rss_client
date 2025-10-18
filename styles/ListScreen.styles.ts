@@ -40,4 +40,11 @@ export const styles = StyleSheet.create({
 	multiSelectButton: {
 		paddingHorizontal: 10,
 	},
+	emptyIcon: {
+		color: "black",
+		fontSize: 240,
+	},
+	contentContainer: {
+		flex: 1,
+	},
 });

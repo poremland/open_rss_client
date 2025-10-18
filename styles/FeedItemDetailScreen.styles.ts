@@ -33,4 +33,12 @@ export const styles = StyleSheet.create({
 		padding: 10,
 		marginVertical: 0,
 	},
+	iframe: {
+		width: "100%",
+		height: "100%",
+		borderWidth: 0,
+	},
+	webview: {
+		flex: 1,
+	},
 });

@@ -1,3 +1,21 @@
+/*
+ * RSS Reader: A mobile application for consuming RSS feeds.
+ * Copyright (C) 2025 Paul Oremland
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
 	View,
@@ -149,14 +167,14 @@ const ListScreen = React.forwardRef(
 
 		const defaultEmptyComponent = (
 			<View style={styles.emptyContainer}>
-				<Ionicons name="information-circle-outline" size={240} color="black" />
+				<Ionicons name="information-circle-outline" size={styles.emptyIcon.fontSize} color={styles.emptyIcon.color} />
 				<Text style={styles.emptyText}>No items to display.</Text>
 			</View>
 		);
 
 		return (
 			<Screen loading={loading && !refreshing} error={error} style={styles.container}>
-				<View style={{ flex: 1 }}>
+				<View style={styles.contentContainer}>
 					{isMultiSelectActive && multiSelectActions && (
 						<MultiSelectBar>
 							<TouchableOpacity
@@ -185,7 +203,6 @@ const ListScreen = React.forwardRef(
 						</MultiSelectBar>
 					)}
 					<SelectableFlatList
-						testID="flat-list"
 						data={transformedData || []}
 						renderItem={renderItem}
 						keyExtractor={keyExtractor}

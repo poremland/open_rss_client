@@ -32,7 +32,7 @@ import { post } from "../../helpers/api";
 import * as authHelper from "../../helpers/auth";
 import { LoginResponse } from "../../models/Login";
 
-import { styles } from "../../styles/LoginForm.styles";
+import { styles, loadingIndicator } from "../../styles/LoginForm.styles";
 
 const LoginForm: React.FC = () => {
 	const [username, setUsername] = useState<string>("");
@@ -123,7 +123,7 @@ const LoginForm: React.FC = () => {
 				/>
 			)}
 			{loading ? (
-				<ActivityIndicator size="large" color="#0000ff" />
+				<ActivityIndicator size={loadingIndicator.size} color={loadingIndicator.color} />
 			) : (
 				<>
 					{!otpRequested ? (
