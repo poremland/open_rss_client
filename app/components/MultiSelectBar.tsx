@@ -18,14 +18,14 @@
 
 import React, { useRef } from "react";
 import { View, ViewProps } from "react-native";
-import * as styleHelper from "../../styles/commonStyles";
+import { commonStyles } from "../../styles/commonStyles";
 
 interface MultiSelectBarProps extends ViewProps {}
 
 const MultiSelectBar = React.forwardRef<View, MultiSelectBarProps>(
 	({ children, ...props }, ref) => {
 		return (
-			<View ref={ref} style={styleHelper.multiSelectStyles.topBar} {...props}>
+			<View ref={ref} style={commonStyles.topBar} {...props}>
 				{children}
 			</View>
 		);

@@ -30,7 +30,8 @@ import {
 	TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as styleHelper from "../../styles/commonStyles";
+import { commonStyles } from "../../styles/commonStyles";
+import { styles } from "../../styles/GlobalDropdownMenu.styles";
 
 interface MenuItem {
 	label: string;
@@ -82,29 +83,28 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 			{children}
 			{isDropdownVisible && (
 				<TouchableWithoutFeedback testID="overlay" onPress={onCloseDropdown}>
-					<View style={styleHelper.dropdownStyles.overlay}>
-						<View
-							style={styleHelper.dropdownStyles.dropdown}
-							pointerEvents="auto"
-						>
-							<TouchableOpacity
-								style={styleHelper.dropdownStyles.dropdownItem}
-								onPress={onCloseDropdown}
-							>
-								<Ionicons name="close-sharp" size={24} color="black" />
+					<View style={commonStyles.overlay}>
+						                        <View
+						                            style={commonStyles.dropdown}
+						                            pointerEvents="auto"
+						                        >
+						                            <TouchableOpacity
+						                                style={commonStyles.dropdownItem}
+						                                onPress={onCloseDropdown}
+						                            >								<Ionicons name="close-sharp" size={styles.icon.fontSize} color={styles.icon.color} style={styles.icon} />
 							</TouchableOpacity>
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
 									key={index}
 									testID={item.testID}
-									style={styleHelper.dropdownStyles.dropdownItem}
+									style={commonStyles.dropdownItem}
 									onPress={() => {
 										onCloseDropdown();
 										item.onPress();
 									}}
 								>
-									<Ionicons name={item.icon} size={24} color="black" />
-									<Text>{item.label}</Text>
+									<Ionicons name={item.icon} size={styles.icon.fontSize} color={styles.icon.color} style={styles.icon} />
+									<Text style={styles.text}>{item.label}</Text>
 								</TouchableOpacity>
 							))}
 						</View>

@@ -33,3 +33,8 @@ export const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 });
+
+export const loadingIndicator = {
+	size: "large",
+	color: "#0000ff",
+};

@@ -19,6 +19,7 @@
 import React from "react";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { styles } from "../../styles/HeaderRightMenu.styles";
 
 interface HeaderRightMenuProps {
 	onToggleDropdown: () => void;
@@ -31,9 +32,9 @@ const HeaderRightMenu: React.FC<HeaderRightMenuProps> = ({
 		<TouchableOpacity
 			testID="menu"
 			onPressOut={onToggleDropdown}
-			style={{ paddingHorizontal: 10 }}
+			style={styles.container}
 		>
-			<Ionicons name="ellipsis-vertical" size={24} color="black" />
+			<Ionicons name="ellipsis-vertical" size={styles.icon.fontSize} color={styles.icon.color} />
 		</TouchableOpacity>
 	);
 };

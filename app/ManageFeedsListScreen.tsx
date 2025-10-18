@@ -29,7 +29,8 @@ import { Feed } from "../models/Feed";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import Screen from "./components/Screen";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
-import { listStyles } from "../styles/commonStyles";
+import { styles as listScreenStyles } from "../styles/ListScreen.styles";
+import { commonStyles } from "../styles/commonStyles";
 import ListScreen from "./components/ListScreen";
 
 const ManageFeedsListScreen: React.FC = () => {
@@ -96,7 +97,7 @@ const ManageFeedsListScreen: React.FC = () => {
 			testID={`feed-item-${item.id}`}
 			onPress={onPress}
 			onLongPress={onLongPress}
-			style={[styles.card, isItemSelected && listStyles.selectedItem]}
+			style={[styles.card, isItemSelected && commonStyles.selectedItem]}
 		>
 			<View style={styles.cardContent}>
 				<Text style={styles.feedName}>{item.name}</Text>
@@ -105,8 +106,7 @@ const ManageFeedsListScreen: React.FC = () => {
 	);
 
 	const renderEmptyComponent = () => (
-		<View style={styles.emptyContainer}>
-			<Ionicons name="skull-outline" size={240} color="black" />
+		<View style={listScreenStyles.emptyContainer}>
 			<Text style={styles.emptyText}>No feeds to manage!</Text>
 		</View>
 	);
@@ -120,6 +120,7 @@ const ManageFeedsListScreen: React.FC = () => {
 
 	return (
 		<ListScreen<Feed>
+			style={listScreenStyles.container}
 			ref={listRef}
 			fetchUrl="/feeds/all.json"
 			renderItem={renderItem}
