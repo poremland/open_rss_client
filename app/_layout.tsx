@@ -21,6 +21,7 @@ import { StatusBar, View } from "react-native";
 import { Stack } from "expo-router";
 import GlobalDropdownMenu from "./components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth";
+import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
 
 const RootLayout = () => {
 	useEffect(() => {
@@ -29,10 +30,10 @@ const RootLayout = () => {
 
 	return (
 		<GlobalDropdownMenu>
-			<View style={{ flex: 1 }}>
+			<GestureHandlerRootView style={{ flex: 1 }}> {/* Wrap content with GestureHandlerRootView */}
 				<StatusBar hidden={false} barStyle="dark-content" />
 				<Stack />
-			</View>
+			</GestureHandlerRootView>
 		</GlobalDropdownMenu>
 	);
 };

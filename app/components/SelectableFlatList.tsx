@@ -19,12 +19,13 @@
 import React, { useCallback } from "react";
 import {
 	FlatList,
-	TouchableOpacity,
 	View,
 	RefreshControl,
 	ViewStyle,
+	Alert,
 } from "react-native";
-import { commonStyles } from "../../styles/commonStyles";
+
+import SelectableFlatListItem from "./SelectableFlatListItem";
 
 interface SelectableFlatListProps<T> {
 	data: T[];
@@ -47,6 +48,10 @@ interface SelectableFlatListProps<T> {
 	onItemPress: (item: T) => void;
 	ListEmptyComponent?: React.ComponentType<any> | React.ReactElement | null;
 	contentContainerStyle?: ViewStyle;
+	swipeEnabled?: boolean;
+	onSwipeAction?: (item: T) => void;
+	swipeActionRequiresConfirmation?: boolean;
+	swipeConfirmationMessage?: string;
 }
 
 const SelectableFlatList = <T extends { id: number }>({
@@ -60,6 +65,10 @@ const SelectableFlatList = <T extends { id: number }>({
 	onItemPress,
 	ListEmptyComponent,
 	contentContainerStyle,
+	swipeEnabled = false,
+	onSwipeAction,
+	swipeActionRequiresConfirmation = false,
+	swipeConfirmationMessage = "Are you sure you want to perform this action?",
 }: SelectableFlatListProps<T>) => {
 	const toggleSelection = useCallback(
 		(itemId: number) => {
@@ -76,20 +85,27 @@ const SelectableFlatList = <T extends { id: number }>({
 	const renderSelectableItem = ({ item }: { item: T }) => {
 		const isItemSelected = selectedItems.includes(item.id);
 
-		return renderItem({
-			item,
-			onPress: () => {
-				if (multiSelectActive) {
-					toggleSelection(item.id);
-				} else {
-					onItemPress(item);
-				}
-			},
-			onLongPress: () => {
-				if (!multiSelectActive) onSelectionChange([item.id]);
-			},
-			isItemSelected,
-		});
+		return (
+			<SelectableFlatListItem
+				item={item}
+				renderItem={renderItem}
+				onPress={() => {
+					if (multiSelectActive) {
+						toggleSelection(item.id);
+					} else {
+						onItemPress(item);
+					}
+				}}
+				onLongPress={() => {
+					if (!multiSelectActive) onSelectionChange([item.id]);
+				}}
+				isItemSelected={isItemSelected}
+				swipeEnabled={swipeEnabled}
+				onSwipeAction={onSwipeAction}
+				swipeActionRequiresConfirmation={swipeActionRequiresConfirmation}
+				swipeConfirmationMessage={swipeConfirmationMessage}
+			/>
+		);
 	};
 
 	return (

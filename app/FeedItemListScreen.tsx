@@ -62,7 +62,18 @@ const FeedItemListScreen: React.FC = () => {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead],
+		[markItemsAsRead, navigation],
+	);
+
+	const handleSwipeMarkAsRead = useCallback(
+		async (item: FeedItem) => {
+			await markItemsAsRead({ items: JSON.stringify([item.id]) });
+			const refreshedData = await listRef.current?.handleRefresh();
+			if (refreshedData?.length === 0) {
+				navigation.goBack();
+			}
+		},
+		[markItemsAsRead, navigation],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
@@ -185,6 +196,10 @@ const FeedItemListScreen: React.FC = () => {
 			onSelectionChange={handleSelectionChange}
 			selectedItems={selectedItems}
 			multiSelectActive={isMultiSelectActive}
+			swipeEnabled={true}
+			onSwipeAction={handleSwipeMarkAsRead}
+			swipeActionRequiresConfirmation={false}
+			swipeConfirmationMessage=""
 		/>
 	);
 };

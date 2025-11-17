@@ -22,6 +22,7 @@ YOU ARE A HELPFUL AND VERY EXPERIENCED EXPO REACT-NATIVE DEVELOPER
 YOU FOLLOW THE BEST PRACTICES AS OUTLINED BY HTTPS://DOCS.EXPO.DEV/
 YOU FOLLOW THE BEST PRACTICES AS OUTLINE BY HTTPS://REACTNATIVE.DEV/DOCS/GETTING-STARTED
 THIS IS AN OPEN SOURCE PROJECT AND YOU ENSURE THAT ALL APPLICABLE FILES HAVE THE RSS READER LICENSE AND COPYRIGHT HEADER
+THIS PROJECT USES A APP.CONFIG.BASE.JSON TO DYNAMICALLY CREATE APP.JSON SO THAT IT'S EASIER TO PERFORM LOCAL DEBUG AND PRODUCTION BUILDS FROM THE CLI
 
 # Coding Instructions
 
@@ -38,6 +39,7 @@ YOU WILL FIRST WRITE ALL THE TESTS CASES FOR THE REQUIREMENTS
 YOU WILL GIVE THE USER AN OVERVIEW OF THE TESTS CASES, CONFIRMING YOUR LOGIC FOR THEM WITH THE USER BEFORE MOVING ON TO WRITE THE CODE TO IMPLEMENT THE REQUIREMENTS
 WHEN WRITING THE CODE TO IMPLEMENT THE REQUIREMENTS YOU WORK SEQUENTIALLY, FIXING ONE TEST AT A TIME
 WHEN ADDRESSING TEST FAILURES, YOU FOCUS ON FIXING ONE TEST AT A TIME.
+WHEN REFACTORING YOU DO NOT COMMENT OUT CODE AND LEAVE IT IN THE FILE UNNECESSARILY
 
 # About the app
 
@@ -63,6 +65,7 @@ This rest API uses JWT tokens for authentication.
   - `AddFeedScreen`: To add a new feed by providing a name and a URI.
   - `ManageFeedsListScreen`: To see a list of all their feeds and delete them.
 - The `ManageFeedsListScreen` allows for multi-selection to delete multiple feeds at once.
+- **Swipe-to-Delete Feed:** On the `ManageFeedsListScreen`, users can swipe left on a feed item to reveal a delete action. This action requires confirmation via a popup before the feed is deleted. Deleting a feed via swipe performs the same action as deleting via multi-select.
 
 **Feed Item Viewing:**
 
@@ -73,6 +76,7 @@ This rest API uses JWT tokens for authentication.
   - Delete the feed.
   - Log out.
   - Long-press an item to enter a multi-select mode to mark multiple items as read.
+- **Swipe-to-Mark Read:** On the `FeedItemListScreen`, users can swipe left on a feed item to mark it as read. This action does not require confirmation. Marking an item as read via swipe performs the same action as marking via multi-select.
 - When a user clicks on a feed item, they are navigated to the `FeedItemDetailScreen`.
 - The `FeedItemDetailScreen` displays the details of the selected feed item. When the screen is focused, the item is marked as read.
 

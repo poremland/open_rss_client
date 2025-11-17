@@ -108,6 +108,7 @@ const FeedListScreen: React.FC = () => {
 			emptyComponent={renderEmptyFeedsComponent()}
 			transformData={transformData}
 			onItemPress={displayFeedItems}
+			swipeEnabled={false} // Disable swipe for FeedListScreen
 		/>
 	);
 };

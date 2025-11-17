@@ -59,6 +59,11 @@ const ManageFeedsListScreen: React.FC = () => {
 		listRef.current?.handleRefresh();
 	}, []);
 
+	const handleSwipeDelete = useCallback(async (feed: Feed) => {
+		await getWithAuth(`/feeds/remove/${feed.id}`);
+		listRef.current?.handleRefresh();
+	}, []);
+
 	useFocusEffect(
 		useCallback(() => {
 			listRef.current?.handleRefresh();
@@ -131,6 +136,10 @@ const ManageFeedsListScreen: React.FC = () => {
 			onSelectionChange={handleSelectionChange}
 			selectedItems={selectedFeeds}
 			multiSelectActive={isMultiSelectActive}
+			swipeEnabled={true}
+			onSwipeAction={handleSwipeDelete}
+			swipeActionRequiresConfirmation={true}
+			swipeConfirmationMessage="Are you sure you want to delete this feed?"
 		/>
 	);
 };
