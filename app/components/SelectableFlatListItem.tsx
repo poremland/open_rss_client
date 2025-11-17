@@ -16,12 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useCallback } from "react";
-import {
-	View,
-	Alert,
-} from "react-native";
-import { PanGestureHandler, State } from "react-native-gesture-handler";
+import React from "react";
+import { View, Alert, Dimensions } from "react-native";
+import { PanGestureHandler } from "react-native-gesture-handler";
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
@@ -52,7 +49,8 @@ interface SelectableFlatListItemProps<T> {
 	swipeConfirmationMessage: string;
 }
 
-const SWIPE_THRESHOLD = -100; // Pixels to swipe left to trigger action
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.6;
 
 const SelectableFlatListItem = <T extends { id: number }>({
 	item,
@@ -73,54 +71,51 @@ const SelectableFlatListItem = <T extends { id: number }>({
 		};
 	});
 
-	const handleSwipeAction = useCallback(
-		(swipedItem: T) => {
-			if (swipeActionRequiresConfirmation) {
-				Alert.alert(
-					"Confirm Action",
-					swipeConfirmationMessage,
-					[
-						{
-							text: "No",
-							style: "cancel",
-							onPress: () => {
-								// Reset swipe position if cancelled
-								// This will be handled by the gesture handler's onEnd
-							},
+	const handleSwipeAction = (swipedItem: T) => {
+		if (swipeActionRequiresConfirmation) {
+			Alert.alert(
+				"Confirm Action",
+				swipeConfirmationMessage,
+				[
+					{
+						text: "No",
+						style: "cancel",
+						onPress: () => {
+							translateX.value = withSpring(0);
 						},
-						{
-							text: "Yes",
-							onPress: () => {
-								onSwipeAction?.(swipedItem);
-							},
+					},
+					{
+						text: "Yes",
+						onPress: () => {
+							onSwipeAction?.(swipedItem);
+							translateX.value = withSpring(0);
 						},
-					],
-					{ cancelable: true },
-				);
-			} else {
-				onSwipeAction?.(swipedItem);
-			}
-		},
-		[onSwipeAction, swipeActionRequiresConfirmation, swipeConfirmationMessage],
-	);
+					},
+				],
+				{ cancelable: true, onDismiss: () => (translateX.value = withSpring(0)) },
+			);
+		} else {
+			onSwipeAction?.(swipedItem);
+			translateX.value = withSpring(0);
+		}
+	};
 
 	const gestureHandler = useAnimatedGestureHandler({
-		onActive: (event) => {
-			if (swipeEnabled && event.translationX < 0) {
-				translateX.value = event.translationX;
+		onStart: (_, ctx: { startX: number }) => {
+			ctx.startX = translateX.value;
+		},
+		onActive: (event, ctx) => {
+			const newTranslateX = ctx.startX + event.translationX;
+			if (swipeEnabled && newTranslateX < 0) {
+				translateX.value = newTranslateX;
 			}
 		},
-		onEnd: (event) => {
-			if (swipeEnabled && event.translationX <= SWIPE_THRESHOLD) {
+		onEnd: () => {
+			if (swipeEnabled && Math.abs(translateX.value) > SWIPE_THRESHOLD) {
 				runOnJS(handleSwipeAction)(item);
+			} else {
+				translateX.value = withSpring(0, { damping: 20, stiffness: 90 });
 			}
-			translateX.value = withSpring(0); // Reset position
-		},
-		onFail: () => {
-			translateX.value = withSpring(0); // Reset position
-		},
-		onCancel: () => {
-			translateX.value = withSpring(0); // Reset position
 		},
 	});
 
@@ -133,10 +128,13 @@ const SelectableFlatListItem = <T extends { id: number }>({
 
 	if (swipeEnabled) {
 		return (
-			<PanGestureHandler onGestureEvent={gestureHandler} onHandlerStateChange={gestureHandler} item={item}>
-				<Animated.View style={animatedStyle}>
-					{itemContent}
-				</Animated.View>
+			<PanGestureHandler
+				onGestureEvent={gestureHandler}
+				activeOffsetX={[-20, 20]}
+				failOffsetY={[-10, 10]}
+				{...(process.env.NODE_ENV === "test" && { item })}
+			>
+				<Animated.View style={animatedStyle}>{itemContent}</Animated.View>
 			</PanGestureHandler>
 		);
 	}

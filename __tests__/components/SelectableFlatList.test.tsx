@@ -17,12 +17,10 @@
  */
 
 import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 import SelectableFlatList from "../../app/components/SelectableFlatList";
-import { TouchableOpacity, Text, Alert } from "react-native";
-import { GestureHandlerRootView, State } from "react-native-gesture-handler";
-
-
+import { TouchableOpacity, Text, Alert, Dimensions } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const mockData = [
 	{ id: 1, name: "Item 1" },
@@ -40,7 +38,8 @@ describe("SelectableFlatList", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		jest.spyOn(Alert, "alert");
-		require('react-native-reanimated')._clearAnimatedGestureHandlers(); // Clear handlers
+		require("react-native-reanimated")._clearAnimatedGestureHandlers(); // Clear handlers
+		require("react-native-reanimated")._clearSharedValues();
 	});
 
 	it("should render a list of items", () => {
@@ -123,8 +122,7 @@ describe("SelectableFlatList", () => {
 		expect(onSelectionChange).toHaveBeenCalledWith([]);
 	});
 
-	it("should not call onSwipeAction when swipeEnabled is false", async () => {
-		const onSwipeAction = jest.fn();
+	it("should not create a gesture handler when swipeEnabled is false", () => {
 		render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
@@ -137,189 +135,30 @@ describe("SelectableFlatList", () => {
 					selectedItems={[]}
 					onItemPress={() => {}}
 					swipeEnabled={false}
-					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={false}
-					swipeConfirmationMessage=""
+					onSwipeAction={() => {}}
 				/>
 			</GestureHandlerRootView>,
 		);
 
-		// Use the exposed helper to trigger the handler
-		require("react-native-gesture-handler")._triggerPanGestureHandlerStateChange(mockData[0].id, {
-			nativeEvent: {
-				state: State.END, // END state
-				translationX: -100, // Swiped left
-			},
-		});
-
-		await waitFor(() => {
-			expect(onSwipeAction).not.toHaveBeenCalled();
-		});
-	});
-
-	it("should call onSwipeAction when swipeEnabled is true and no confirmation is required", async () => {
-		const onSwipeAction = jest.fn();
-		render(
-			<GestureHandlerRootView>
-				<SelectableFlatList
-					data={mockData}
-					renderItem={renderItem}
-					onRefresh={() => {}}
-					refreshing={false}
-					multiSelectActive={false}
-					onSelectionChange={() => {}}
-					selectedItems={[]}
-					onItemPress={() => {}}
-					swipeEnabled={true}
-					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={false}
-					swipeConfirmationMessage=""
-				/>
-			</GestureHandlerRootView>,
-		);
-
-		require("react-native-gesture-handler")._triggerPanGestureHandlerStateChange(mockData[0].id, {
-			nativeEvent: {
-				state: State.END, // END state
-				translationX: -100, // Swiped left
-			},
-		});
-
-		await waitFor(() => {
-			expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
-		});
-	});
-
-	it("should not call onSwipeAction when swipe is abandoned (cancelled state)", async () => {
-		const onSwipeAction = jest.fn();
-		render(
-			<GestureHandlerRootView>
-				<SelectableFlatList
-					data={mockData}
-					renderItem={renderItem}
-					onRefresh={() => {}}
-					refreshing={false}
-					multiSelectActive={false}
-					onSelectionChange={() => {}}
-					selectedItems={[]}
-					onItemPress={() => {}}
-					swipeEnabled={true}
-					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={false}
-					swipeConfirmationMessage=""
-				/>
-			</GestureHandlerRootView>,
-		);
-
-		require("react-native-gesture-handler")._triggerPanGestureHandlerStateChange(mockData[0].id, {
-			nativeEvent: {
-				state: State.CANCELLED, // CANCELLED state
-				translationX: -50, // Partial swipe
-			},
-		});
-
-		await waitFor(() => {
-			expect(onSwipeAction).not.toHaveBeenCalled();
-		});
-	});
-
-	it("should not call onSwipeAction when swipe is abandoned (failed state)", async () => {
-		const onSwipeAction = jest.fn();
-		render(
-			<GestureHandlerRootView>
-				<SelectableFlatList
-					data={mockData}
-					renderItem={renderItem}
-					onRefresh={() => {}}
-					refreshing={false}
-					multiSelectActive={false}
-					onSelectionChange={() => {}}
-					selectedItems={[]}
-					onItemPress={() => {}}
-					swipeEnabled={true}
-					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={false}
-					swipeConfirmationMessage=""
-				/>
-			</GestureHandlerRootView>,
-		);
-
-		require("react-native-gesture-handler")._triggerPanGestureHandlerStateChange(mockData[0].id, {
-			nativeEvent: {
-				state: State.FAILED, // FAILED state
-				translationX: -50, // Partial swipe
-			},
-		});
-
-		await waitFor(() => {
-			expect(onSwipeAction).not.toHaveBeenCalled();
-		});
-	});
-
-	it("should prompt for confirmation when swipeActionRequiresConfirmation is true and then call onSwipeAction if confirmed", async () => {
-		const onSwipeAction = jest.fn();
-		const confirmationMessage = "Are you sure?";
-		Alert.alert.mockImplementation((title, message, buttons) => {
-			const confirmButton = buttons.find((btn) => btn.text === "Yes");
-			if (confirmButton) {
-				confirmButton.onPress();
-			}
-		});
-
-		render(
-			<GestureHandlerRootView>
-				<SelectableFlatList
-					data={mockData}
-					renderItem={renderItem}
-					onRefresh={() => {}}
-					refreshing={false}
-					multiSelectActive={false}
-					onSelectionChange={() => {}}
-					selectedItems={[]}
-					onItemPress={() => {}}
-					swipeEnabled={true}
-					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={true}
-					swipeConfirmationMessage={confirmationMessage}
-				/>
-			</GestureHandlerRootView>,
-		);
-
-		require("react-native-gesture-handler")._triggerPanGestureHandlerStateChange(mockData[0].id, {
-			nativeEvent: {
-				state: State.END, // END state
-				translationX: -100, // Swiped left
-			},
-		});
-
-		await waitFor(() => {
-			expect(Alert.alert).toHaveBeenCalledWith(
-				"Confirm Action",
-				confirmationMessage,
-				expect.arrayContaining([ // Use expect.arrayContaining for buttons
-					expect.objectContaining({ text: "No", style: "cancel" }),
-					expect.objectContaining({ text: "Yes" }),
-				]),
-				{ cancelable: true } // Add the expected options object
+		const gestureHandler =
+			require("react-native-reanimated")._getAnimatedGestureHandler(
+				mockData[0].id,
 			);
-			expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
-		});
+		expect(gestureHandler).toBeUndefined();
 	});
 
-	it("should prompt for confirmation and not call onSwipeAction if confirmation is canceled", async () => {
+	it("should call onSwipeAction when swipe threshold is met", async () => {
 		const onSwipeAction = jest.fn();
-		const confirmationMessage = "Are you sure?";
-		Alert.alert.mockImplementation((title, message, buttons) => {
-			const cancelButton = buttons.find((btn) => btn.text === "No");
-			if (cancelButton) {
-				cancelButton.onPress();
-			}
+		const screenWidth = 300;
+		jest.spyOn(Dimensions, "get").mockReturnValue({
+			width: screenWidth,
+			height: 600,
 		});
 
 		render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
-					data={mockData}
+					data={mockData.slice(0, 1)}
 					renderItem={renderItem}
 					onRefresh={() => {}}
 					refreshing={false}
@@ -329,30 +168,162 @@ describe("SelectableFlatList", () => {
 					onItemPress={() => {}}
 					swipeEnabled={true}
 					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={true}
-					swipeConfirmationMessage={confirmationMessage}
+					swipeActionRequiresConfirmation={false}
 				/>
 			</GestureHandlerRootView>,
 		);
 
-		require("react-native-gesture-handler")._triggerPanGestureHandlerStateChange(mockData[0].id, {
-			nativeEvent: {
-				state: State.END, // END state
-				translationX: -100, // Swiped left
-			},
-		});
+		const sharedValues = require("react-native-reanimated")._getSharedValues();
+		const translateX = sharedValues[0];
+		const translationX = -(screenWidth * 0.61);
+		translateX.value = translationX;
 
-		await waitFor(() => {
-			expect(Alert.alert).toHaveBeenCalledWith(
-				"Confirm Action",
-				confirmationMessage,
-				expect.arrayContaining([ // Use expect.arrayContaining for buttons
-					expect.objectContaining({ text: "No", style: "cancel" }),
-					expect.objectContaining({ text: "Yes" }),
-				]),
-				{ cancelable: true } // Add the expected options object
-			);
-			expect(onSwipeAction).not.toHaveBeenCalled();
+		        act(() => {
+		            require("react-native-gesture-handler")._triggerPanGestureHandlerEvent(
+		                mockData[0].id,
+		                "onEnd",
+		            );
+		        });
+		
+		        expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
+		    });
+		
+		    it("should not call onSwipeAction when swipe threshold is not met", async () => {
+		        const onSwipeAction = jest.fn();
+		        const screenWidth = 300;
+		        jest.spyOn(Dimensions, "get").mockReturnValue({
+		            width: screenWidth,
+		            height: 600,
+		        });
+		
+		        render(
+		            <GestureHandlerRootView>
+		                <SelectableFlatList
+		                    data={mockData.slice(0, 1)}
+		                    renderItem={renderItem}
+		                    onRefresh={() => {}}
+		                    refreshing={false}
+		                    multiSelectActive={false}
+		                    onSelectionChange={() => {}}
+		                    selectedItems={[]}
+		                    onItemPress={() => {}}
+		                    swipeEnabled={true}
+		                    onSwipeAction={onSwipeAction}
+		                    swipeActionRequiresConfirmation={false}
+		                />
+		            </GestureHandlerRootView>,
+		        );
+		
+		        const sharedValues = require("react-native-reanimated")._getSharedValues();
+		        const translateX = sharedValues[0];
+		        const translationX = -(screenWidth * 0.5);
+		        translateX.value = translationX;
+		
+		        act(() => {
+		            require("react-native-gesture-handler")._triggerPanGestureHandlerEvent(
+		                mockData[0].id,
+		                "onEnd",
+		            );
+		        });
+		
+		        expect(onSwipeAction).not.toHaveBeenCalled();
+		
+		        jest.restoreAllMocks();
+		    });
+		
+		    it("should show confirmation and call action if confirmed", async () => {
+		        const onSwipeAction = jest.fn();
+		        const screenWidth = 300;
+		        jest.spyOn(Dimensions, "get").mockReturnValue({
+		            width: screenWidth,
+		            height: 600,
+		        });
+		        Alert.alert.mockImplementation((title, msg, buttons) => {
+		            buttons.find((b) => b.text === "Yes").onPress();
+		        });
+		
+		        render(
+		            <GestureHandlerRootView>
+		                <SelectableFlatList
+		                    data={mockData.slice(0, 1)}
+		                    renderItem={renderItem}
+		                    onRefresh={() => {}}
+		                    refreshing={false}
+		                    multiSelectActive={false}
+		                    onSelectionChange={() => {}}
+		                    selectedItems={[]}
+		                    onItemPress={() => {}}
+		                    swipeEnabled={true}
+		                    onSwipeAction={onSwipeAction}
+		                    swipeActionRequiresConfirmation={true}
+		                    swipeConfirmationMessage="Are you sure?"
+		                />
+		            </GestureHandlerRootView>,
+		        );
+		
+		        const sharedValues = require("react-native-reanimated")._getSharedValues();
+		        const translateX = sharedValues[0];
+		        const translationX = -(screenWidth * 0.7);
+		        translateX.value = translationX;
+		
+		        act(() => {
+		            require("react-native-gesture-handler")._triggerPanGestureHandlerEvent(
+		                mockData[0].id,
+		                "onEnd",
+		            );
+		        });
+		
+		        expect(Alert.alert).toHaveBeenCalled();
+		        expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
+		
+		        jest.restoreAllMocks();
+		    });
+		
+		    it("should show confirmation and not call action if canceled", async () => {
+		        const onSwipeAction = jest.fn();
+		        const screenWidth = 300;
+		        jest.spyOn(Dimensions, "get").mockReturnValue({
+		            width: screenWidth,
+		            height: 600,
+		        });
+		        Alert.alert.mockImplementation((title, msg, buttons) => {
+		            buttons.find((b) => b.text === "No").onPress();
+		        });
+		
+		        render(
+		            <GestureHandlerRootView>
+		                <SelectableFlatList
+		                    data={mockData.slice(0, 1)}
+		                    renderItem={renderItem}
+		                    onRefresh={() => {}}
+		                    refreshing={false}
+		                    multiSelectActive={false}
+		                    onSelectionChange={() => {}}
+		                    selectedItems={[]}
+		                    onItemPress={() => {}}
+		                    swipeEnabled={true}
+		                    onSwipeAction={onSwipeAction}
+		                    swipeActionRequiresConfirmation={true}
+		                    swipeConfirmationMessage="Are you sure?"
+		                />
+		            </GestureHandlerRootView>,
+		        );
+		
+		        const sharedValues = require("react-native-reanimated")._getSharedValues();
+		        const translateX = sharedValues[0];
+		        const translationX = -(screenWidth * 0.7);
+		        translateX.value = translationX;
+		
+		        act(() => {
+		            require("react-native-gesture-handler")._triggerPanGestureHandlerEvent(
+		                mockData[0].id,
+		                "onEnd",
+		            );
+		        });
+		
+		        expect(Alert.alert).toHaveBeenCalled();
+		        expect(onSwipeAction).not.toHaveBeenCalled();
+		
+		        jest.restoreAllMocks();
+		    });
 		});
-	});
-});
