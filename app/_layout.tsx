@@ -30,7 +30,9 @@ const RootLayout = () => {
 
 	return (
 		<GlobalDropdownMenu>
-			<GestureHandlerRootView style={{ flex: 1 }}> {/* Wrap content with GestureHandlerRootView */}
+			<GestureHandlerRootView style={{ flex: 1 }}>
+				{" "}
+				{/* Wrap content with GestureHandlerRootView */}
 				<StatusBar hidden={false} barStyle="dark-content" />
 				<Stack />
 			</GestureHandlerRootView>

@@ -92,7 +92,10 @@ const SelectableFlatListItem = <T extends { id: number }>({
 						},
 					},
 				],
-				{ cancelable: true, onDismiss: () => (translateX.value = withSpring(0)) },
+				{
+					cancelable: true,
+					onDismiss: () => (translateX.value = withSpring(0)),
+				},
 			);
 		}
 	};

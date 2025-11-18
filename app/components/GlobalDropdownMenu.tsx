@@ -84,14 +84,18 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 			{isDropdownVisible && (
 				<TouchableWithoutFeedback testID="overlay" onPress={onCloseDropdown}>
 					<View style={commonStyles.overlay}>
-						                        <View
-						                            style={commonStyles.dropdown}
-						                            pointerEvents="auto"
-						                        >
-						                            <TouchableOpacity
-						                                style={commonStyles.dropdownItem}
-						                                onPress={onCloseDropdown}
-						                            >								<Ionicons name="close-sharp" size={styles.icon.fontSize} color={styles.icon.color} style={styles.icon} />
+						<View style={commonStyles.dropdown} pointerEvents="auto">
+							<TouchableOpacity
+								style={commonStyles.dropdownItem}
+								onPress={onCloseDropdown}
+							>
+								{" "}
+								<Ionicons
+									name="close-sharp"
+									size={styles.icon.fontSize}
+									color={styles.icon.color}
+									style={styles.icon}
+								/>
 							</TouchableOpacity>
 							{menuItems.map((item, index) => (
 								<TouchableOpacity
@@ -103,7 +107,12 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 										item.onPress();
 									}}
 								>
-									<Ionicons name={item.icon} size={styles.icon.fontSize} color={styles.icon.color} style={styles.icon} />
+									<Ionicons
+										name={item.icon}
+										size={styles.icon.fontSize}
+										color={styles.icon.color}
+										style={styles.icon}
+									/>
 									<Text style={styles.text}>{item.label}</Text>
 								</TouchableOpacity>
 							))}

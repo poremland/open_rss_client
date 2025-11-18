@@ -20,8 +20,7 @@ import { StyleSheet } from "react-native";
 import { commonStyles } from "./commonStyles";
 
 export const styles = StyleSheet.create({
-	container: {
-	},
+	container: {},
 	webViewContainer: {
 		...commonStyles.card,
 		flex: 1,

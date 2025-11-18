@@ -142,16 +142,9 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	return (
 		<Screen loading={loading} error={error} style={styles.container}>
-			<View
-				testID="webViewContainer"
-				style={styles.webViewContainer}
-			>
+			<View testID="webViewContainer" style={styles.webViewContainer}>
 				{Platform.OS === "web" ? (
-					<iframe
-						src={webViewSource}
-						style={styles.iframe}
-						title="Content"
-					/>
+					<iframe src={webViewSource} style={styles.iframe} title="Content" />
 				) : (
 					<WebView
 						originWhitelist={["*"]}

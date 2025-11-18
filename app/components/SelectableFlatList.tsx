@@ -17,13 +17,7 @@
  */
 
 import React, { useCallback } from "react";
-import {
-	FlatList,
-	View,
-	RefreshControl,
-	ViewStyle,
-	Alert,
-} from "react-native";
+import { FlatList, View, RefreshControl, ViewStyle, Alert } from "react-native";
 
 import SelectableFlatListItem from "./SelectableFlatListItem";
 

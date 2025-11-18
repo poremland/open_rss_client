@@ -39,7 +39,12 @@ const extractImage = (html: string) => {
 	return null;
 };
 
-const FeedItemCard: React.FC<FeedItemCardProps> = ({ item, onPress, onLongPress, isItemSelected }) => {
+const FeedItemCard: React.FC<FeedItemCardProps> = ({
+	item,
+	onPress,
+	onLongPress,
+	isItemSelected,
+}) => {
 	const imageUrl = extractImage(item.description);
 
 	return (
@@ -49,9 +54,17 @@ const FeedItemCard: React.FC<FeedItemCardProps> = ({ item, onPress, onLongPress,
 			onPress={onPress}
 			onLongPress={onLongPress}
 		>
-			{imageUrl && <Image source={{ uri: imageUrl }} style={styles.thumbnail} testID="feed-item-image" />}
+			{imageUrl && (
+				<Image
+					source={{ uri: imageUrl }}
+					style={styles.thumbnail}
+					testID="feed-item-image"
+				/>
+			)}
 			<View style={styles.textContainer}>
-				<Text numberOfLines={2} style={styles.title}>{decode(item?.title || "")}</Text>
+				<Text numberOfLines={2} style={styles.title}>
+					{decode(item?.title || "")}
+				</Text>
 				<Text numberOfLines={1} style={styles.link}>
 					{item?.link || "No Link"}
 				</Text>

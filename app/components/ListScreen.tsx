@@ -172,13 +172,21 @@ const ListScreen = React.forwardRef(
 
 		const defaultEmptyComponent = (
 			<View style={styles.emptyContainer}>
-				<Ionicons name="information-circle-outline" size={styles.emptyIcon.fontSize} color={styles.emptyIcon.color} />
+				<Ionicons
+					name="information-circle-outline"
+					size={styles.emptyIcon.fontSize}
+					color={styles.emptyIcon.color}
+				/>
 				<Text style={styles.emptyText}>No items to display.</Text>
 			</View>
 		);
 
 		return (
-			<Screen loading={loading && !refreshing} error={error} style={styles.container}>
+			<Screen
+				loading={loading && !refreshing}
+				error={error}
+				style={styles.container}
+			>
 				<View style={styles.contentContainer}>
 					{isMultiSelectActive && multiSelectActions && (
 						<MultiSelectBar>

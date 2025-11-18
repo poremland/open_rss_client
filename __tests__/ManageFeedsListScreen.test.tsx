@@ -286,7 +286,6 @@ describe("ManageFeedsListScreen", () => {
 		});
 	});
 
-
 	it("should apply card style to feed items", async () => {
 		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
@@ -305,7 +304,9 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => {
 			const feedItem = getByTestId("feed-item-1");
-			const card = feedItem.find((node) => node.props.style?.hasOwnProperty("backgroundColor"));
+			const card = feedItem.find((node) =>
+				node.props.style?.hasOwnProperty("backgroundColor"),
+			);
 			expect(card).toBeDefined();
 		});
 	});

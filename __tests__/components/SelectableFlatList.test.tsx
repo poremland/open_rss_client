@@ -147,49 +147,46 @@ describe("SelectableFlatList", () => {
 		expect(gestureHandler).toBeUndefined();
 	});
 
-		
-		    it("should not call onSwipeAction when swipe threshold is not met", async () => {
-		        const onSwipeAction = jest.fn();
-		        const screenWidth = 300;
-		        jest.spyOn(Dimensions, "get").mockReturnValue({
-		            width: screenWidth,
-		            height: 600,
-		        });
-		
-		        render(
-		            <GestureHandlerRootView>
-		                <SelectableFlatList
-		                    data={mockData.slice(0, 1)}
-		                    renderItem={renderItem}
-		                    onRefresh={() => {}}
-		                    refreshing={false}
-		                    multiSelectActive={false}
-		                    onSelectionChange={() => {}}
-		                    selectedItems={[]}
-		                    onItemPress={() => {}}
-		                    swipeEnabled={true}
-		                    onSwipeAction={onSwipeAction}
-		                    swipeActionRequiresConfirmation={false}
-		                />
-		            </GestureHandlerRootView>,
-		        );
-		
-		        const sharedValues = require("react-native-reanimated")._getSharedValues();
-		        const translateX = sharedValues[0];
-		        const translationX = -(screenWidth * 0.5);
-		        translateX.value = translationX;
-		
-		        act(() => {
-		            require("react-native-gesture-handler")._triggerPanGestureHandlerEvent(
-		                mockData[0].id,
-		                "onEnd",
-		            );
-		        });
-		
-		        expect(onSwipeAction).not.toHaveBeenCalled();
-		
-		        jest.restoreAllMocks();
-		    });
-		
-		
+	it("should not call onSwipeAction when swipe threshold is not met", async () => {
+		const onSwipeAction = jest.fn();
+		const screenWidth = 300;
+		jest.spyOn(Dimensions, "get").mockReturnValue({
+			width: screenWidth,
+			height: 600,
 		});
+
+		render(
+			<GestureHandlerRootView>
+				<SelectableFlatList
+					data={mockData.slice(0, 1)}
+					renderItem={renderItem}
+					onRefresh={() => {}}
+					refreshing={false}
+					multiSelectActive={false}
+					onSelectionChange={() => {}}
+					selectedItems={[]}
+					onItemPress={() => {}}
+					swipeEnabled={true}
+					onSwipeAction={onSwipeAction}
+					swipeActionRequiresConfirmation={false}
+				/>
+			</GestureHandlerRootView>,
+		);
+
+		const sharedValues = require("react-native-reanimated")._getSharedValues();
+		const translateX = sharedValues[0];
+		const translationX = -(screenWidth * 0.5);
+		translateX.value = translationX;
+
+		act(() => {
+			require("react-native-gesture-handler")._triggerPanGestureHandlerEvent(
+				mockData[0].id,
+				"onEnd",
+			);
+		});
+
+		expect(onSwipeAction).not.toHaveBeenCalled();
+
+		jest.restoreAllMocks();
+	});
+});
