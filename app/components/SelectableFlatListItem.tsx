@@ -94,9 +94,6 @@ const SelectableFlatListItem = <T extends { id: number }>({
 				],
 				{ cancelable: true, onDismiss: () => (translateX.value = withSpring(0)) },
 			);
-		} else {
-			onSwipeAction?.(swipedItem);
-			translateX.value = withSpring(0);
 		}
 	};
 
@@ -112,7 +109,12 @@ const SelectableFlatListItem = <T extends { id: number }>({
 		},
 		onEnd: () => {
 			if (swipeEnabled && Math.abs(translateX.value) > SWIPE_THRESHOLD) {
-				runOnJS(handleSwipeAction)(item);
+				if (!swipeActionRequiresConfirmation) {
+					runOnJS(onSwipeAction as (item: T) => void)(item);
+					translateX.value = withSpring(-SCREEN_WIDTH);
+				} else {
+					runOnJS(handleSwipeAction)(item);
+				}
 			} else {
 				translateX.value = withSpring(0, { damping: 20, stiffness: 90 });
 			}
