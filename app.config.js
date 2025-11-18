@@ -52,12 +52,12 @@ module.exports = ({ config }) => {
 	baseConfig.android = {
 		useProguard: true,
 		package: "open.rss.client",
-		adaptiveIcon: {
-			foregroundImage: "./assets/images/adaptive-icon.png",
-			backgroundColor: "#ffffff",
-		},
 		build: {
 			gradleCommand: ":app:assembleRelease",
+			adaptiveIcon: {
+				foregroundImage: "./assets/images/adaptive-icon.png",
+				backgroundColor: "#ffffff",
+			},
 			keystore: {
 				path: keystorePath,
 				alias: keystoreAlias,

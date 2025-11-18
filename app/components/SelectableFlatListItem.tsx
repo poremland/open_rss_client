@@ -50,7 +50,7 @@ interface SelectableFlatListItemProps<T> {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.6;
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.5;
 
 const SelectableFlatListItem = <T extends { id: number }>({
 	item,
