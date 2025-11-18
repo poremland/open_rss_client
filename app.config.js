@@ -51,7 +51,7 @@ module.exports = ({ config }) => {
 	// Inject the Android keystore configuration
 	baseConfig.android = {
 		useProguard: true,
-		package: "open.rss.client.expo",
+		package: "open.rss.client",
 		adaptiveIcon: {
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
