@@ -69,7 +69,8 @@ const FeedItemCard: React.FC<FeedItemCardProps> = ({
 					{item?.link || "No Link"}
 				</Text>
 				<Text numberOfLines={3} style={styles.description}>
-					{item?.description.replace(/<[^>]*>/g, "") || "No Description"}
+					{decode(item?.description || "").replace(/<[^>]*>/g, "") ||
+						"No Description"}
 				</Text>
 			</View>
 		</TouchableOpacity>
