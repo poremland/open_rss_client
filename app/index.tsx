@@ -17,7 +17,14 @@
  */
 
 import React, { useCallback } from "react";
-import { View, Text, Image } from "react-native";
+import {
+	View,
+	Text,
+	Image,
+	KeyboardAvoidingView,
+	ScrollView,
+	Platform,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -35,14 +42,22 @@ const Index: React.FC = () => {
 	);
 
 	return (
-		<View style={styles.container}>
-			<Image
-				source={require("../assets/images/icon.png")}
-				style={styles.logo}
-			/>
-			<Text style={styles.title}>Open RSS Client</Text>
-			<LoginForm />
-		</View>
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			style={{ flex: 1 }}
+			keyboardVerticalOffset={100}
+		>
+			<ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+				<View style={styles.container}>
+					<Image
+						source={require("../assets/images/icon.png")}
+						style={styles.logo}
+					/>
+					<Text style={styles.title}>Open RSS Client</Text>
+					<LoginForm />
+				</View>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 };
 

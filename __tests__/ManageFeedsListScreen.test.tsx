@@ -57,6 +57,10 @@ jest.mock("../helpers/auth", () => ({
 	clearAuthData: jest.fn(),
 }));
 
+jest.mock("expo-clipboard", () => ({
+	setStringAsync: jest.fn(),
+}));
+
 describe("ManageFeedsListScreen", () => {
 	const mockFeeds = [
 		{ id: 1, name: "Feed 1", uri: "uri1" },
@@ -116,7 +120,9 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => {
 			expect(getByText("Feed 1")).toBeTruthy();
+			expect(getByText("uri1")).toBeTruthy();
 			expect(getByText("Feed 2")).toBeTruthy();
+			expect(getByText("uri2")).toBeTruthy();
 		});
 	});
 
@@ -335,6 +341,35 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => {
 			expect(queryByText("Select All")).toBeNull();
+		});
+	});
+
+	it("should copy feed uri to clipboard on press", async () => {
+		const setStringAsync = jest.fn();
+		jest.spyOn(require("expo-clipboard"), "setStringAsync").mockImplementation(
+			setStringAsync,
+		);
+
+		(useApi as jest.Mock).mockReturnValue({
+			data: mockFeeds,
+			loading: false,
+			error: null,
+			execute: jest.fn(),
+		});
+
+		const { getByText } = render(
+			<NavigationContainer>
+				<GlobalDropdownMenu>
+					<ManageFeedsListScreen />
+				</GlobalDropdownMenu>
+			</NavigationContainer>,
+		);
+
+		await waitFor(() => getByText("Feed 1"));
+		fireEvent.press(getByText("Feed 1"));
+
+		await waitFor(() => {
+			expect(setStringAsync).toHaveBeenCalledWith("uri1");
 		});
 	});
 });

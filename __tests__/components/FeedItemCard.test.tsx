@@ -125,4 +125,23 @@ describe("FeedItemCard", () => {
 		const style = StyleSheet.flatten(card.props.style);
 		expect(style.backgroundColor).toBe("lightblue");
 	});
+
+	it("decodes HTML entities in the title and description", () => {
+		const mockItemWithEntities: FeedItem = {
+			...mockItem,
+			title: "Test&#39;s Title &amp; More",
+			description: "<p>Test&#39;s Description &amp; More</p>",
+		};
+		const { getByText } = render(
+			<FeedItemCard
+				item={mockItemWithEntities}
+				onPress={() => {}}
+				onLongPress={() => {}}
+				isItemSelected={false}
+			/>,
+		);
+
+		expect(getByText("Test's Title & More")).toBeTruthy();
+		expect(getByText("Test's Description & More")).toBeTruthy();
+	});
 });

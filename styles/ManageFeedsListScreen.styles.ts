@@ -34,4 +34,8 @@ export const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "bold",
 	},
+	feedUrl: {
+		fontSize: 14,
+		color: "#888",
+	},
 });

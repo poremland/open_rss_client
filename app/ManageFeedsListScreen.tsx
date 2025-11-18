@@ -21,6 +21,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth";
@@ -64,6 +65,10 @@ const ManageFeedsListScreen: React.FC = () => {
 		listRef.current?.handleRefresh();
 	}, []);
 
+	const handleItemPress = (item: Feed) => {
+		Clipboard.setStringAsync(item.uri);
+	};
+
 	useFocusEffect(
 		useCallback(() => {
 			listRef.current?.handleRefresh();
@@ -106,6 +111,7 @@ const ManageFeedsListScreen: React.FC = () => {
 		>
 			<View style={styles.cardContent}>
 				<Text style={styles.feedName}>{item.name}</Text>
+				<Text style={styles.feedUrl}>{item.uri}</Text>
 			</View>
 		</TouchableOpacity>
 	);
@@ -130,7 +136,7 @@ const ManageFeedsListScreen: React.FC = () => {
 			fetchUrl="/feeds/all.json"
 			renderItem={renderItem}
 			keyExtractor={(item) => item.id.toString()}
-			onItemPress={() => {}}
+			onItemPress={handleItemPress}
 			emptyComponent={renderEmptyComponent()}
 			multiSelectActions={multiSelectActions}
 			onSelectionChange={handleSelectionChange}

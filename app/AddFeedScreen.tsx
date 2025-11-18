@@ -17,7 +17,16 @@
  */
 
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Image } from "react-native";
+import {
+	View,
+	Text,
+	TextInput,
+	Button,
+	Image,
+	KeyboardAvoidingView,
+	ScrollView,
+	Platform,
+} from "react-native";
 import { useNavigation } from "expo-router";
 import useApi from "./components/useApi";
 import * as authHelper from "../helpers/auth";
@@ -51,26 +60,34 @@ const AddFeedScreen: React.FC = () => {
 
 	return (
 		<Screen loading={loading} error={error}>
-			<View style={styles.container}>
-				<Image
-					source={require("../assets/images/icon.png")}
-					style={styles.logo}
-				/>
-				<Text style={styles.title}>Open RSS Client</Text>
-				<TextInput
-					style={styles.input}
-					placeholder="FeedName"
-					value={feedName}
-					onChangeText={setFeedName}
-				/>
-				<TextInput
-					style={styles.input}
-					placeholder="FeedUri"
-					value={feedUri}
-					onChangeText={setFeedUri}
-				/>
-				<Button title="Add Feed" onPress={handleAddFeed} />
-			</View>
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				style={{ flex: 1 }}
+				keyboardVerticalOffset={100}
+			>
+				<ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+					<View style={styles.container}>
+						<Image
+							source={require("../assets/images/icon.png")}
+							style={styles.logo}
+						/>
+						<Text style={styles.title}>Open RSS Client</Text>
+						<TextInput
+							style={styles.input}
+							placeholder="FeedName"
+							value={feedName}
+							onChangeText={setFeedName}
+						/>
+						<TextInput
+							style={styles.input}
+							placeholder="FeedUri"
+							value={feedUri}
+							onChangeText={setFeedUri}
+						/>
+						<Button title="Add Feed" onPress={handleAddFeed} />
+					</View>
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</Screen>
 	);
 };
