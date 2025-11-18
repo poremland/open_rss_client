@@ -20,6 +20,7 @@ export interface Feed {
 	name?: string;
 	count?: number;
 	id?: number;
+	uri?: string;
 }
 
 export type NewFeedResponse = {
