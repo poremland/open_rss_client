@@ -18,19 +18,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # General instructions
 
-You are a helpful and very experienced expo react-native developer. You follow the best practices as outlined by https://docs.expo.dev/
+YOU ARE A HELPFUL AND VERY EXPERIENCED EXPO REACT-NATIVE DEVELOPER 
+YOU FOLLOW THE BEST PRACTICES AS OUTLINED BY HTTPS://DOCS.EXPO.DEV/
+YOU FOLLOW THE BEST PRACTICES AS OUTLINE BY HTTPS://REACTNATIVE.DEV/DOCS/GETTING-STARTED
+THIS IS AN OPEN SOURCE PROJECT AND YOU ENSURE THAT ALL APPLICABLE FILES HAVE THE RSS READER LICENSE AND COPYRIGHT HEADER
+THIS PROJECT USES A APP.CONFIG.BASE.JSON TO DYNAMICALLY CREATE APP.JSON SO THAT IT'S EASIER TO PERFORM LOCAL DEBUG AND PRODUCTION BUILDS FROM THE CLI
 
 # Coding Instructions
 
+YOU RUN TESTS USING `npx jest`
 YOU USE TABS INSTEAD OF SPACES FOR INDENTING
-WHEN TESTING YOU ALWAYS USE jest THROUGH npx USING THE --maxWorkers=50% PARAMETER
-YOU DON'T IGNORE act() WARNINGS IN THE TEST RESULTS
-YOU DO NOT MAKE ANY ASSUMPTIONS ABOUT THE REST API BEING USED (such as what endpoints are available or what VERBs should be used).
+YOU DON'T IGNORE ACT() WARNINGS IN THE TEST RESULTS
+YOU DO NOT MAKE ANY ASSUMPTIONS ABOUT THE REST API BEING USED (SUCH AS WHAT ENDPOINTS ARE AVAILABLE OR WHAT VERBS SHOULD BE USED).
 YOU DO NOT HARD CODE ENVIRONMENT VARIABLES.
-WHEN YOU ADD NEW TESTS AND THEY ARE FAILING, YOU ONLY FOCUS ON FIXING THE FAILING TESTS. IF THERE IS A LINK FOR MORE DETAILS YOU READ THE LINK FIRST AND USE IT TO HELP REFORMULATE YOUR STRATEGY.
-YOU FOCUS ON FIXING ONE TEST AT A TIME.
+WHEN YOU ADD NEW TESTS AND THEY ARE FAILING, YOU ONLY FOCUS ON FIXING THE FAILING TESTS. 
+IF THERE IS A LINK FOR MORE DETAILS ABOUT A FAILING TEST YOU ALWAYS READ THE LINK FIRST AND USE IT TO HELP REFORMULATE YOUR STRATEGY.
 IF YOU ARE UNABLE TO FIX A TEST YOU DO NOT TRY THE SAME STRATEGY MULTIPLE TIMES.
 YOU DO NOT TRY TO REFACTOR ALL TESTS OR MODIFY TESTS THAT ARE UNRELATED TO NEW FUNCTIONALITY OR TO THE FAILING TESTS YOU ARE FIXING.
+YOU WILL CODE VIA TEST DRIVEN DEVELOPMENT
+YOU WILL FIRST WRITE ALL THE TESTS CASES FOR THE REQUIREMENTS
+YOU WILL GIVE THE USER AN OVERVIEW OF THE TESTS CASES, CONFIRMING YOUR LOGIC FOR THEM WITH THE USER BEFORE MOVING ON TO WRITE THE CODE TO IMPLEMENT THE REQUIREMENTS
+WHEN WRITING THE CODE TO IMPLEMENT THE REQUIREMENTS YOU WORK SEQUENTIALLY, FIXING ONE TEST AT A TIME
+WHEN ADDRESSING TEST FAILURES, YOU FOCUS ON FIXING ONE TEST AT A TIME.
+WHEN REFACTORING YOU DO NOT COMMENT OUT CODE AND LEAVE IT IN THE FILE UNNECESSARILY
 
 # About the app
 
@@ -56,6 +66,7 @@ This rest API uses JWT tokens for authentication.
   - `AddFeedScreen`: To add a new feed by providing a name and a URI.
   - `ManageFeedsListScreen`: To see a list of all their feeds and delete them.
 - The `ManageFeedsListScreen` allows for multi-selection to delete multiple feeds at once.
+- **Swipe-to-Delete Feed:** On the `ManageFeedsListScreen`, users can swipe left on a feed item to reveal a delete action. This action requires confirmation via a popup before the feed is deleted. Deleting a feed via swipe performs the same action as deleting via multi-select.
 
 **Feed Item Viewing:**
 
@@ -66,6 +77,7 @@ This rest API uses JWT tokens for authentication.
   - Delete the feed.
   - Log out.
   - Long-press an item to enter a multi-select mode to mark multiple items as read.
+- **Swipe-to-Mark Read:** On the `FeedItemListScreen`, users can swipe left on a feed item to mark it as read. This action does not require confirmation. Marking an item as read via swipe performs the same action as marking via multi-select.
 - When a user clicks on a feed item, they are navigated to the `FeedItemDetailScreen`.
 - The `FeedItemDetailScreen` displays the details of the selected feed item. When the screen is focused, the item is marked as read.
 

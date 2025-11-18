@@ -38,3 +38,89 @@ jest.mock("@expo/vector-icons", () => {
 		MaterialIcons: View,
 	};
 });
+
+// Explicitly mock react-native-reanimated
+jest.mock("react-native-reanimated", () => {
+	const Reanimated = require("react-native-reanimated/mock");
+
+	// This will store a map of gestureHandler objects keyed by item ID
+	let animatedGestureHandlers = new Map();
+	let sharedValues = [];
+
+	Reanimated.useAnimatedGestureHandler = jest.fn((callbacks) => {
+		const handler = {
+			onStart: jest.fn((event, ctx) => callbacks.onStart?.(event, ctx)),
+			onActive: jest.fn((event, ctx) => callbacks.onActive?.(event, ctx)),
+			onEnd: jest.fn((event, ctx) => callbacks.onEnd?.(event, ctx)),
+			onFail: jest.fn((event, ctx) => callbacks.onFail?.(event, ctx)),
+			onCancel: jest.fn((event, ctx) => callbacks.onCancel?.(event, ctx)),
+		};
+		return handler;
+	});
+
+	Reanimated.useSharedValue = jest.fn((initialValue) => {
+		const sharedValue = { value: initialValue };
+		sharedValues.push(sharedValue);
+		return sharedValue;
+	});
+
+	Reanimated.useAnimatedStyle = jest.fn((style) => style());
+	Reanimated.withSpring = jest.fn((value) => value);
+	Reanimated.runOnJS = jest.fn((fn) => fn); // Mock runOnJS to execute immediately
+
+	// Expose a way to get/set/clear specific animated gesture handlers for testing
+	Reanimated._getAnimatedGestureHandler = (itemId) =>
+		animatedGestureHandlers.get(itemId);
+	Reanimated._setAnimatedGestureHandler = (itemId, handler) =>
+		animatedGestureHandlers.set(itemId, handler);
+	Reanimated._clearAnimatedGestureHandlers = () =>
+		animatedGestureHandlers.clear();
+	Reanimated._getSharedValues = () => sharedValues;
+	Reanimated._clearSharedValues = () => {
+		sharedValues = [];
+	};
+
+	return Reanimated;
+});
+
+// Mock react-native-gesture-handler
+jest.mock("react-native-gesture-handler", () => {
+	const View = require("react-native").View;
+	const Reanimated = require("react-native-reanimated"); // Import the mocked reanimated
+	const actualGestureHandler = jest.requireActual(
+		"react-native-gesture-handler",
+	); // Get actual module
+
+	const MockPanGestureHandler = ({
+		children,
+		onGestureEvent,
+		item,
+		...props
+	}) => {
+		if (item && onGestureEvent) {
+			Reanimated._setAnimatedGestureHandler(item.id, onGestureEvent);
+		}
+		return <View {...props}>{children}</View>;
+	};
+
+	return {
+		// Mock GestureHandlerRootView as a simple View
+		GestureHandlerRootView: ({ children }) => <View>{children}</View>,
+		PanGestureHandler: MockPanGestureHandler,
+		gestureHandlerRootHOC: (Component) => Component,
+		State: actualGestureHandler.State, // Access State from the actual module
+		// Expose a helper to trigger the handler
+		_triggerPanGestureHandlerEvent: (itemId, eventName, ...args) => {
+			const handler = Reanimated._getAnimatedGestureHandler(itemId);
+			if (!handler) {
+				console.warn(`No animated gesture handler found for item ID: ${itemId}`);
+				return;
+			}
+
+			const eventHandler = handler[eventName];
+			if (eventHandler) {
+				eventHandler(...args);
+			}
+		},
+	};
+});

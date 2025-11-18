@@ -82,13 +82,15 @@ const FeedListScreen: React.FC = () => {
 		item: Feed;
 		onPress: () => void;
 		onLongPress: () => void;
-	}) => (
-		<FeedCard item={item} onPress={onPress} onLongPress={onLongPress} />
-	);
+	}) => <FeedCard item={item} onPress={onPress} onLongPress={onLongPress} />;
 
 	const renderEmptyFeedsComponent = () => (
 		<View style={styles.emptyContainer}>
-			<Ionicons name="cloud-done-outline" size={styles.emptyIcon.fontSize} color={styles.emptyIcon.color} />
+			<Ionicons
+				name="cloud-done-outline"
+				size={styles.emptyIcon.fontSize}
+				color={styles.emptyIcon.color}
+			/>
 			<Text style={styles.emptyText}>
 				Congratulations! No more feeds with unread items.
 			</Text>
@@ -108,6 +110,7 @@ const FeedListScreen: React.FC = () => {
 			emptyComponent={renderEmptyFeedsComponent()}
 			transformData={transformData}
 			onItemPress={displayFeedItems}
+			swipeEnabled={false} // Disable swipe for FeedListScreen
 		/>
 	);
 };

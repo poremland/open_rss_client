@@ -123,7 +123,10 @@ const LoginForm: React.FC = () => {
 				/>
 			)}
 			{loading ? (
-				<ActivityIndicator size={loadingIndicator.size} color={loadingIndicator.color} />
+				<ActivityIndicator
+					size={loadingIndicator.size}
+					color={loadingIndicator.color}
+				/>
 			) : (
 				<>
 					{!otpRequested ? (

@@ -56,9 +56,11 @@ interface ListScreenProps<T, U = T> {
 	selectedItems?: number[];
 	multiSelectActive?: boolean;
 	transformData?: (data: T[]) => U[];
-	// Additional props for customization
 	headerTitle?: string;
-	// ... other props as needed
+	swipeEnabled?: boolean;
+	onSwipeAction?: (item: U) => void;
+	swipeActionRequiresConfirmation?: boolean;
+	swipeConfirmationMessage?: string;
 }
 
 const ListScreen = React.forwardRef(
@@ -81,8 +83,11 @@ const ListScreen = React.forwardRef(
 			selectedItems: controlledSelectedItems,
 			multiSelectActive: controlledMultiSelectActive,
 			transformData,
-			useApi: useApiFromProps,
 			headerTitle,
+			swipeEnabled,
+			onSwipeAction,
+			swipeActionRequiresConfirmation,
+			swipeConfirmationMessage,
 		} = props;
 
 		const {
@@ -167,13 +172,21 @@ const ListScreen = React.forwardRef(
 
 		const defaultEmptyComponent = (
 			<View style={styles.emptyContainer}>
-				<Ionicons name="information-circle-outline" size={styles.emptyIcon.fontSize} color={styles.emptyIcon.color} />
+				<Ionicons
+					name="information-circle-outline"
+					size={styles.emptyIcon.fontSize}
+					color={styles.emptyIcon.color}
+				/>
 				<Text style={styles.emptyText}>No items to display.</Text>
 			</View>
 		);
 
 		return (
-			<Screen loading={loading && !refreshing} error={error} style={styles.container}>
+			<Screen
+				loading={loading && !refreshing}
+				error={error}
+				style={styles.container}
+			>
 				<View style={styles.contentContainer}>
 					{isMultiSelectActive && multiSelectActions && (
 						<MultiSelectBar>
@@ -213,6 +226,10 @@ const ListScreen = React.forwardRef(
 						selectedItems={selectedItems}
 						onItemPress={onItemPress}
 						ListEmptyComponent={emptyComponent || defaultEmptyComponent}
+						swipeEnabled={swipeEnabled}
+						onSwipeAction={onSwipeAction}
+						swipeActionRequiresConfirmation={swipeActionRequiresConfirmation}
+						swipeConfirmationMessage={swipeConfirmationMessage}
 					/>
 				</View>
 			</Screen>

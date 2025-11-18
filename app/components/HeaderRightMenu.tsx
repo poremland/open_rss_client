@@ -34,7 +34,11 @@ const HeaderRightMenu: React.FC<HeaderRightMenuProps> = ({
 			onPressOut={onToggleDropdown}
 			style={styles.container}
 		>
-			<Ionicons name="ellipsis-vertical" size={styles.icon.fontSize} color={styles.icon.color} />
+			<Ionicons
+				name="ellipsis-vertical"
+				size={styles.icon.fontSize}
+				color={styles.icon.color}
+			/>
 		</TouchableOpacity>
 	);
 };

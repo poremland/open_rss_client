@@ -36,7 +36,10 @@ const Screen: React.FC<ScreenProps> = ({
 	if (loading) {
 		return (
 			<View style={styles.loadingContainer}>
-				<ActivityIndicator size={loadingIndicator.size} color={loadingIndicator.color} />
+				<ActivityIndicator
+					size={loadingIndicator.size}
+					color={loadingIndicator.color}
+				/>
 				<Text>Loading...</Text>
 			</View>
 		);

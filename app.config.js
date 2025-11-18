@@ -28,25 +28,36 @@ module.exports = ({ config }) => {
 	const keystorePath = "./open.rss.client.release.keystore";
 
 	if (!keystorePassword || !keystoreAlias || !keyPassword) {
-		console.error(
-			"Error: Android keystore passwords and alias environment variables must be set.",
-		);
+		console.error("Error: Android keystore passwords and alias environment variables must be set.");
 		process.exit(1);
 	}
 
-	// Load your base app.json template
+	// Load the base app.json template
 	const baseConfig = require("./app.config.base.json");
 
-	// Inject the keystore configuration
+	// Inject the Reanimated Babel plugin into the configuration
+	const babelPlugins = (baseConfig.packagerOpts?.babel?.plugins || []).concat([
+		"react-native-reanimated/plugin"
+	]);
+
+	// Update the baseConfig to include the modified Babel plugins
+	baseConfig.packagerOpts = {
+		...baseConfig.packagerOpts,
+		babel: {
+			plugins: babelPlugins,
+		},
+	};
+
+	// Inject the Android keystore configuration
 	baseConfig.android = {
 		useProguard: true,
+		package: "open.rss.client",
 		build: {
 			gradleCommand: ":app:assembleRelease",
 			adaptiveIcon: {
 				foregroundImage: "./assets/images/adaptive-icon.png",
 				backgroundColor: "#ffffff",
 			},
-			package: "open.rss.client.expo",
 			keystore: {
 				path: keystorePath,
 				alias: keystoreAlias,
@@ -57,14 +68,8 @@ module.exports = ({ config }) => {
 	};
 
 	// Write the modified configuration to app.json
-	fs.writeFileSync(
-		path.join(__dirname, "app.json"),
-		JSON.stringify(baseConfig, null, 2),
-	);
+	fs.writeFileSync(path.join(__dirname, "app.json"), JSON.stringify(baseConfig, null, 2));
 
-	// You might want to delete app.json after the build completes.
-	// However, Expo's build process might rely on it being present.
-	// A safer approach might be to clean up in a post-build script if needed.
-
-	return config; // Ensure you return the config
+	// Return the config that was loaded and modified
+	return baseConfig;
 };
