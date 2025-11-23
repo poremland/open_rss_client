@@ -147,7 +147,7 @@ npx expo start --clear
     Then run the build command:
 
     ```bash
-    (npx expo prebuild && cd android/ && ./gradlew app:assembleRelease && rm ../app.json)
+    npm run build:android:local
     ```
 
     The release APKs can be found under: `./android/app/build/outputs/apk/release/`. For modern ARM based phones `app-arm64-v8a-release.apk` is most likely the release you want.
