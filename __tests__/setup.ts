@@ -16,7 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const { mock } = require("bun:test");
+import { mock } from "bun:test";
+import { plugin } from "bun";
+import React from "react";
 
 // Truly Global State for Mocks - Stable References
 export const storageMap = new Map();
@@ -84,182 +86,6 @@ export const useMenuMock = {
 	onToggleDropdown: mock(),
 };
 
-const mockComponent = (name: string) => (props: any) => {
-	const React = require("react");
-	return React.createElement(name, props, props.children);
-};
-
-export const RNMock = {
-	View: mockComponent("View"),
-	Text: mockComponent("Text"),
-	TouchableOpacity: mockComponent("TouchableOpacity"),
-	TouchableWithoutFeedback: mockComponent("TouchableWithoutFeedback"),
-	TouchableHighlight: mockComponent("TouchableHighlight"),
-	Pressable: mockComponent("Pressable"),
-	Button: mock(({ title, onPress, testID }: any) => {
-		const React = require("react");
-		return React.createElement(RNMock.Pressable, { onPress, testID, accessibilityRole: "button" }, 
-			React.createElement(RNMock.Text, {}, title)
-		);
-	}),
-	FlatList: mock(({ data, renderItem }: any) => {
-		const React = require("react");
-		return React.createElement(RNMock.View, {}, data?.map((item: any, index: number) => 
-			React.createElement(RNMock.View, { key: index }, renderItem({ item, index }))
-		));
-	}),
-	ScrollView: mockComponent("ScrollView"),
-	Image: mockComponent("Image"),
-	TextInput: mockComponent("TextInput"),
-	ActivityIndicator: mockComponent("ActivityIndicator"),
-	RefreshControl: mockComponent("RefreshControl"),
-	KeyboardAvoidingView: mockComponent("KeyboardAvoidingView"),
-	Modal: mockComponent("Modal"),
-	StyleSheet: {
-		create: (s: any) => s,
-		flatten: (s: any) => Array.isArray(s) ? Object.assign({}, ...s) : s,
-	},
-	Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
-	Alert: { 
-		alert: alertMock
-	},
-	Dimensions: { get: () => ({ width: 375, height: 812 }) },
-	PixelRatio: { get: () => 1, roundToNearestPixel: (n: number) => n },
-	Linking: { openURL: mock(), canOpenURL: mock(), getInitialURL: mock() },
-	Share: { share: mock() },
-	I18nManager: { isRTL: false, allowRTL: mock(), forceRTL: mock(), getConstants: () => ({ isRTL: false }) },
-	Keyboard: { addListener: mock(() => ({ remove: mock() })), dismiss: mock() },
-	StatusBar: { setBarStyle: mock(), setHidden: mock() },
-	TurboModuleRegistry: { get: mock(), getEnforcing: mock() },
-	NativeEventEmitter: class {
-		addListener = mock(() => ({ remove: mock() }));
-		removeAllListeners = mock();
-		emit = mock();
-	},
-	processColor: (c: any) => c,
-	NativeModules: {},
-};
-
-// Use mock.module for EVERYTHING - CALL THESE AS EARLY AS POSSIBLE
-mock.module("react-native", () => ({
-	...RNMock,
-	__esModule: true,
-	default: RNMock,
-}));
-
-mock.module("react-native-safe-area-context", () => ({
-	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-	SafeAreaProvider: ({ children }: any) => {
-		const React = require("react");
-		return React.createElement(RNMock.View, {}, children);
-	},
-	SafeAreaView: ({ children }: any) => {
-		const React = require("react");
-		return React.createElement(RNMock.View, {}, children);
-	},
-}));
-
-mock.module("@react-native-async-storage/async-storage", () => ({
-	__esModule: true,
-	...asyncStorageMock,
-	default: asyncStorageMock,
-}));
-
-mock.module("expo-router", () => ({
-	useRouter: () => routerMocks,
-	useNavigation: () => navigationMocks,
-	useLocalSearchParams: mock(() => ({})),
-}));
-
-mock.module("@react-navigation/native", () => {
-	const React = require("react");
-	return {
-		NavigationContainer: ({ children }: any) => React.createElement(RNMock.View, {}, children),
-		useFocusEffect: (callback: () => void) => {
-			const React = require("react");
-			React.useEffect(() => {
-				callback();
-			}, []);
-		},
-		useNavigation: () => navigationMocks,
-	};
-});
-
-mock.module("expo-font", () => ({
-	useFonts: () => [true, null],
-	loadAsync: mock(),
-}));
-
-mock.module("expo-constants", () => ({
-	default: { expoConfig: { extra: {} } },
-	manifest: { extra: {} },
-}));
-
-mock.module("expo-linking", () => ({
-	createURL: (p: string) => p,
-	addEventListener: mock(() => ({ remove: mock() })),
-}));
-
-mock.module("expo-clipboard", () => clipboardMocks);
-
-// App-specific modules
-mock.module("/mnt/e/source/expo/open_rss_client/app/components/useApi", () => ({
-	default: useApiMock,
-}));
-mock.module("/mnt/e/source/expo/open_rss_client/app/components/GlobalDropdownMenu", () => ({
-	useMenu: () => useMenuMock,
-}));
-mock.module("/mnt/e/source/expo/open_rss_client/helpers/api_helper", () => apiMocks);
-mock.module("/mnt/e/source/expo/open_rss_client/helpers/auth_helper", () => authMocks);
-
-// Expo Modules Core
-const ExpoModulesCoreMock = {
-	EventEmitter: class {
-		addListener = mock(() => ({ remove: mock() }));
-		removeAllListeners = mock();
-		emit = mock();
-	},
-	requireNativeViewManager: mock(() => () => null),
-	requireOptionalNativeModule: mock(() => ({})),
-	requireNativeModule: mock(() => ({})),
-	UnavailabilityError: class extends Error { code = 'ERR_UNAVAILABLE'; constructor(m: string, p: string) { super(`${m}.${p} is unavailable`); } },
-	CodedError: class extends Error { constructor(public code: string, message: string) { super(message); } },
-	Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
-};
-mock.module("expo-modules-core", () => ExpoModulesCoreMock);
-
-// Global Environment Setup
-(globalThis as any).__DEV__ = true;
-process.env.EXPO_OS = "ios";
-(globalThis as any).document = { title: "" } as any;
-(globalThis as any).window = {
-	history: { state: { id: 0 } },
-	addEventListener: mock(),
-	removeEventListener: mock(),
-	setTimeout: globalThis.setTimeout,
-	clearTimeout: globalThis.clearTimeout,
-} as any;
-
-(globalThis as any).fetch = (...args: any[]) => fetchMock(...args);
-(globalThis as any).AsyncStorage = asyncStorageMock;
-
-// Mock Expo global BEFORE modules load
-(globalThis as any).expo = {
-	modules: {
-		ExpoFontLoader: { 
-			loadAsync: mock(),
-			getLoadedFonts: mock(() => []),
-		},
-		ExpoAsset: { downloadAsync: mock() },
-		ExponentConstants: { manifest: {} },
-	},
-	EventEmitter: class {
-		addListener = mock(() => ({ remove: mock() }));
-		removeAllListeners = mock();
-		emit = mock();
-	}
-};
-
 const resetMocks = (obj: any) => {
 	Object.values(obj).forEach(m => {
 		if (m && typeof m === 'object' && 'mock' in m && typeof (m as any).mockClear === 'function') {
@@ -290,3 +116,177 @@ export const resetAll = () => {
 	alertMock.mockClear();
 	fetchMock.mockClear();
 };
+
+// Global Environment Setup
+(globalThis as any).__DEV__ = true;
+process.env.EXPO_OS = "ios";
+(globalThis as any).document = { title: "" } as any;
+(globalThis as any).window = {
+	history: { state: { id: 0 } },
+	addEventListener: mock(),
+	removeEventListener: mock(),
+	setTimeout: globalThis.setTimeout,
+	clearTimeout: globalThis.clearTimeout,
+} as any;
+
+(globalThis as any).fetch = fetchMock;
+(globalThis as any).AsyncStorage = asyncStorageMock;
+
+// Mock Expo global BEFORE modules load
+(globalThis as any).expo = {
+	modules: {
+		ExpoFontLoader: { 
+			loadAsync: mock(),
+			getLoadedFonts: mock(() => []),
+		},
+		ExpoAsset: { downloadAsync: mock() },
+		ExponentConstants: { manifest: {} },
+	},
+	EventEmitter: class {
+		addListener = mock(() => ({ remove: mock() }));
+		removeAllListeners = mock();
+		emit = mock();
+	}
+};
+
+// Initialize global state for tests
+(globalThis as any).__mocks = {
+	storage: storageMap,
+	router: routerMocks,
+	navigation: navigationMocks,
+	alert: alertMock,
+	fetch: fetchMock,
+	clipboard: clipboardMocks,
+	asyncStorage: asyncStorageMock,
+	api: apiMocks,
+	auth: authMocks,
+	useApi: useApiMock,
+	useMenu: useMenuMock,
+	resetAll
+};
+
+// USE A PLUGIN TO PREVENT BUN FROM PARSING node_modules/react-native FILES AND ASSETS
+plugin({
+	name: "module-and-asset-interceptor",
+	setup(build) {
+		// Assets - Redirect all common extensions to a simple mock
+		build.onLoad({ filter: /\.(png|jpg|jpeg|gif|webp|svg|ttf|otf)$/ }, () => ({
+			contents: "export default 1;",
+			loader: "js",
+		}));
+
+		// React Native and related
+		const rnFilter = /^react-native($|\/)/;
+		build.onResolve({ filter: rnFilter }, (args) => {
+			return {
+				path: args.path,
+				namespace: "mock-rn",
+			};
+		});
+
+		build.onLoad({ filter: /.*/, namespace: "mock-rn" }, (args) => {
+			if (args.path === "react-native") {
+				return {
+					contents: `
+						const React = require("react");
+						const { mock } = require("bun:test");
+						const mockComponent = (name) => (props) => React.createElement(name, props, props.children);
+						const RNMock = {
+							View: mockComponent("View"),
+							Text: mockComponent("Text"),
+							TouchableOpacity: mockComponent("TouchableOpacity"),
+							TouchableWithoutFeedback: mockComponent("TouchableWithoutFeedback"),
+							TouchableHighlight: mockComponent("TouchableHighlight"),
+							Pressable: mockComponent("Pressable"),
+							Button: (props) => React.createElement(mockComponent("View"), props),
+							FlatList: (props) => React.createElement(mockComponent("View"), props),
+							ScrollView: mockComponent("ScrollView"),
+							Image: mockComponent("Image"),
+							TextInput: mockComponent("TextInput"),
+							ActivityIndicator: mockComponent("ActivityIndicator"),
+							RefreshControl: mockComponent("RefreshControl"),
+							KeyboardAvoidingView: mockComponent("KeyboardAvoidingView"),
+							Modal: mockComponent("Modal"),
+							StyleSheet: {
+								create: (s) => s,
+								flatten: (s) => Array.isArray(s) ? Object.assign({}, ...s) : s,
+							},
+							Platform: { OS: "ios", select: (o) => o.ios || o.default },
+							Alert: { alert: mock() },
+							Dimensions: { get: () => ({ width: 375, height: 812 }) },
+							PixelRatio: { get: () => 1, roundToNearestPixel: (n) => n },
+							Linking: { openURL: mock(), canOpenURL: mock(), getInitialURL: mock() },
+							Share: { share: mock() },
+							I18nManager: { isRTL: false, allowRTL: mock(), forceRTL: mock(), getConstants: () => ({ isRTL: false }) },
+							Keyboard: { addListener: mock(() => ({ remove: mock() })), dismiss: mock() },
+							StatusBar: { setBarStyle: mock(), setHidden: mock() },
+							TurboModuleRegistry: { get: mock(), getEnforcing: mock() },
+							NativeEventEmitter: class {
+								addListener = mock(() => ({ remove: mock() }));
+								removeAllListeners = mock();
+								emit = mock();
+							},
+							processColor: (c) => c,
+							NativeModules: {},
+						};
+						module.exports = RNMock;
+					`,
+					loader: "js",
+				};
+			}
+			return {
+				contents: "module.exports = new Proxy({}, { get: () => () => null });",
+				loader: "js",
+			};
+		});
+
+		// Also intercept @react-native-async-storage/async-storage
+		build.onResolve({ filter: /^@react-native-async-storage\/async-storage$/ }, () => ({
+			path: "@react-native-async-storage/async-storage",
+			namespace: "mock-storage",
+		}));
+
+		build.onLoad({ filter: /.*/, namespace: "mock-storage" }, () => ({
+			contents: `
+				const setup = require("${import.meta.url}");
+				module.exports = {
+					__esModule: true,
+					default: setup.asyncStorageMock,
+					...setup.asyncStorageMock,
+				};
+			`,
+			loader: "js",
+		}));
+	},
+});
+
+// Mock modules that don't need the plugin's aggressive interception
+mock.module("expo-router", () => ({
+	useRouter: () => routerMocks,
+	useNavigation: () => navigationMocks,
+	useLocalSearchParams: mock(() => ({})),
+}));
+
+mock.module("expo-font", () => ({
+	useFonts: () => [true, null],
+	loadAsync: mock(),
+}));
+
+mock.module("expo-constants", () => ({
+	default: { expoConfig: { extra: {} } },
+	manifest: { extra: {} },
+}));
+
+mock.module("expo-modules-core", () => ({
+	EventEmitter: class {
+		addListener = mock(() => ({ remove: mock() }));
+		removeAllListeners = mock();
+		emit = mock();
+	},
+	requireNativeViewManager: mock(() => () => null),
+	requireOptionalNativeModule: mock(() => ({})),
+	requireNativeModule: mock(() => ({})),
+	UnavailabilityError: class extends Error { code = 'ERR_UNAVAILABLE'; constructor(m: string, p: string) { super(`${m}.${p} is unavailable`); } },
+	CodedError: class extends Error { constructor(public code: string, message: string) { super(message); } },
+	Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
+}));
