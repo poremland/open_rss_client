@@ -24,7 +24,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { decode } from "he";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
-import * as authHelper from "../helpers/auth";
+import * as authHelper from "../helpers/auth_helper";
 import { commonStyles } from "../styles/commonStyles";
 import { FeedItem } from "../models/FeedItem";
 import { useMenu } from "./components/GlobalDropdownMenu";

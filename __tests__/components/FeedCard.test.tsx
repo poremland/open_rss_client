@@ -1,3 +1,4 @@
+import "../setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -15,14 +16,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import "../setup";
 
+import * as setup from "../setup";
 import React from "react";
+import { expect, describe, it, mock, beforeEach } from "bun:test";
 import { render, fireEvent } from "@testing-library/react-native";
 import FeedCard from "../../app/components/FeedCard";
-import { Feed } from "../../models/Feed";
 
 describe("FeedCard", () => {
-	const mockItem: Feed = {
+	beforeEach(() => {
+		setup.resetAll();
+	});
+
+	const mockItem: any = {
 		id: 1,
 		name: "Test Feed",
 		url: "http://example.com/rss",
@@ -42,7 +49,7 @@ describe("FeedCard", () => {
 	});
 
 	it("calls onPress when pressed", () => {
-		const onPress = jest.fn();
+		const onPress = mock();
 		const { getByText } = render(
 			<FeedCard item={mockItem} onPress={onPress} onLongPress={() => {}} />,
 		);
@@ -52,7 +59,7 @@ describe("FeedCard", () => {
 	});
 
 	it("calls onLongPress when long-pressed", () => {
-		const onLongPress = jest.fn();
+		const onLongPress = mock();
 		const { getByText } = render(
 			<FeedCard item={mockItem} onPress={() => {}} onLongPress={onLongPress} />,
 		);

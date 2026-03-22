@@ -1,3 +1,4 @@
+import "../setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -15,89 +16,73 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import "../setup";
 
+import * as setup from "../setup";
+import { expect, describe, it, beforeEach, spyOn, mock } from "bun:test";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
-import {
-	storeAuthToken,
-	storeUser,
-	getAuthToken,
-	getUser,
-	clearAuthData,
-	checkLoggedIn,
-	refreshTokenOnLoad,
-	handleSessionExpired,
-} from "../../helpers/auth";
-import * as api from "../../helpers/api";
-
-const mockRouter = {
-	dismissAll: jest.fn(),
-	replace: jest.fn(),
-};
-
-jest.mock("react-native", () => ({ Alert: { alert: jest.fn() } }));
-jest.mock("../../helpers/api", () => ({
-	...jest.requireActual("../../helpers/api"),
-	refreshToken: jest.fn(),
-}));
+import { auth } from "../../helpers/auth_helper";
+import { api as apiInstance } from "../../helpers/api_helper";
 
 describe("auth helpers", () => {
-	beforeEach(() => {
-		AsyncStorage.clear();
-		mockRouter.dismissAll.mockClear();
-		mockRouter.replace.mockClear();
-		(api.refreshToken as jest.Mock).mockClear();
-		(Alert.alert as jest.Mock).mockClear();
+	beforeEach(async () => {
+		setup.resetAll();
+		auth.setDeps({
+			storage: AsyncStorage,
+			alert: Alert,
+		});
 	});
 
 	it("should store and retrieve auth token", async () => {
-		await storeAuthToken("test-token");
-		const token = await getAuthToken();
+		await auth.storeAuthToken("test-token");
+		const token = await auth.getAuthToken();
 		expect(token).toBe("test-token");
 	});
 
 	it("should store and retrieve user", async () => {
-		await storeUser("test-user");
-		const user = await getUser();
+		await auth.storeUser("test-user");
+		const user = await auth.getUser();
 		expect(user).toBe("test-user");
 	});
 
 	it("should clear auth data and navigate", async () => {
-		await storeAuthToken("test-token");
-		await storeUser("test-user");
+		await auth.storeAuthToken("test-token");
+		await auth.storeUser("test-user");
 
-		await clearAuthData(mockRouter as any);
+		await auth.clearAuthData(setup.routerMocks as any);
 
-		expect(await getAuthToken()).toBeNull();
-		expect(await getUser()).toBeNull();
-		expect(mockRouter.dismissAll).toHaveBeenCalled();
-		expect(mockRouter.replace).toHaveBeenCalledWith("/");
+		expect(AsyncStorage.removeItem).toHaveBeenCalledWith("authToken");
+		expect(AsyncStorage.removeItem).toHaveBeenCalledWith("user");
+		expect(setup.routerMocks.dismissAll).toHaveBeenCalled();
+		expect(setup.routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 
 	it("should navigate to feed list if logged in", async () => {
-		await storeAuthToken("test-token");
-		await checkLoggedIn(mockRouter as any);
-		expect(mockRouter.replace).toHaveBeenCalledWith("FeedListScreen");
+		await auth.storeAuthToken("test-token");
+		await auth.checkLoggedIn(setup.routerMocks as any);
+		expect(setup.routerMocks.replace).toHaveBeenCalledWith("FeedListScreen");
 	});
 
 	it("should not navigate if not logged in", async () => {
-		await checkLoggedIn(mockRouter as any);
-		expect(mockRouter.replace).not.toHaveBeenCalled();
+		await auth.checkLoggedIn(setup.routerMocks as any);
+		expect(setup.routerMocks.replace).not.toHaveBeenCalled();
 	});
 
 	it("should refresh token on load", async () => {
-		(api.refreshToken as jest.Mock).mockResolvedValue("new-token");
-		await refreshTokenOnLoad();
-		expect(await getAuthToken()).toBe("new-token");
+		const refreshTokenSpy = spyOn(apiInstance, "refreshToken").mockResolvedValue("new-token");
+		await auth.refreshTokenOnLoad();
+		expect(await auth.getAuthToken()).toBe("new-token");
+		refreshTokenSpy.mockRestore();
 	});
 
 	it("should handle session expired", async () => {
-		await handleSessionExpired(mockRouter as any);
+		await auth.handleSessionExpired(setup.routerMocks as any);
 		expect(Alert.alert).toHaveBeenCalledWith(
 			"Session Expired",
 			"Your session has expired. Please log in again.",
 		);
-		expect(mockRouter.dismissAll).toHaveBeenCalled();
-		expect(mockRouter.replace).toHaveBeenCalledWith("/");
+		expect(setup.routerMocks.dismissAll).toHaveBeenCalled();
+		expect(setup.routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 });

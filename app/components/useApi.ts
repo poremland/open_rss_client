@@ -17,8 +17,8 @@
  */
 
 import { useState, useCallback } from "react";
-import { getWithAuth, postWithAuth } from "../../helpers/api";
-import { handleSessionExpired } from "../../helpers/auth";
+import { getWithAuth, postWithAuth } from "../../helpers/api_helper";
+import { handleSessionExpired } from "../../helpers/auth_helper";
 import { useRouter } from "expo-router";
 
 type ApiMethod = "get" | "post";

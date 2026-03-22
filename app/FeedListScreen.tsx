@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as authHelper from "../helpers/auth";
+import * as authHelper from "../helpers/auth_helper";
 import { Feed, FeedItemFromAPI } from "../models/Feed";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import { useMenu } from "./components/GlobalDropdownMenu";

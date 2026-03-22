@@ -29,7 +29,7 @@ import {
 } from "react-native";
 import { useNavigation } from "expo-router";
 import useApi from "./components/useApi";
-import * as authHelper from "../helpers/auth";
+import * as authHelper from "../helpers/auth_helper";
 import { NewFeedResponse } from "../models/Feed";
 import Screen from "./components/Screen";
 import { styles } from "../styles/AddFeedScreen.styles";
@@ -84,7 +84,11 @@ const AddFeedScreen: React.FC = () => {
 							value={feedUri}
 							onChangeText={setFeedUri}
 						/>
-						<Button title="Add Feed" onPress={handleAddFeed} />
+						<Button
+							title="Add Feed"
+							testID="addFeedButton"
+							onPress={handleAddFeed}
+						/>
 					</View>
 				</ScrollView>
 			</KeyboardAvoidingView>

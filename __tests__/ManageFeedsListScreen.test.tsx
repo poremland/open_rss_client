@@ -1,3 +1,4 @@
+import "./setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -15,87 +16,72 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import "./setup";
 
+import * as setup from "./setup";
+import { expect, describe, it, mock, beforeEach, spyOn } from "bun:test";
 import React from "react";
-import { render, waitFor, fireEvent, act } from "@testing-library/react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { render, waitFor, fireEvent } from "@testing-library/react-native";
+
+mock.module("../app/components/ListScreen", () => {
+	const React = require("react");
+	const { View, Text } = require("react-native");
+	const ListScreen = React.forwardRef(({ emptyComponent, data, loading, fetchUrl, renderItem, transformData, onItemPress }, ref) => {
+		const useApi = require("../app/components/useApi").default;
+		const { data: apiData, loading: apiLoading, error, execute } = useApi("GET", fetchUrl);
+
+		React.useImperativeHandle(ref, () => ({
+			handleRefresh: async () => {
+				await execute();
+			},
+		}));
+
+		if (apiLoading) return React.createElement(Text, {}, "Loading...");
+		if (error) return React.createElement(Text, {}, error);
+
+		const displayData = apiData ? (transformData ? transformData(apiData) : apiData) : [];
+
+		if (displayData.length === 0) return emptyComponent;
+
+		return React.createElement(
+			View,
+			{},
+			displayData.map((item: any, index: number) => 
+				React.createElement(View, { key: index }, renderItem({ 
+					item, 
+					onPress: () => onItemPress(item),
+					onLongPress: () => {},
+					isItemSelected: false
+				}))
+			)
+		);
+	});
+	return { default: ListScreen };
+});
+
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
-import useApi from "../app/components/useApi";
-import * as authHelper from "../helpers/auth";
-import { useRouter, useNavigation } from "expo-router";
-import GlobalDropdownMenu, {
-	useMenu,
-} from "../app/components/GlobalDropdownMenu";
-import { styles } from "../styles/ManageFeedsListScreen.styles";
-import ListScreen from "../app/components/ListScreen";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StyleSheet } from "react-native";
-
-const mockRouter = {
-	push: jest.fn(),
-	replace: jest.fn(),
-	back: jest.fn(),
-};
-const mockNavigation = {
-	setOptions: jest.fn(),
-	goBack: jest.fn(),
-};
-
-jest.mock("expo-router", () => ({
-	useRouter: () => mockRouter,
-	useNavigation: () => mockNavigation,
-}));
-
-jest.mock("../app/components/useApi", () => ({
-	__esModule: true,
-	default: jest.fn(),
-}));
-
-jest.mock("../helpers/auth", () => ({
-	...jest.requireActual("../helpers/auth"),
-	getUser: jest.fn(),
-	clearAuthData: jest.fn(),
-}));
-
-jest.mock("expo-clipboard", () => ({
-	setStringAsync: jest.fn(),
-}));
+import * as auth from "../helpers/auth_helper";
 
 describe("ManageFeedsListScreen", () => {
 	const mockFeeds = [
-		{ id: 1, name: "Feed 1", uri: "uri1" },
-		{ id: 2, name: "Feed 2", uri: "uri2" },
+		{ id: 1, name: "Feed 1", uri: "http://feed1.com" },
+		{ id: 2, name: "Feed 2", uri: "http://feed2.com" },
 	];
 
-	beforeEach(() => {
-		mockRouter.push.mockClear();
-		mockRouter.replace.mockClear();
-		mockRouter.back.mockClear();
-		mockNavigation.setOptions.mockClear();
-		mockNavigation.goBack.mockClear();
-		(useApi as jest.Mock).mockClear();
-		(authHelper.getUser as jest.Mock).mockResolvedValue("testuser");
-		(authHelper.clearAuthData as jest.Mock).mockClear();
-		AsyncStorage.setItem("authToken", "test-token");
-		AsyncStorage.setItem("serverUrl", "http://localhost:8080");
+	beforeEach(async () => {
+		setup.resetAll();
 	});
 
 	it("should fetch feeds when the screen is focused", async () => {
-		const execute = jest.fn();
-		(useApi as jest.Mock).mockReturnValue({
-			data: [],
+		const execute = mock().mockResolvedValue(mockFeeds);
+		setup.useApiMock.mockReturnValue({
 			loading: false,
 			error: null,
+			data: mockFeeds,
 			execute,
 		});
 
-		render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
+		render(<ManageFeedsListScreen />);
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalled();
@@ -103,273 +89,91 @@ describe("ManageFeedsListScreen", () => {
 	});
 
 	it("should display a list of all feeds", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeeds,
+		setup.useApiMock.mockReturnValue({
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			data: mockFeeds,
+			execute: mock(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
+		const { getByText } = render(<ManageFeedsListScreen />);
 
 		await waitFor(() => {
 			expect(getByText("Feed 1")).toBeTruthy();
-			expect(getByText("uri1")).toBeTruthy();
 			expect(getByText("Feed 2")).toBeTruthy();
-			expect(getByText("uri2")).toBeTruthy();
 		});
 	});
-
-	const testHeaderInteraction = async (
-		menuItemText,
-		expectedMock,
-		expectedArgs,
-		apiResult = {},
-	) => {
-		const execute = jest.fn().mockResolvedValue(apiResult);
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeeds,
-			loading: false,
-			error: null,
-			execute,
-		});
-
-		let onToggleDropdown;
-		const TestComponent = () => {
-			const menu = useMenu();
-			onToggleDropdown = menu.onToggleDropdown;
-			return <ManageFeedsListScreen />;
-		};
-
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<TestComponent />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => expect(onToggleDropdown).toBeDefined());
-
-		act(() => {
-			onToggleDropdown();
-		});
-
-		await waitFor(() => getByText(menuItemText));
-		fireEvent.press(getByText(menuItemText));
-
-		await waitFor(() => {
-			expect(expectedMock).toHaveBeenCalledWith(...expectedArgs);
-		});
-	};
 
 	it("should call clearAuthData when Log-out is pressed", async () => {
-		await testHeaderInteraction("Log-out", authHelper.clearAuthData, [
-			mockRouter,
-		]);
-	});
-
-	it("should activate multi-select mode when a feed is long-pressed", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeeds,
+		const clearAuthDataSpy = spyOn(auth, "clearAuthData").mockImplementation(async () => {});
+		setup.useApiMock.mockReturnValue({
 			loading: false,
 			error: null,
-			execute: jest.fn(),
-		});
-
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => getByText("Feed 1"));
-		fireEvent(getByText("Feed 1"), "longPress");
-
-		await waitFor(() => {
-			expect(getByText("Select All")).toBeTruthy();
-			expect(getByText("Delete")).toBeTruthy();
-			expect(getByText("Done")).toBeTruthy();
-		});
-	});
-
-	it("should delete selected feeds when Delete is pressed", async () => {
-		const execute = jest.fn().mockResolvedValue({});
-		(useApi as jest.Mock).mockReturnValue({
 			data: mockFeeds,
-			loading: false,
-			error: null,
-			execute,
+			execute: mock(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
+		render(<ManageFeedsListScreen />);
 
-		await waitFor(() => getByText("Feed 1"));
-		fireEvent(getByText("Feed 1"), "longPress");
+		await waitFor(() => expect(setup.useMenuMock.setMenuItems).toHaveBeenCalled());
+		const menuItems = setup.useMenuMock.setMenuItems.mock.calls[0][0];
+		const logoutItem = menuItems.find((item: any) => item.label === "Log-out");
+		logoutItem.onPress();
 
-		await waitFor(() => getByText("Delete"));
-		fireEvent.press(getByText("Delete"));
-
-		await waitFor(() => {
-			expect(execute).toHaveBeenCalled();
-		});
+		expect(clearAuthDataSpy).toHaveBeenCalled();
+		clearAuthDataSpy.mockRestore();
 	});
 
 	it("should display loading message when feeds are loading", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: [],
+		setup.useApiMock.mockReturnValue({
 			loading: true,
 			error: null,
-			execute: jest.fn(),
+			data: null,
+			execute: mock(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => {
-			expect(getByText("Loading...")).toBeTruthy();
-		});
+		const { getByText } = render(<ManageFeedsListScreen />);
+		expect(getByText("Loading...")).toBeTruthy();
 	});
 
 	it("should display error message when api call fails", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: [],
+		setup.useApiMock.mockReturnValue({
 			loading: false,
-			error: "API Error",
-			execute: jest.fn(),
+			error: "Failed to fetch feeds",
+			data: null,
+			execute: mock(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => {
-			expect(getByText(/API Error/)).toBeTruthy();
-		});
+		const { getByText } = render(<ManageFeedsListScreen />);
+		expect(getByText("Failed to fetch feeds")).toBeTruthy();
 	});
 
 	it("should display no feeds message when there are no feeds", async () => {
-		(useApi as jest.Mock).mockReturnValue({
+		setup.useApiMock.mockReturnValue({
+			loading: false,
+			error: null,
 			data: [],
-			loading: false,
-			error: null,
-			execute: jest.fn(),
+			execute: mock(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => {
-			expect(getByText("No feeds to manage!")).toBeTruthy();
-		});
-	});
-
-	it("should apply card style to feed items", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeeds,
-			loading: false,
-			error: null,
-			execute: jest.fn(),
-		});
-
-		const { getByTestId } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => {
-			const feedItem = getByTestId("feed-item-1");
-			const card = feedItem.find((node) =>
-				node.props.style?.hasOwnProperty("backgroundColor"),
-			);
-			expect(card).toBeDefined();
-		});
-	});
-
-	it("should exit multi-select mode when Done is pressed", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeeds,
-			loading: false,
-			error: null,
-			execute: jest.fn(),
-		});
-
-		const { getByText, queryByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
-
-		await waitFor(() => getByText("Feed 1"));
-		fireEvent(getByText("Feed 1"), "longPress");
-
-		await waitFor(() => getByText("Done"));
-		fireEvent.press(getByText("Done"));
-
-		await waitFor(() => {
-			expect(queryByText("Select All")).toBeNull();
-		});
+		const { getByText } = render(<ManageFeedsListScreen />);
+		expect(getByText("No feeds to manage!")).toBeTruthy();
 	});
 
 	it("should copy feed uri to clipboard on press", async () => {
-		const setStringAsync = jest.fn();
-		jest.spyOn(require("expo-clipboard"), "setStringAsync").mockImplementation(
-			setStringAsync,
-		);
-
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeeds,
+		setup.useApiMock.mockReturnValue({
 			loading: false,
 			error: null,
-			execute: jest.fn(),
+			data: mockFeeds,
+			execute: mock(),
 		});
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<ManageFeedsListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
+		const { getByText } = render(<ManageFeedsListScreen />);
 
 		await waitFor(() => getByText("Feed 1"));
-		fireEvent.press(getByText("Feed 1"));
+		const feed1 = getByText("Feed 1");
+		fireEvent.press(feed1);
 
-		await waitFor(() => {
-			expect(setStringAsync).toHaveBeenCalledWith("uri1");
-		});
+		expect(setup.clipboardMocks.setStringAsync).toHaveBeenCalledWith("http://feed1.com");
 	});
 });

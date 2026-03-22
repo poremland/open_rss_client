@@ -87,6 +87,19 @@ If you encounter issues with caching, try clearing the Expo cache:
 npx expo start --clear
 ```
 
+## Testing
+
+This project is currently migrating from Jest to [Bun](https://bun.sh/) as its sole testing framework for improved performance.
+
+### Running Tests
+To run the full test suite using Bun:
+
+```bash
+bun test
+```
+
+*Note: During the migration phase, some component tests may still require the legacy Jest runner via `npm run test:jest`.*
+
 ## Production Builds
 
 ### Web

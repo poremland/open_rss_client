@@ -1,3 +1,4 @@
+import "../setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -15,14 +16,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import "../setup";
 
+import * as setup from "../setup";
 import React from "react";
+import { expect, describe, it, mock, beforeEach } from "bun:test";
 import { render, fireEvent } from "@testing-library/react-native";
 import FeedItemCard from "../../app/components/FeedItemCard";
-import { FeedItem } from "../../models/FeedItem";
 
 describe("FeedItemCard", () => {
-	const mockItem: FeedItem = {
+	beforeEach(() => {
+		setup.resetAll();
+	});
+
+	const mockItem: any = {
 		id: 1,
 		title: "Test Title",
 		link: "http://example.com",
@@ -50,7 +57,7 @@ describe("FeedItemCard", () => {
 	});
 
 	it("calls onPress when pressed", () => {
-		const onPress = jest.fn();
+		const onPress = mock();
 		const { getByTestId } = render(
 			<FeedItemCard
 				item={mockItem}
@@ -65,7 +72,7 @@ describe("FeedItemCard", () => {
 	});
 
 	it("calls onLongPress when long-pressed", () => {
-		const onLongPress = jest.fn();
+		const onLongPress = mock();
 		const { getByTestId } = render(
 			<FeedItemCard
 				item={mockItem}
@@ -94,7 +101,7 @@ describe("FeedItemCard", () => {
 	});
 
 	it("does not display an image if there is no image in the description", () => {
-		const itemWithoutImage: FeedItem = {
+		const itemWithoutImage: any = {
 			...mockItem,
 			description: "<p>No image here</p>",
 		};
@@ -127,7 +134,7 @@ describe("FeedItemCard", () => {
 	});
 
 	it("decodes HTML entities in the title and description", () => {
-		const mockItemWithEntities: FeedItem = {
+		const mockItemWithEntities: any = {
 			...mockItem,
 			title: "Test&#39;s Title &amp; More",
 			description: "<p>Test&#39;s Description &amp; More</p>",

@@ -1,3 +1,4 @@
+import "../setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -15,13 +16,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import "../setup";
 
+import * as setup from "../setup";
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
-import { View, Text } from "react-native";
+import { expect, describe, it, beforeEach } from "bun:test";
+import { render } from "@testing-library/react-native";
+import { Text } from "react-native";
 import MultiSelectBar from "../../app/components/MultiSelectBar";
 
 describe("MultiSelectBar", () => {
+	beforeEach(() => {
+		setup.resetAll();
+	});
+
 	it("should render children", () => {
 		const { getByText } = render(
 			<MultiSelectBar>

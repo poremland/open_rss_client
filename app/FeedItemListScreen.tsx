@@ -10,7 +10,7 @@ import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
-import * as authHelper from "../helpers/auth";
+import * as authHelper from "../helpers/auth_helper";
 import { styles } from "../styles/FeedItemListScreen.styles";
 import { FeedItem } from "../models/FeedItem";
 import { useMenu } from "./components/GlobalDropdownMenu";
