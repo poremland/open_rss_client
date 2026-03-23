@@ -17,54 +17,72 @@
  */
 
 import { useState, useCallback } from "react";
-import { getWithAuth, postWithAuth } from "../../helpers/api_helper";
-import { handleSessionExpired } from "../../helpers/auth_helper";
+import { api } from "../../helpers/api_helper";
+import { auth } from "../../helpers/auth_helper";
 import { useRouter } from "expo-router";
 
-type ApiMethod = "get" | "post";
+export interface ApiResponse<T> {
+	data: T | null;
+	loading: boolean;
+	error: string | null;
+	execute: (body?: any) => Promise<T | null>;
+	setData: (data: T | null) => void;
+}
 
 interface UseApiOptions<T> {
 	initialData?: T;
 }
 
-const useApi = <T>(
-	method: ApiMethod,
-	url: string,
+const useApi = <T,>(
+	method: string,
+	path: string,
 	options: UseApiOptions<T> = {},
 	contentType: string = "application/x-www-form-urlencoded",
-) => {
+): ApiResponse<T> => {
 	const [data, setData] = useState<T | null>(options.initialData || null);
 	const [loading, setLoading] = useState<boolean>(false);
-	const [error, setError] = useState<string>("");
+	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 
 	const execute = useCallback(
-		async (body?: any) => {
+		async (body?: any): Promise<T | null> => {
 			setLoading(true);
-			setError("");
+			setError(null);
 			try {
-				let response: T;
-				if (method === "get") {
-					response = await getWithAuth<T>(url);
+				let result: T;
+				const lowerMethod = method.toLowerCase();
+				if (lowerMethod === "get") {
+					result = await api.getWithAuth<T>(path);
+				} else if (lowerMethod === "post") {
+					result = await api.postWithAuth<T>(path, body, contentType);
+				} else if (lowerMethod === "put") {
+					result = await api.putWithAuth(path, body, contentType) as T;
 				} else {
-					response = await postWithAuth<T>(url, body, contentType);
+					throw new Error(`Unsupported method: ${method}`);
 				}
-				setData(response);
-				return response;
-			} catch (e: any) {
-				if (e.message === "Session expired") {
-					handleSessionExpired(router);
-				} else {
-					setError(e.message);
+				setData(result);
+				return result;
+			} catch (err: any) {
+				const errorMessage = err.message || "An unknown error occurred";
+				setError(errorMessage);
+				if (errorMessage === "Session expired") {
+					await auth.handleSessionExpired(router);
 				}
+				return null;
 			} finally {
 				setLoading(false);
 			}
 		},
-		[method, url, contentType, router],
+		[method, path, contentType, router],
 	);
 
-	return { data, loading, error, execute, setData };
+	return {
+		data,
+		loading,
+		error,
+		execute,
+		setData,
+	};
 };
 
 export default useApi;

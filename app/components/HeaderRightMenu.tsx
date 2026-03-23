@@ -31,7 +31,7 @@ const HeaderRightMenu: React.FC<HeaderRightMenuProps> = ({
 	return (
 		<TouchableOpacity
 			testID="menu"
-			onPressOut={onToggleDropdown}
+			onPress={onToggleDropdown}
 			style={styles.container}
 		>
 			<Ionicons

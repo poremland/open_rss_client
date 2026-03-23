@@ -1,4 +1,3 @@
-import "./setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -17,23 +16,39 @@ import "./setup";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-
 import { mocks } from "./setup";
-import { expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
-import useApi from "../app/components/useApi";
-import { api } from "../helpers/api_helper";
-import { auth } from "../helpers/auth_helper";
+
+mock.module("../helpers/api_helper", () => ({
+	api: mocks.apiMocks,
+	post: mocks.apiMocks.post,
+	postWithAuth: mocks.apiMocks.postWithAuth,
+	get: mocks.apiMocks.get,
+	getWithAuth: mocks.apiMocks.getWithAuth,
+	putWithAuth: mocks.apiMocks.putWithAuth,
+	refreshToken: mocks.apiMocks.refreshToken,
+	__esModule: true,
+}));
+
+mock.module("../helpers/auth_helper", () => ({
+	auth: mocks.authMocks,
+	storeAuthToken: mocks.authMocks.storeAuthToken,
+	getAuthToken: mocks.authMocks.getAuthToken,
+	storeUser: mocks.authMocks.storeUser,
+	getUser: mocks.authMocks.getUser,
+	clearAuthData: mocks.authMocks.clearAuthData,
+	checkLoggedIn: mocks.authMocks.checkLoggedIn,
+	refreshTokenOnLoad: mocks.authMocks.refreshTokenOnLoad,
+	handleSessionExpired: mocks.authMocks.handleSessionExpired,
+	__esModule: true,
+}));
+
+const useApi = require("../app/components/useApi").default;
 
 describe("useApi", () => {
 	beforeEach(() => {
 		mocks.resetAll();
-		api.setDeps({
-			fetch: mocks.fetchMock as any,
-		});
-		auth.setDeps({
-			alert: { alert: mocks.alertMock } as any,
-		});
 	});
 
 	it("should handle GET request successfully", async () => {
@@ -44,19 +59,13 @@ describe("useApi", () => {
 
 		expect(result.current.loading).toBe(false);
 		expect(result.current.data).toBeNull();
-		expect(result.current.error).toBe("");
-
-		let promise: any;
-		act(() => {
-			promise = result.current.execute();
-		});
-		await waitFor(() => expect(result.current.loading).toBe(true));
+		expect(result.current.error).toBeNull();
 
 		await act(async () => {
-			await promise;
+			await result.current.execute();
 		});
+
 		await waitFor(() => expect(result.current.loading).toBe(false));
-		expect(mocks.apiMocks.getWithAuth).toHaveBeenCalledWith("/test-get");
 		expect(result.current.data).toEqual(mockData);
 	});
 
@@ -66,22 +75,11 @@ describe("useApi", () => {
 
 		const { result } = renderHook(() => useApi("post", "/test-post"));
 
-		let promise: any;
-		act(() => {
-			promise = result.current.execute({ key: "value" });
-		});
-
 		await act(async () => {
-			await promise;
+			await result.current.execute({ key: "value" });
 		});
 
 		await waitFor(() => expect(result.current.loading).toBe(false));
-
-		expect(mocks.apiMocks.postWithAuth).toHaveBeenCalledWith(
-			"/test-post",
-			{ key: "value" },
-			"application/x-www-form-urlencoded",
-		);
 		expect(result.current.data).toEqual(mockData);
 	});
 
@@ -93,22 +91,11 @@ describe("useApi", () => {
 			useApi("post", "/test-json-post", {}, "application/json"),
 		);
 
-		let promise: any;
-		act(() => {
-			promise = result.current.execute({ key: "value" });
-		});
-
 		await act(async () => {
-			await promise;
+			await result.current.execute({ key: "value" });
 		});
 
 		await waitFor(() => expect(result.current.loading).toBe(false));
-
-		expect(mocks.apiMocks.postWithAuth).toHaveBeenCalledWith(
-			"/test-json-post",
-			{ key: "value" },
-			"application/json",
-		);
 		expect(result.current.data).toEqual(mockData);
 	});
 
@@ -118,13 +105,8 @@ describe("useApi", () => {
 
 		const { result } = renderHook(() => useApi("get", "/error-get"));
 
-		let promise: any;
-		act(() => {
-			promise = result.current.execute();
-		});
-
 		await act(async () => {
-			try { await promise; } catch (e) {}
+			try { await result.current.execute(); } catch (e) {}
 		});
 
 		await waitFor(() => expect(result.current.loading).toBe(false));

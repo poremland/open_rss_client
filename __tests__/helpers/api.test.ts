@@ -17,14 +17,16 @@
  */
 
 import { mock, expect, describe, it, beforeEach } from "bun:test";
-import { api } from "../../helpers/api_helper";
+import { Api } from "../../helpers/api_helper.impl";
 import { resetAll, asyncStorageMock, fetchMock } from "../mocks";
 
 describe("API Helper", () => {
 	const MOCK_BASE_URL = "http://localhost:3000";
+	let api: Api;
 
 	beforeEach(async () => {
 		resetAll();
+		api = new Api();
 		api.setDeps({
 			storage: asyncStorageMock,
 			fetch: fetchMock as any,

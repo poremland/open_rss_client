@@ -16,75 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { api } from "./api_helper";
-
-export interface AuthDeps {
-	storage: typeof AsyncStorage;
-	alert: typeof Alert;
-}
-
-class Auth {
-	private deps: AuthDeps = {
-		storage: AsyncStorage,
-		alert: Alert,
-	};
-
-	setDeps(deps: Partial<AuthDeps>) {
-		this.deps = { ...this.deps, ...deps };
-	}
-
-	storeAuthToken = async (token: string) => {
-		await this.deps.storage.setItem("authToken", token);
-	};
-
-	getAuthToken = async () => {
-		return await this.deps.storage.getItem("authToken");
-	};
-
-	storeUser = async (user: string) => {
-		await this.deps.storage.setItem("user", user);
-	};
-
-	getUser = async () => {
-		return await this.deps.storage.getItem("user");
-	};
-
-	clearAuthData = async (router: any) => {
-		await this.deps.storage.removeItem("authToken");
-		await this.deps.storage.removeItem("user");
-		router.dismissAll();
-		router.replace("/");
-	};
-
-	checkLoggedIn = async (router: any) => {
-		const token = await this.getAuthToken();
-		if (token) {
-			router.replace("FeedListScreen");
-		}
-	};
-
-	handleSessionExpired = async (router: any) => {
-		this.deps.alert.alert(
-			"Session Expired",
-			"Your session has expired. Please log in again.",
-		);
-		router.dismissAll();
-		router.replace("/");
-	};
-
-	refreshTokenOnLoad = async () => {
-		try {
-			const newToken = await api.refreshToken();
-			if (newToken) {
-				await this.storeAuthToken(newToken);
-			}
-		} catch (error) {
-			console.error("Failed to refresh token:", error);
-		}
-	};
-}
+import { Auth } from "./auth_helper.impl";
 
 export const auth = new Auth();
 export const storeAuthToken = auth.storeAuthToken;

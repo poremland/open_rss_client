@@ -1,4 +1,3 @@
-import "./setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -17,71 +16,69 @@ import "./setup";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-
 import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import { render, waitFor, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 
-mock.module("../app/components/ListScreen", () => {
-	const React = require("react");
-	const { View, Text } = require("react-native");
-	const ListScreen = React.forwardRef(({ emptyComponent, data, loading, fetchUrl, renderItem, transformData, onItemPress }, ref) => {
-		const useApi = require("../app/components/useApi").default;
-		const { data: apiData, loading: apiLoading, error, execute, setData } = useApi("GET", fetchUrl);
+mock.module("../helpers/api_helper", () => ({
+	api: {
+		postWithAuth: mock(),
+		getWithAuth: mock(),
+		post: mock(),
+		get: mock(),
+		putWithAuth: mock(),
+		refreshToken: mock(),
+	},
+	postWithAuth: mock(),
+	getWithAuth: mock(),
+	post: mock(),
+	get: mock(),
+	putWithAuth: mock(),
+	refreshToken: mock(),
+	__esModule: true,
+}));
 
-		React.useImperativeHandle(ref, () => ({
-			handleRefresh: async () => {
-				const res = await execute();
-				return res ? (transformData ? transformData(res) : res) : [];
-			},
-			getData: () => (apiData ? (transformData ? transformData(apiData) : apiData) : []),
-			setData,
-		}));
+mock.module("../helpers/auth_helper", () => ({
+	auth: {
+		getUser: mock(),
+		getAuthToken: mock(),
+		storeAuthToken: mock(),
+		storeUser: mock(),
+		clearAuthData: mock(),
+		checkLoggedIn: mock(),
+		refreshTokenOnLoad: mock(),
+		handleSessionExpired: mock(),
+	},
+	getUser: mock(),
+	getAuthToken: mock(),
+	storeAuthToken: mock(),
+	storeUser: mock(),
+	clearAuthData: mock(),
+	checkLoggedIn: mock(),
+	refreshTokenOnLoad: mock(),
+	handleSessionExpired: mock(),
+	__esModule: true,
+}));
 
-		if (apiLoading) return React.createElement(Text, {}, "Loading...");
-		if (error) return React.createElement(Text, {}, error);
-
-		const displayData = apiData ? (transformData ? transformData(apiData) : apiData) : [];
-
-		if (displayData.length === 0) return emptyComponent;
-
-		return React.createElement(
-			View,
-			{},
-			displayData.map((item: any, index: number) => 
-				React.createElement(View, { key: index }, renderItem({ 
-					item, 
-					onPress: () => onItemPress(item),
-					onLongPress: () => {},
-					isItemSelected: false
-				}))
-			)
-		);
-	});
-	return { default: ListScreen };
-});
-
-import FeedItemListScreen from "../app/FeedItemListScreen";
+const FeedItemListScreen = require("../app/FeedItemListScreen").default;
+const { api } = require("../helpers/api_helper");
+const { auth } = require("../helpers/auth_helper");
 
 describe("FeedItemListScreen", () => {
+	const mockFeed = { id: 1, name: "Test Feed" };
 	const mockItems = [
-		{ id: 1, title: "Item 1", link: "http://item1.com", description: "Desc 1", is_read: false },
-		{ id: 2, title: "Item 2", link: "http://item2.com", description: "Desc 2", is_read: false },
+		{ id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
+		{ id: 2, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
 	];
 
-	beforeEach(async () => {
+	beforeEach(() => {
 		mocks.resetAll();
+		mocks.localSearchParams.params = { feed: JSON.stringify(mockFeed) };
 	});
 
 	it("should display a list of feed items", async () => {
-		mocks.useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockItems,
-			execute: mock().mockResolvedValue(mockItems),
-			setData: mock(),
-		});
+		api.getWithAuth.mockResolvedValue(mockItems);
 
 		const { getByText } = render(<FeedItemListScreen />);
 
@@ -92,81 +89,73 @@ describe("FeedItemListScreen", () => {
 	});
 
 	it("should mark all items as read when Mark All As Read is pressed", async () => {
-		const execute = mock().mockResolvedValue({ success: true });
-		const setData = mock();
-		mocks.useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockItems,
-			execute,
-			setData,
-		});
+		api.getWithAuth.mockResolvedValue(mockItems);
 
 		render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(mocks.useMenuMock.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenuMock.setMenuItems.mock.calls[0][0];
-		const markAllReadItem = menuItems.find((item: any) => item.label === "Mark All As Read");
-		markAllReadItem.onPress();
+		const markAllReadItem = menuItems.find(
+			(item: any) => item.label === "Mark All As Read",
+		);
 
-		await waitFor(() => {
-			expect(execute).toHaveBeenCalled();
-			expect(mocks.navigationMocks.goBack).toHaveBeenCalled();
+		api.getWithAuth.mockResolvedValue({ success: true });
+
+		await act(async () => {
+			await markAllReadItem.onPress();
 		});
+
+		expect(api.getWithAuth).toHaveBeenCalledWith("/feeds/mark_all_read/1.json");
 	});
 
 	it("should activate multi-select mode when an item is long-pressed", async () => {
-		mocks.useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockItems,
-			execute: mock().mockResolvedValue(mockItems),
-			setData: mock(),
-		});
+		api.getWithAuth.mockResolvedValue(mockItems);
 
 		const { getByText } = render(<FeedItemListScreen />);
+
 		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
+		fireEvent(getByText("Item 1"), "longPress");
+
+		await waitFor(() => expect(getByText("Select All")).toBeTruthy());
 	});
 
 	it("should mark selected items as read when Mark Read is pressed", async () => {
-		mocks.useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockItems,
-			execute: mock().mockResolvedValue(mockItems),
-			setData: mock(),
+		api.getWithAuth.mockResolvedValue(mockItems);
+
+		const { getByText, getByTestId } = render(<FeedItemListScreen />);
+
+		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
+		fireEvent(getByText("Item 1"), "longPress");
+
+		const markReadButton = getByText("Mark Read");
+
+		api.getWithAuth.mockResolvedValue({ success: true });
+
+		await act(async () => {
+			fireEvent.press(markReadButton);
 		});
 
-		render(<FeedItemListScreen />);
-		await waitFor(() => expect(mocks.useMenuMock.setMenuItems).toHaveBeenCalled());
+		expect(api.getWithAuth).toHaveBeenCalledWith("/feed_items/mark_as_read/1.json");
 	});
 
 	it("should display an error message if the api call fails", async () => {
-		mocks.useApiMock.mockReturnValue({
-			loading: false,
-			error: "Failed to fetch items",
-			data: null,
-			execute: mock().mockResolvedValue([]),
-			setData: mock(),
-		});
+		api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
 		const { getByText } = render(<FeedItemListScreen />);
-		expect(getByText("Failed to fetch items")).toBeTruthy();
+
+		await waitFor(() => expect(getByText("API Error")).toBeTruthy());
 	});
 
 	it("should navigate to FeedItemDetailScreen when an item is pressed", async () => {
-		mocks.useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockItems,
-			execute: mock().mockResolvedValue(mockItems),
-			setData: mock(),
-		});
+		api.getWithAuth.mockResolvedValue(mockItems);
 
 		const { getByText } = render(<FeedItemListScreen />);
-		await waitFor(() => getByText("Item 1"));
-		const item1 = getByText("Item 1");
-		fireEvent.press(item1);
+
+		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
+		fireEvent.press(getByText("Item 1"));
 
 		expect(mocks.routerMocks.push).toHaveBeenCalledWith({
 			pathname: "/FeedItemDetailScreen",

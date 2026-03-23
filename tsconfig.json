@@ -3,12 +3,7 @@
 	"compilerOptions": {
 		"strict": true,
 		"paths": {
-			"@/*": ["./*"],
-			"react-native": ["./__mocks__/react-native.ts"],
-			"react-native/*": ["./__mocks__/react-native.ts"],
-			"@react-native-async-storage/async-storage": ["./__mocks__/@react-native-async-storage/async-storage.ts"],
-			"expo-router": ["./__mocks__/expo-router.ts"],
-			"expo-font": ["./__mocks__/expo-font.ts"]
+			"@/*": ["./*"]
 		}
 	},
 	"include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

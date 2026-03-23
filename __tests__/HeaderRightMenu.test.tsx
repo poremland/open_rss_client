@@ -1,4 +1,3 @@
-import "./setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -17,24 +16,24 @@ import "./setup";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-
-import * as setup from "./setup";
-import { expect, describe, it, mock, beforeEach } from "bun:test";
+import { mocks } from "./setup";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import HeaderRightMenu from "../app/components/HeaderRightMenu";
 
 describe("HeaderRightMenu", () => {
 	beforeEach(() => {
-		setup.resetAll();
+		mocks.resetAll();
 	});
 
 	it("renders correctly and calls onToggleDropdown when pressed", () => {
-		const { getByTestId } = render(<HeaderRightMenu />);
+		const onToggleDropdown = mock();
+		const { getByTestId } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
 		const button = getByTestId("menu");
 		expect(button).toBeTruthy();
 
 		fireEvent.press(button);
-		expect(setup.useMenuMock.onToggleDropdown).toHaveBeenCalled();
+		expect(onToggleDropdown).toHaveBeenCalled();
 	});
 });

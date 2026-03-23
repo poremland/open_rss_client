@@ -17,6 +17,8 @@
  */
 
 import { mock, expect, describe, it, beforeEach, spyOn } from "bun:test";
+import { Auth } from "../../helpers/auth_helper.impl";
+import { api as apiInstance } from "../../helpers/api_helper.impl";
 
 const storageMap = new Map();
 const asyncStorageMock = {
@@ -49,17 +51,16 @@ const routerMocks = {
 	dismissAll: mock(),
 };
 
-// Import actual helpers
-const auth = require("../../helpers/auth_helper").auth;
-const { api: apiInstance } = require("../../helpers/api_helper");
-
 describe("auth helpers", () => {
+	let auth: Auth;
+
 	beforeEach(async () => {
 		storageMap.clear();
 		Object.values(asyncStorageMock).forEach(m => m.mockClear());
 		alertMock.mockClear();
 		Object.values(routerMocks).forEach(m => m.mockClear());
 		
+		auth = new Auth();
 		auth.setDeps({
 			storage: asyncStorageMock as any,
 			alert: { alert: alertMock } as any,

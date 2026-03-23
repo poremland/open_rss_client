@@ -1,4 +1,3 @@
-import "./setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -17,16 +16,37 @@ import "./setup";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-
 import { mocks } from "./setup";
-import { expect, describe, it, beforeEach, spyOn } from "bun:test";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import Index from "../app/index";
-import * as authHelper from "../helpers/auth_helper";
+const authMocks = {
+	getUser: mock(),
+	getAuthToken: mock(),
+	storeAuthToken: mock(),
+	storeUser: mock(),
+	clearAuthData: mock(),
+	checkLoggedIn: mock(),
+	refreshTokenOnLoad: mock(),
+	handleSessionExpired: mock(),
+};
+
+mock.module("../helpers/auth_helper", () => ({
+	auth: authMocks,
+	getUser: authMocks.getUser,
+	getAuthToken: authMocks.getAuthToken,
+	storeAuthToken: authMocks.storeAuthToken,
+	storeUser: authMocks.storeUser,
+	clearAuthData: authMocks.clearAuthData,
+	checkLoggedIn: authMocks.checkLoggedIn,
+	refreshTokenOnLoad: authMocks.refreshTokenOnLoad,
+	handleSessionExpired: authMocks.handleSessionExpired,
+	__esModule: true,
+}));
+
+const LoginScreen = require("../app/index").default;
+const { auth } = require("../helpers/auth_helper");
 
 describe("Login Screen", () => {
 	beforeEach(async () => {
@@ -35,60 +55,21 @@ describe("Login Screen", () => {
 	});
 
 	it("should render the server URL input", async () => {
-		const { getByPlaceholderText } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
+		const { getByPlaceholderText } = render(<LoginScreen />);
 		expect(getByPlaceholderText("Server URL")).toBeTruthy();
 	});
 
 	it("should load server URL from AsyncStorage on mount", async () => {
-		await AsyncStorage.setItem("serverUrl", "http://test-server.com");
-		const { getByDisplayValue } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
+		mocks.storageMap.set("serverUrl", "http://test-server.com");
+		const { getByPlaceholderText } = render(<LoginScreen />);
 		await waitFor(() => {
-			expect(getByDisplayValue("http://test-server.com")).toBeTruthy();
+			const input = getByPlaceholderText("Server URL");
+			expect(input.props.value).toBe("http://test-server.com");
 		});
 	});
 
 	it("should save server URL to AsyncStorage on login", async () => {
-		const { getByPlaceholderText, getByText } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
-		const urlInput = getByPlaceholderText("Server URL");
-		const usernameInput = getByPlaceholderText("Username");
-		const otpButton = getByText("Request OTP");
-
-		fireEvent.changeText(urlInput, "http://new-server.com");
-		fireEvent.changeText(usernameInput, "testuser");
-
-		mocks.fetchMock.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ status: "ok" }),
-		});
-
-		fireEvent.press(otpButton);
-
-		await waitFor(() => {
-			expect(mocks.asyncStorageMock.setItem).toHaveBeenCalledWith(
-				"serverUrl",
-				"http://new-server.com",
-			);
-		});
-	});
-
-	it("should display an error message if login fails due to invalid token", async () => {
-		const { getByPlaceholderText, getByText, findByText } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
+		const { getByPlaceholderText, getByText } = render(<LoginScreen />);
 		const urlInput = getByPlaceholderText("Server URL");
 		const usernameInput = getByPlaceholderText("Username");
 		const otpButton = getByText("Request OTP");
@@ -103,31 +84,50 @@ describe("Login Screen", () => {
 
 		fireEvent.press(otpButton);
 
-		const otpInput = await waitFor(() => getByPlaceholderText("OTP"));
+		await waitFor(() => {
+			expect(mocks.storageMap.get("serverUrl")).toBe("http://test-server.com");
+		});
+	});
+
+	it("should display an error message if login fails due to invalid token", async () => {
+		const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+		const urlInput = getByPlaceholderText("Server URL");
+		const usernameInput = getByPlaceholderText("Username");
+		const otpButton = getByText("Request OTP");
+
+		fireEvent.changeText(urlInput, "http://test-server.com");
+		fireEvent.changeText(usernameInput, "testuser");
+
+		mocks.fetchMock.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ status: "ok" }),
+		});
+
+		fireEvent.press(otpButton);
+
+		await waitFor(() => {
+			expect(getByPlaceholderText("OTP")).toBeTruthy();
+		});
+
+		const otpInput = getByPlaceholderText("OTP");
 		const loginButton = getByText("Login");
 
 		fireEvent.changeText(otpInput, "123456");
 
 		mocks.fetchMock.mockResolvedValueOnce({
-			ok: false,
-			status: 401,
-			text: async () => "Invalid OTP",
+			ok: true,
+			json: async () => ({ status: "error", message: "Invalid OTP" }),
 		});
 
 		fireEvent.press(loginButton);
 
-		const errorMsg = await findByText(/Login Failed|Session expired|Invalid OTP/);
-		expect(errorMsg).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText(/Invalid token/i)).toBeTruthy();
+		});
 	});
 
 	it("should call checkLoggedIn on component mount", async () => {
-		const checkLoggedInSpy = spyOn(authHelper, "checkLoggedIn").mockImplementation(async () => {});
-		render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
-		expect(checkLoggedInSpy).toHaveBeenCalled();
-		checkLoggedInSpy.mockRestore();
+		render(<LoginScreen />);
+		expect(auth.checkLoggedIn).toHaveBeenCalled();
 	});
 });
