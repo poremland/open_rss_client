@@ -119,10 +119,11 @@ export const resetAll = () => {
 
 // Global Environment Setup
 (globalThis as any).__DEV__ = true;
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 process.env.EXPO_OS = "ios";
 (globalThis as any).document = { title: "" } as any;
 (globalThis as any).window = {
-	history: { state: { id: 0 } },
+	history: { id: 0 },
 	addEventListener: mock(),
 	removeEventListener: mock(),
 	setTimeout: globalThis.setTimeout,
@@ -165,6 +166,63 @@ process.env.EXPO_OS = "ios";
 	resetAll
 };
 
+// Use a simplified RN mock that works with Bun parser but provides enough structure for testing-library
+const mockComponent = (name: string) => {
+	const Comp = (props: any) => React.createElement(name, props, props.children);
+	Comp.displayName = name;
+	return Comp;
+};
+
+export const RNMock = {
+	View: mockComponent("View"),
+	Text: mockComponent("Text"),
+	TouchableOpacity: mockComponent("TouchableOpacity"),
+	TouchableWithoutFeedback: mockComponent("TouchableWithoutFeedback"),
+	TouchableHighlight: mockComponent("TouchableHighlight"),
+	Pressable: mockComponent("Pressable"),
+	Button: mock(({ title, onPress, testID }: any) => {
+		return React.createElement(RNMock.Pressable, { onPress, testID, accessibilityRole: "button" }, 
+			React.createElement(RNMock.Text, {}, title)
+		);
+	}),
+	FlatList: mock(({ data, renderItem }: any) => {
+		return React.createElement(RNMock.View, {}, data?.map((item: any, index: number) => 
+			React.createElement(RNMock.View, { key: index }, renderItem({ item, index }))
+		));
+	}),
+	ScrollView: mockComponent("ScrollView"),
+	Image: mockComponent("Image"),
+	TextInput: mock((props: any) => {
+		// Destructure but pass everything to the underlying element
+		return React.createElement("TextInput", props);
+	}),
+	ActivityIndicator: mockComponent("ActivityIndicator"),
+	RefreshControl: mockComponent("RefreshControl"),
+	KeyboardAvoidingView: mockComponent("KeyboardAvoidingView"),
+	Modal: mockComponent("Modal"),
+	StyleSheet: {
+		create: (s: any) => s,
+		flatten: (s: any) => Array.isArray(s) ? Object.assign({}, ...s) : s,
+	},
+	Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
+	Alert: { alert: alertMock },
+	Dimensions: { get: () => ({ width: 375, height: 812 }) },
+	PixelRatio: { get: () => 1, roundToNearestPixel: (n: number) => n },
+	Linking: { openURL: mock(), canOpenURL: mock(), getInitialURL: mock() },
+	Share: { share: mock() },
+	I18nManager: { isRTL: false, allowRTL: mock(), forceRTL: mock(), getConstants: () => ({ isRTL: false }) },
+	Keyboard: { addListener: mock(() => ({ remove: mock() })), dismiss: mock() },
+	StatusBar: { setBarStyle: mock(), setHidden: mock() },
+	TurboModuleRegistry: { get: mock(), getEnforcing: mock() },
+	NativeEventEmitter: class {
+		addListener = mock(() => ({ remove: mock() }));
+		removeAllListeners = mock();
+		emit = mock();
+	},
+	processColor: (c: any) => c,
+	NativeModules: {},
+};
+
 // USE A PLUGIN TO PREVENT BUN FROM PARSING node_modules/react-native FILES AND ASSETS
 plugin({
 	name: "module-and-asset-interceptor",
@@ -188,48 +246,8 @@ plugin({
 			if (args.path === "react-native") {
 				return {
 					contents: `
-						const React = require("react");
-						const { mock } = require("bun:test");
-						const mockComponent = (name) => (props) => React.createElement(name, props, props.children);
-						const RNMock = {
-							View: mockComponent("View"),
-							Text: mockComponent("Text"),
-							TouchableOpacity: mockComponent("TouchableOpacity"),
-							TouchableWithoutFeedback: mockComponent("TouchableWithoutFeedback"),
-							TouchableHighlight: mockComponent("TouchableHighlight"),
-							Pressable: mockComponent("Pressable"),
-							Button: (props) => React.createElement(mockComponent("View"), props),
-							FlatList: (props) => React.createElement(mockComponent("View"), props),
-							ScrollView: mockComponent("ScrollView"),
-							Image: mockComponent("Image"),
-							TextInput: mockComponent("TextInput"),
-							ActivityIndicator: mockComponent("ActivityIndicator"),
-							RefreshControl: mockComponent("RefreshControl"),
-							KeyboardAvoidingView: mockComponent("KeyboardAvoidingView"),
-							Modal: mockComponent("Modal"),
-							StyleSheet: {
-								create: (s) => s,
-								flatten: (s) => Array.isArray(s) ? Object.assign({}, ...s) : s,
-							},
-							Platform: { OS: "ios", select: (o) => o.ios || o.default },
-							Alert: { alert: mock() },
-							Dimensions: { get: () => ({ width: 375, height: 812 }) },
-							PixelRatio: { get: () => 1, roundToNearestPixel: (n) => n },
-							Linking: { openURL: mock(), canOpenURL: mock(), getInitialURL: mock() },
-							Share: { share: mock() },
-							I18nManager: { isRTL: false, allowRTL: mock(), forceRTL: mock(), getConstants: () => ({ isRTL: false }) },
-							Keyboard: { addListener: mock(() => ({ remove: mock() })), dismiss: mock() },
-							StatusBar: { setBarStyle: mock(), setHidden: mock() },
-							TurboModuleRegistry: { get: mock(), getEnforcing: mock() },
-							NativeEventEmitter: class {
-								addListener = mock(() => ({ remove: mock() }));
-								removeAllListeners = mock();
-								emit = mock();
-							},
-							processColor: (c) => c,
-							NativeModules: {},
-						};
-						module.exports = RNMock;
+						const setup = require("${import.meta.url}");
+						module.exports = setup.RNMock;
 					`,
 					loader: "js",
 				};

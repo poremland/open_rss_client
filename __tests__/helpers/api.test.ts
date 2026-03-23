@@ -1,4 +1,3 @@
-import "../setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -16,29 +15,28 @@ import "../setup";
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "../setup";
 
-import * as setup from "../setup";
-import { expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { api } from "../../helpers/api_helper";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { resetAll, asyncStorageMock, fetchMock } from "../mocks";
 
 describe("API Helper", () => {
 	const MOCK_BASE_URL = "http://localhost:3000";
 
 	beforeEach(async () => {
-		setup.resetAll();
+		resetAll();
 		api.setDeps({
-			storage: AsyncStorage,
-			fetch: setup.fetchMock as any,
+			storage: asyncStorageMock,
+			fetch: fetchMock as any,
 		});
-		await AsyncStorage.setItem("serverUrl", MOCK_BASE_URL);
+		await asyncStorageMock.setItem("serverUrl", MOCK_BASE_URL);
+		fetchMock.mockClear();
 	});
 
 	describe("post", () => {
 		it("should make a POST request and return JSON data", async () => {
 			const mockData = { message: "Success" };
-			setup.fetchMock.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
 				json: async () => mockData,
@@ -46,7 +44,7 @@ describe("API Helper", () => {
 
 			const result = await api.post("/test", { foo: "bar" });
 
-			expect(setup.fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -58,7 +56,7 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if the request fails", async () => {
-			setup.fetchMock.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: false,
 				status: 500,
 				text: async () => "Internal Server Error",
@@ -70,7 +68,7 @@ describe("API Helper", () => {
 		});
 
 		it("should throw 'Session expired' error if status is 401", async () => {
-			setup.fetchMock.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: false,
 				status: 401,
 				text: async () => "Unauthorized",
@@ -85,8 +83,8 @@ describe("API Helper", () => {
 	describe("postWithAuth", () => {
 		it("should make an authenticated POST request with form data", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			setup.fetchMock.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
 				json: async () => mockData,
@@ -94,7 +92,7 @@ describe("API Helper", () => {
 
 			const result = await api.postWithAuth("/test", { foo: "bar" });
 
-			expect(setup.fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -108,8 +106,8 @@ describe("API Helper", () => {
 
 		it("should make an authenticated POST request with JSON data", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			setup.fetchMock.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
 				json: async () => mockData,
@@ -121,7 +119,7 @@ describe("API Helper", () => {
 				"application/json",
 			);
 
-			expect(setup.fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -143,7 +141,7 @@ describe("API Helper", () => {
 	describe("get", () => {
 		it("should make a GET request without auth", async () => {
 			const mockData = { message: "Success" };
-			setup.fetchMock.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
 				json: async () => mockData,
@@ -151,7 +149,7 @@ describe("API Helper", () => {
 
 			const result = await api.get("/test");
 
-			expect(setup.fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "GET",
 				headers: {},
 			});
@@ -160,8 +158,8 @@ describe("API Helper", () => {
 
 		it("should make a GET request with auth if token exists", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			setup.fetchMock.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
 				json: async () => mockData,
@@ -169,7 +167,7 @@ describe("API Helper", () => {
 
 			const result = await api.get("/test");
 
-			expect(setup.fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "GET",
 				headers: {
 					Authorization: "Bearer test-token",
@@ -182,15 +180,15 @@ describe("API Helper", () => {
 
 		it("should retry a failed GET request up to 3 times", async () => {
 			const mockError = new Error("Network error");
-			setup.fetchMock.mockRejectedValue(mockError);
+			fetchMock.mockRejectedValue(mockError);
 
 			await expect(api.get("/test")).rejects.toThrow("Network error");
-			expect(setup.fetchMock).toHaveBeenCalledTimes(3);
+			expect(fetchMock).toHaveBeenCalledTimes(3);
 		});
 
 		it("should succeed if one of the retry attempts is successful", async () => {
 			const mockData = { message: "Success" };
-			setup.fetchMock
+			fetchMock
 				.mockRejectedValueOnce(new Error("Network error"))
 				.mockResolvedValueOnce({
 					ok: true,
@@ -201,15 +199,15 @@ describe("API Helper", () => {
 			const result = await api.get("/test");
 
 			expect(result).toEqual(mockData);
-			expect(setup.fetchMock).toHaveBeenCalledTimes(2);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
 		});
 	});
 
 	describe("getWithAuth", () => {
 		it("should make an authenticated GET request", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			setup.fetchMock.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
 				json: async () => mockData,
@@ -218,7 +216,7 @@ describe("API Helper", () => {
 			const result = await api.getWithAuth("/test");
 
 			const authToken = "test-token";
-			expect(setup.fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${authToken}`,
@@ -237,17 +235,17 @@ describe("API Helper", () => {
 
 		it("should retry a failed GET request up to 3 times", async () => {
 			const mockError = new Error("Network error");
-			await AsyncStorage.setItem("authToken", "test-token");
-			setup.fetchMock.mockRejectedValue(mockError);
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockRejectedValue(mockError);
 
 			await expect(api.getWithAuth("/test")).rejects.toThrow("Network error");
-			expect(setup.fetchMock).toHaveBeenCalledTimes(3);
+			expect(fetchMock).toHaveBeenCalledTimes(3);
 		});
 
 		it("should succeed if one of the retry attempts is successful", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			setup.fetchMock
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock
 				.mockRejectedValueOnce(new Error("Network error"))
 				.mockResolvedValueOnce({
 					ok: true,
@@ -258,7 +256,7 @@ describe("API Helper", () => {
 			const result = await api.getWithAuth("/test");
 
 			expect(result).toEqual(mockData);
-			expect(setup.fetchMock).toHaveBeenCalledTimes(2);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
 		});
 	});
 });

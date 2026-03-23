@@ -1,4 +1,3 @@
-import "./setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -16,13 +15,13 @@ import "./setup";
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "./setup";
 
-import { resetAll, navigationMocks, useApiMock } from "./setup";
+import "./setup";
 import { mock, expect, describe, it, beforeEach, spyOn } from "bun:test";
 import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { render, act, waitFor } from "@testing-library/react-native";
 import AddFeedScreen from "../app/AddFeedScreen";
+import { resetAll, navigationMocks, useApiMock } from "./setup";
 import * as authHelper from "../helpers/auth_helper";
 
 describe("AddFeedScreen", () => {
@@ -53,14 +52,19 @@ describe("AddFeedScreen", () => {
 		});
 		const getUserSpy = spyOn(authHelper, "getUser").mockResolvedValue("test-user");
 
-		const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
-		const feedNameInput = getByPlaceholderText("FeedName");
-		const feedUriInput = getByPlaceholderText("FeedUri");
-		const addButton = getByText("Add Feed");
+		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+		const nameInput = getByPlaceholderText("FeedName");
+		const uriInput = getByPlaceholderText("FeedUri");
+		const addButton = getByTestId("addFeedButton");
 
-		fireEvent.changeText(feedNameInput, "Test Feed");
-		fireEvent.changeText(feedUriInput, "http://test.com/feed.xml");
-		fireEvent.press(addButton);
+		await act(async () => {
+			nameInput.props.onChangeText("Test Feed");
+			uriInput.props.onChangeText("http://test.com/feed.xml");
+		});
+
+		await act(async () => {
+			addButton.props.onPress();
+		});
 
 		await waitFor(() => {
 			expect(execute).toHaveBeenCalledWith({
@@ -82,14 +86,19 @@ describe("AddFeedScreen", () => {
 		});
 		const getUserSpy = spyOn(authHelper, "getUser").mockResolvedValue("test-user");
 
-		const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
-		const feedNameInput = getByPlaceholderText("FeedName");
-		const feedUriInput = getByPlaceholderText("FeedUri");
-		const addButton = getByText("Add Feed");
+		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+		const nameInput = getByPlaceholderText("FeedName");
+		const uriInput = getByPlaceholderText("FeedUri");
+		const addButton = getByTestId("addFeedButton");
 
-		fireEvent.changeText(feedNameInput, "Test Feed");
-		fireEvent.changeText(feedUriInput, "http://test.com/feed.xml");
-		fireEvent.press(addButton);
+		await act(async () => {
+			nameInput.props.onChangeText("Test Feed");
+			uriInput.props.onChangeText("http://test.com/feed.xml");
+		});
+
+		await act(async () => {
+			addButton.props.onPress();
+		});
 
 		await waitFor(() => {
 			expect(navigationMocks.goBack).toHaveBeenCalled();
@@ -106,9 +115,7 @@ describe("AddFeedScreen", () => {
 		});
 
 		const { getByText } = render(<AddFeedScreen />);
-		await waitFor(() => {
-			expect(getByText("Failed to add feed")).toBeTruthy();
-		});
+		expect(getByText("Failed to add feed")).toBeTruthy();
 	});
 
 	it("displays a loading indicator when adding a feed", async () => {

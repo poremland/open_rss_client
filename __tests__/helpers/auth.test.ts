@@ -1,4 +1,3 @@
-import "../setup";
 /*
  * RSS Reader: A mobile application for consuming RSS feeds.
  * Copyright (C) 2025 Paul Oremland
@@ -16,21 +15,54 @@ import "../setup";
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "../setup";
 
-import * as setup from "../setup";
-import { expect, describe, it, beforeEach, spyOn, mock } from "bun:test";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert } from "react-native";
-import { auth } from "../../helpers/auth_helper";
-import { api as apiInstance } from "../../helpers/api_helper";
+import { mock, expect, describe, it, beforeEach, spyOn } from "bun:test";
+
+const storageMap = new Map();
+const asyncStorageMock = {
+	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
+	getItem: mock(async (k: string) => { 
+		const val = storageMap.get(k);
+		return val === undefined ? null : val;
+	}),
+	removeItem: mock(async (k: string) => { storageMap.delete(k); }),
+	clear: mock(async () => { storageMap.clear(); }),
+	getAllKeys: mock(async () => Array.from(storageMap.keys())),
+	multiGet: mock(async (keys: string[]) => keys.map(k => [k, storageMap.get(k) || null])),
+};
+
+mock.module("@react-native-async-storage/async-storage", () => ({
+	__esModule: true,
+	default: asyncStorageMock,
+	...asyncStorageMock,
+}));
+
+const alertMock = mock();
+mock.module("react-native", () => ({
+	Alert: { alert: alertMock }
+}));
+
+const routerMocks = {
+	push: mock(),
+	replace: mock(),
+	back: mock(),
+	dismissAll: mock(),
+};
+
+// Import actual helpers
+const auth = require("../../helpers/auth_helper").auth;
+const { api: apiInstance } = require("../../helpers/api_helper");
 
 describe("auth helpers", () => {
 	beforeEach(async () => {
-		setup.resetAll();
+		storageMap.clear();
+		Object.values(asyncStorageMock).forEach(m => m.mockClear());
+		alertMock.mockClear();
+		Object.values(routerMocks).forEach(m => m.mockClear());
+		
 		auth.setDeps({
-			storage: AsyncStorage,
-			alert: Alert,
+			storage: asyncStorageMock as any,
+			alert: { alert: alertMock } as any,
 		});
 	});
 
@@ -50,23 +82,23 @@ describe("auth helpers", () => {
 		await auth.storeAuthToken("test-token");
 		await auth.storeUser("test-user");
 
-		await auth.clearAuthData(setup.routerMocks as any);
+		await auth.clearAuthData(routerMocks as any);
 
-		expect(AsyncStorage.removeItem).toHaveBeenCalledWith("authToken");
-		expect(AsyncStorage.removeItem).toHaveBeenCalledWith("user");
-		expect(setup.routerMocks.dismissAll).toHaveBeenCalled();
-		expect(setup.routerMocks.replace).toHaveBeenCalledWith("/");
+		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("user");
+		expect(routerMocks.dismissAll).toHaveBeenCalled();
+		expect(routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 
 	it("should navigate to feed list if logged in", async () => {
 		await auth.storeAuthToken("test-token");
-		await auth.checkLoggedIn(setup.routerMocks as any);
-		expect(setup.routerMocks.replace).toHaveBeenCalledWith("FeedListScreen");
+		await auth.checkLoggedIn(routerMocks as any);
+		expect(routerMocks.replace).toHaveBeenCalledWith("FeedListScreen");
 	});
 
 	it("should not navigate if not logged in", async () => {
-		await auth.checkLoggedIn(setup.routerMocks as any);
-		expect(setup.routerMocks.replace).not.toHaveBeenCalled();
+		await auth.checkLoggedIn(routerMocks as any);
+		expect(routerMocks.replace).not.toHaveBeenCalled();
 	});
 
 	it("should refresh token on load", async () => {
@@ -77,12 +109,12 @@ describe("auth helpers", () => {
 	});
 
 	it("should handle session expired", async () => {
-		await auth.handleSessionExpired(setup.routerMocks as any);
-		expect(Alert.alert).toHaveBeenCalledWith(
+		await auth.handleSessionExpired(routerMocks as any);
+		expect(alertMock).toHaveBeenCalledWith(
 			"Session Expired",
 			"Your session has expired. Please log in again.",
 		);
-		expect(setup.routerMocks.dismissAll).toHaveBeenCalled();
-		expect(setup.routerMocks.replace).toHaveBeenCalledWith("/");
+		expect(routerMocks.dismissAll).toHaveBeenCalled();
+		expect(routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 });
