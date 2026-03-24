@@ -20,56 +20,12 @@ import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
-
-mock.module("../helpers/api_helper", () => ({
-	api: {
-		postWithAuth: mock(),
-		getWithAuth: mock(),
-		post: mock(),
-		get: mock(),
-		putWithAuth: mock(),
-		refreshToken: mock(),
-	},
-	postWithAuth: mock(),
-	getWithAuth: mock(),
-	post: mock(),
-	get: mock(),
-	putWithAuth: mock(),
-	refreshToken: mock(),
-	__esModule: true,
-}));
-
-mock.module("../helpers/auth_helper", () => ({
-	auth: {
-		getUser: mock(),
-		getAuthToken: mock(),
-		storeAuthToken: mock(),
-		storeUser: mock(),
-		clearAuthData: mock(),
-		checkLoggedIn: mock(),
-		refreshTokenOnLoad: mock(),
-		handleSessionExpired: mock(),
-	},
-	getUser: mock(),
-	getAuthToken: mock(),
-	storeAuthToken: mock(),
-	storeUser: mock(),
-	clearAuthData: mock(),
-	checkLoggedIn: mock(),
-	refreshTokenOnLoad: mock(),
-	handleSessionExpired: mock(),
-	__esModule: true,
-}));
-
-// We need to require the screen after mocking the modules to ensure they are used
-const AddFeedScreen = require("../app/AddFeedScreen").default;
-const { api } = require("../helpers/api_helper");
-const { auth } = require("../helpers/auth_helper");
+import AddFeedScreen from "../app/AddFeedScreen";
 
 describe("AddFeedScreen", () => {
-	beforeEach(async () => {
+	beforeEach(() => {
 		mocks.resetAll();
-		auth.getUser.mockResolvedValue("test-user");
+		mocks.auth.getUser.mockResolvedValue("test-user");
 	});
 
 	it("renders correctly", async () => {
@@ -88,14 +44,14 @@ describe("AddFeedScreen", () => {
 		fireEvent.changeText(nameInput, "Test Feed");
 		fireEvent.changeText(uriInput, "http://test.com/feed.xml");
 
-		api.postWithAuth.mockResolvedValue({ id: 1 });
+		mocks.api.postWithAuth.mockResolvedValue({ id: 1 });
 
 		await act(async () => {
 			fireEvent.press(addButton);
 		});
 
 		await waitFor(() => {
-			expect(api.postWithAuth).toHaveBeenCalledWith(
+			expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
 				"/feeds/create",
 				{
 					"feed[name]": "Test Feed",
@@ -116,22 +72,22 @@ describe("AddFeedScreen", () => {
 		fireEvent.changeText(nameInput, "Test Feed");
 		fireEvent.changeText(uriInput, "http://test.com/feed.xml");
 
-		api.postWithAuth.mockResolvedValue({ id: 1 });
+		mocks.api.postWithAuth.mockResolvedValue({ id: 1 });
 
 		await act(async () => {
 			fireEvent.press(addButton);
 		});
 
 		await waitFor(() => {
-			expect(mocks.navigationMocks.goBack).toHaveBeenCalled();
+			expect(mocks.navigation.goBack).toHaveBeenCalled();
 		});
 	});
 
 	it("displays an error message on failed feed addition", async () => {
 		const { getByTestId, getByText } = render(<AddFeedScreen />);
 		const addButton = getByTestId("addFeedButton");
-		
-		api.postWithAuth.mockRejectedValue(new Error("Failed to add feed"));
+
+		mocks.api.postWithAuth.mockRejectedValue(new Error("Failed to add feed"));
 
 		await act(async () => {
 			fireEvent.press(addButton);
@@ -145,19 +101,19 @@ describe("AddFeedScreen", () => {
 	it("displays a loading indicator when adding a feed", async () => {
 		const { getByTestId, getByText } = render(<AddFeedScreen />);
 		const addButton = getByTestId("addFeedButton");
-		
+
 		let resolvePromise: any;
 		const promise = new Promise((resolve) => {
 			resolvePromise = resolve;
 		});
-		api.postWithAuth.mockReturnValue(promise);
+		mocks.api.postWithAuth.mockReturnValue(promise);
 
 		await act(async () => {
 			fireEvent.press(addButton);
 		});
 
 		expect(getByText("Loading...")).toBeTruthy();
-		
+
 		await act(async () => {
 			resolvePromise({ id: 1 });
 		});

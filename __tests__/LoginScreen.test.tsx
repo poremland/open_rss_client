@@ -15,43 +15,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "./setup";
-import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
-import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { resolveModule } from "./setup";
 
-const authMocks = {
-	getUser: mock(),
-	getAuthToken: mock(),
-	storeAuthToken: mock(),
-	storeUser: mock(),
-	clearAuthData: mock(),
-	checkLoggedIn: mock(),
-	refreshTokenOnLoad: mock(),
-	handleSessionExpired: mock(),
+const storageMap = new Map();
+const asyncStorageMock = {
+	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
+	getItem: mock(async (k: string) => { 
+		const val = storageMap.get(k);
+		return val === undefined ? null : val;
+	}),
+	removeItem: mock(async (k: string) => { storageMap.delete(k); }),
+	clear: mock(async () => { storageMap.clear(); }),
 };
 
-mock.module("../helpers/auth_helper", () => ({
-	auth: authMocks,
-	getUser: authMocks.getUser,
-	getAuthToken: authMocks.getAuthToken,
-	storeAuthToken: authMocks.storeAuthToken,
-	storeUser: authMocks.storeUser,
-	clearAuthData: authMocks.clearAuthData,
-	checkLoggedIn: authMocks.checkLoggedIn,
-	refreshTokenOnLoad: authMocks.refreshTokenOnLoad,
-	handleSessionExpired: authMocks.handleSessionExpired,
+mock.module("@react-native-async-storage/async-storage", () => ({
+	default: asyncStorageMock,
 	__esModule: true,
 }));
 
-const LoginScreen = require("../app/index").default;
-const { auth } = require("../helpers/auth_helper");
+import "./setup";
+import { mocks } from "./setup";
+import React from "react";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import LoginScreen from "../app/index";
 
 describe("Login Screen", () => {
 	beforeEach(async () => {
 		mocks.resetAll();
-		mocks.storageMap.clear();
+		storageMap.clear();
 	});
 
 	it("should render the server URL input", async () => {
@@ -60,7 +52,7 @@ describe("Login Screen", () => {
 	});
 
 	it("should load server URL from AsyncStorage on mount", async () => {
-		mocks.storageMap.set("serverUrl", "http://test-server.com");
+		storageMap.set("serverUrl", "http://test-server.com");
 		const { getByPlaceholderText } = render(<LoginScreen />);
 		await waitFor(() => {
 			const input = getByPlaceholderText("Server URL");
@@ -77,7 +69,7 @@ describe("Login Screen", () => {
 		fireEvent.changeText(urlInput, "http://test-server.com");
 		fireEvent.changeText(usernameInput, "testuser");
 
-		mocks.fetchMock.mockResolvedValueOnce({
+		mocks.fetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({ status: "ok" }),
 		});
@@ -85,7 +77,7 @@ describe("Login Screen", () => {
 		fireEvent.press(otpButton);
 
 		await waitFor(() => {
-			expect(mocks.storageMap.get("serverUrl")).toBe("http://test-server.com");
+			expect(storageMap.get("serverUrl")).toBe("http://test-server.com");
 		});
 	});
 
@@ -98,7 +90,7 @@ describe("Login Screen", () => {
 		fireEvent.changeText(urlInput, "http://test-server.com");
 		fireEvent.changeText(usernameInput, "testuser");
 
-		mocks.fetchMock.mockResolvedValueOnce({
+		mocks.fetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({ status: "ok" }),
 		});
@@ -114,7 +106,11 @@ describe("Login Screen", () => {
 
 		fireEvent.changeText(otpInput, "123456");
 
-		mocks.fetchMock.mockResolvedValueOnce({
+		mocks.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ status: "ok" }),
+		});
+		mocks.fetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({ status: "error", message: "Invalid OTP" }),
 		});
@@ -128,6 +124,6 @@ describe("Login Screen", () => {
 
 	it("should call checkLoggedIn on component mount", async () => {
 		render(<LoginScreen />);
-		expect(auth.checkLoggedIn).toHaveBeenCalled();
+		expect(mocks.auth.checkLoggedIn).toHaveBeenCalled();
 	});
 });

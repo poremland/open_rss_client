@@ -17,34 +17,9 @@
  */
 import "./setup";
 import { mocks } from "./setup";
-import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
-
-mock.module("../helpers/api_helper", () => ({
-	api: mocks.apiMocks,
-	post: mocks.apiMocks.post,
-	postWithAuth: mocks.apiMocks.postWithAuth,
-	get: mocks.apiMocks.get,
-	getWithAuth: mocks.apiMocks.getWithAuth,
-	putWithAuth: mocks.apiMocks.putWithAuth,
-	refreshToken: mocks.apiMocks.refreshToken,
-	__esModule: true,
-}));
-
-mock.module("../helpers/auth_helper", () => ({
-	auth: mocks.authMocks,
-	storeAuthToken: mocks.authMocks.storeAuthToken,
-	getAuthToken: mocks.authMocks.getAuthToken,
-	storeUser: mocks.authMocks.storeUser,
-	getUser: mocks.authMocks.getUser,
-	clearAuthData: mocks.authMocks.clearAuthData,
-	checkLoggedIn: mocks.authMocks.checkLoggedIn,
-	refreshTokenOnLoad: mocks.authMocks.refreshTokenOnLoad,
-	handleSessionExpired: mocks.authMocks.handleSessionExpired,
-	__esModule: true,
-}));
-
-const useApi = require("../app/components/useApi").default;
+import useApi from "../app/components/useApi";
 
 describe("useApi", () => {
 	beforeEach(() => {
@@ -53,7 +28,7 @@ describe("useApi", () => {
 
 	it("should handle GET request successfully", async () => {
 		const mockData = { message: "GET success" };
-		mocks.apiMocks.getWithAuth.mockResolvedValue(mockData);
+		mocks.api.getWithAuth.mockResolvedValue(mockData);
 
 		const { result } = renderHook(() => useApi("get", "/test-get"));
 
@@ -71,7 +46,7 @@ describe("useApi", () => {
 
 	it("should handle POST request with form data successfully", async () => {
 		const mockData = { message: "POST success" };
-		mocks.apiMocks.postWithAuth.mockResolvedValue(mockData);
+		mocks.api.postWithAuth.mockResolvedValue(mockData);
 
 		const { result } = renderHook(() => useApi("post", "/test-post"));
 
@@ -85,7 +60,7 @@ describe("useApi", () => {
 
 	it("should handle POST request with JSON data successfully", async () => {
 		const mockData = { message: "JSON POST success" };
-		mocks.apiMocks.postWithAuth.mockResolvedValue(mockData);
+		mocks.api.postWithAuth.mockResolvedValue(mockData);
 
 		const { result } = renderHook(() =>
 			useApi("post", "/test-json-post", {}, "application/json"),
@@ -101,7 +76,7 @@ describe("useApi", () => {
 
 	it("should handle API error", async () => {
 		const errorMessage = "Network Error";
-		mocks.apiMocks.getWithAuth.mockRejectedValue(new Error(errorMessage));
+		mocks.api.getWithAuth.mockRejectedValue(new Error(errorMessage));
 
 		const { result } = renderHook(() => useApi("get", "/error-get"));
 
@@ -124,7 +99,7 @@ describe("useApi", () => {
 
 	it("should return the response from execute", async () => {
 		const mockData = { success: true };
-		mocks.apiMocks.getWithAuth.mockResolvedValue(mockData);
+		mocks.api.getWithAuth.mockResolvedValue(mockData);
 
 		const { result } = renderHook(() => useApi("get", "/execute"));
 
@@ -137,7 +112,7 @@ describe("useApi", () => {
 	});
 
 	it("should call handleSessionExpired when session expires", async () => {
-		mocks.apiMocks.getWithAuth.mockRejectedValue(new Error("Session expired"));
+		mocks.api.getWithAuth.mockRejectedValue(new Error("Session expired"));
 
 		const { result } = renderHook(() => useApi("get", "/expired"));
 
@@ -146,6 +121,6 @@ describe("useApi", () => {
 		});
 
 		await waitFor(() => expect(result.current.loading).toBe(false));
-		expect(mocks.authMocks.handleSessionExpired).toHaveBeenCalled();
+		expect(mocks.auth.handleSessionExpired).toHaveBeenCalled();
 	});
 });

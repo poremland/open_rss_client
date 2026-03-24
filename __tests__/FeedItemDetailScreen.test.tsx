@@ -16,52 +16,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-import { mocks, useApiMock } from "./setup";
+import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
-
-mock.module("../app/components/useApi", () => ({
-	default: useApiMock,
-	__esModule: true,
-}));
-
-const FeedItemDetailScreen = require("../app/FeedItemDetailScreen").default;
+import FeedItemDetailScreen from "../app/FeedItemDetailScreen";
 
 describe("FeedItemDetailScreen", () => {
-	const mockItem = {
+	const mockFeedItem = {
 		id: 1,
 		title: "Test Item",
-		link: "http://test.com/item",
-		description: "Test Description",
-		pubDate: "2023-01-01",
+		link: "http://test.com/1",
+		description: "Test Desc",
 	};
 
 	beforeEach(() => {
 		mocks.resetAll();
-		useApiMock.mockReturnValue({
-			data: mockItem,
-			loading: false,
-			error: null,
-			execute: mock().mockResolvedValue(mockItem),
-			setData: mock(),
-		});
+		mocks.localSearchParams.params = { feedItemId: "1" };
 	});
 
 	it("should display feed item details (via header title)", async () => {
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
 		render(<FeedItemDetailScreen />);
 
 		await waitFor(() => {
-			expect(mocks.navigationMocks.setOptions).toHaveBeenCalledWith(
-				expect.objectContaining({ headerTitle: "Test Item" })
+			expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
+				expect.objectContaining({
+					headerTitle: "Test Item",
+				}),
 			);
 		});
 	});
 
 	it("should apply webViewContainer style", async () => {
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
 		const { getByTestId } = render(<FeedItemDetailScreen />);
+
 		await waitFor(() => {
-			expect(getByTestId("webViewContainer")).toBeTruthy();
+			const webViewContainer = getByTestId("webViewContainer");
+			expect(webViewContainer).toBeTruthy();
 		});
 	});
 });

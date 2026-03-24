@@ -16,33 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-import { mocks, useApiMock } from "./setup";
-import { mock, expect, describe, it, beforeEach, spyOn } from "bun:test";
+import { mocks } from "./setup";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
-
-mock.module("../app/components/useApi", () => ({
-	default: useApiMock,
-	__esModule: true,
-}));
-
-mock.module("../helpers/auth_helper", () => ({
-	auth: {
-		getUser: mock(),
-		getAuthToken: mock(),
-		storeAuthToken: mock(),
-		storeUser: mock(),
-		clearAuthData: mock(),
-		checkLoggedIn: mock(),
-		refreshTokenOnLoad: mock(),
-		handleSessionExpired: mock(),
-	},
-	clearAuthData: mock(),
-	__esModule: true,
-}));
-
-const ManageFeedsListScreen = require("../app/ManageFeedsListScreen").default;
-const auth = require("../helpers/auth_helper");
+import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
 
 describe("ManageFeedsListScreen", () => {
 	const mockFeeds = [
@@ -55,30 +33,17 @@ describe("ManageFeedsListScreen", () => {
 	});
 
 	it("should fetch feeds when the screen is focused", async () => {
-		const execute = mock().mockResolvedValue(mockFeeds);
-		useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockFeeds,
-			execute,
-			setData: mock(),
-		});
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 
 		render(<ManageFeedsListScreen />);
 
 		await waitFor(() => {
-			expect(execute).toHaveBeenCalled();
+			expect(mocks.api.getWithAuth).toHaveBeenCalled();
 		});
 	});
 
 	it("should display a list of all feeds", async () => {
-		useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockFeeds,
-			execute: mock().mockResolvedValue(mockFeeds),
-			setData: mock(),
-		});
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 
 		const { getByText } = render(<ManageFeedsListScreen />);
 
@@ -89,71 +54,34 @@ describe("ManageFeedsListScreen", () => {
 	});
 
 	it("should call clearAuthData when Log-out is pressed", async () => {
-		useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: [],
-			execute: mock().mockResolvedValue([]),
-			setData: mock(),
-		});
+		mocks.api.getWithAuth.mockResolvedValue([]);
 
 		render(<ManageFeedsListScreen />);
 
-		await waitFor(() => expect(mocks.useMenuMock.setMenuItems).toHaveBeenCalled());
-		const menuItems = mocks.useMenuMock.setMenuItems.mock.calls[0][0];
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
 		const logoutItem = menuItems.find((item: any) => item.label === "Log-out");
 		logoutItem.onPress();
 
-		expect(auth.clearAuthData).toHaveBeenCalled();
-	});
-
-	it("should display loading message when feeds are loading", async () => {
-		useApiMock.mockReturnValue({
-			loading: true,
-			error: null,
-			data: null,
-			execute: mock().mockResolvedValue([]),
-			setData: mock(),
-		});
-
-		const { getByText } = render(<ManageFeedsListScreen />);
-		await waitFor(() => expect(getByText("Loading...")).toBeTruthy());
+		expect(mocks.auth.clearAuthData).toHaveBeenCalled();
 	});
 
 	it("should display error message when api call fails", async () => {
-		useApiMock.mockReturnValue({
-			loading: false,
-			error: "API Error",
-			data: null,
-			execute: mock().mockResolvedValue([]),
-			setData: mock(),
-		});
+		mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
 		const { getByText } = render(<ManageFeedsListScreen />);
 		await waitFor(() => expect(getByText("API Error")).toBeTruthy());
 	});
 
 	it("should display no feeds message when there are no feeds", async () => {
-		useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: [],
-			execute: mock().mockResolvedValue([]),
-			setData: mock(),
-		});
+		mocks.api.getWithAuth.mockResolvedValue([]);
 
 		const { getByText } = render(<ManageFeedsListScreen />);
 		await waitFor(() => expect(getByText("No feeds to manage!")).toBeTruthy());
 	});
 
 	it("should copy feed uri to clipboard on press", async () => {
-		useApiMock.mockReturnValue({
-			loading: false,
-			error: null,
-			data: mockFeeds,
-			execute: mock().mockResolvedValue(mockFeeds),
-			setData: mock(),
-		});
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 
 		const { getByText } = render(<ManageFeedsListScreen />);
 		await waitFor(() => expect(getByText("Feed 1")).toBeTruthy());

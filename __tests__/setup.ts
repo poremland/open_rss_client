@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mock } from "bun:test";
-import { plugin } from "bun";
-import * as React from "react";
+import { mock, expect } from "bun:test";
 import * as path from "path";
-import * as fs from "fs";
 
-// Truly Global State for Mocks - Stable References
+// Helper to resolve absolute paths for mock.module
+export const resolveModule = (p: string) => path.resolve(__dirname, p);
+
+// --- GLOBAL MOCK STATE ---
 export const storageMap = new Map();
 
 export const routerMocks = {
@@ -42,7 +42,8 @@ export const alertMock = mock();
 export const fetchMock = mock();
 export const clipboardMocks = {
 	setStringAsync: mock(),
-	isPasteButtonAvailable: false,
+	getStringAsync: mock(),
+	isPasteButtonAvailable: true,
 };
 
 export const asyncStorageMock = {
@@ -64,7 +65,6 @@ export const apiMocks = {
 	postWithAuth: mock(),
 	putWithAuth: mock(),
 	refreshToken: mock(),
-	setDeps: mock(),
 };
 
 export const authMocks = {
@@ -76,15 +76,22 @@ export const authMocks = {
 	checkLoggedIn: mock(),
 	refreshTokenOnLoad: mock(),
 	handleSessionExpired: mock(),
-	setDeps: mock(),
 };
 
-// Global config for useApi mock
+export const useMenuMock = {
+	setMenuItems: mock(),
+	onToggleDropdown: mock(),
+};
+
+export const localSearchParamsMock = {
+	params: {} as any,
+};
+
 export const useApiConfig = {
 	data: null as any,
 	loading: false,
 	error: null as string | null,
-	execute: mock().mockResolvedValue(null),
+	execute: mock().mockImplementation(() => Promise.resolve(null)),
 };
 
 export const useApiMock = mock(() => {
@@ -97,67 +104,275 @@ export const useApiMock = mock(() => {
 	};
 });
 
-export const useMenuMock = {
-	setMenuItems: mock(),
-	onToggleDropdown: mock(),
+const resetMockFn = (m: any) => {
+	if (m && typeof m === 'function' && 'mock' in m) {
+		m.mockClear();
+		m.mockImplementation(() => Promise.resolve(null));
+	}
 };
 
-export const localSearchParamsMock = {
-	params: {} as any,
-};
-
-const resetMocks = (obj: any) => {
-	Object.values(obj).forEach(m => {
-		if (m && typeof m === 'object' && 'mock' in m && typeof (m as any).mockClear === 'function') {
-			m.mockClear();
-		} else if (typeof m === 'function' && 'mock' in m && typeof (m as any).mockClear === 'function') {
-			(m as any).mockClear();
-		}
-	});
+const resetMocksInObj = (obj: any) => {
+	Object.values(obj).forEach(m => resetMockFn(m));
 };
 
 export const resetAll = () => {
 	storageMap.clear();
-	resetMocks(routerMocks);
-	resetMocks(navigationMocks);
-	resetMocks(asyncStorageMock);
-	resetMocks(clipboardMocks);
-	resetMocks(apiMocks);
-	resetMocks(authMocks);
-	resetMocks(useMenuMock);
-	
+	resetMocksInObj(routerMocks);
+	resetMocksInObj(navigationMocks);
+	resetMocksInObj(asyncStorageMock);
+	resetMocksInObj(clipboardMocks);
+	resetMocksInObj(apiMocks);
+	resetMocksInObj(authMocks);
+	resetMocksInObj(useMenuMock);
+
 	useApiConfig.data = null;
 	useApiConfig.loading = false;
 	useApiConfig.error = null;
-	useApiConfig.execute.mockClear().mockResolvedValue(null);
-	
+	useApiConfig.execute.mockClear().mockImplementation(() => Promise.resolve(null));
+
 	useApiMock.mockClear();
-	useApiMock.mockReturnValue({
-		data: useApiConfig.data,
-		loading: useApiConfig.loading,
-		error: useApiConfig.error,
-		execute: useApiConfig.execute,
-		setData: mock(),
+	useApiMock.mockImplementation(() => {
+		return {
+			data: useApiConfig.data,
+			loading: useApiConfig.loading,
+			error: useApiConfig.error,
+			execute: useApiConfig.execute,
+			setData: mock(),
+		};
 	});
-	
+
 	localSearchParamsMock.params = {};
-	
-	alertMock.mockClear();
-	fetchMock.mockClear();
+
+	alertMock.mockClear().mockImplementation(() => {});
+	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
 };
 
-// Global Environment Setup
+// --- Bun Module Mocks ---
+
+mock.module("react-native", () => {
+	const React = require("react");
+	const mockComponent = (name: string) => {
+		const Comp = (props: any) => {
+			const children = [];
+			if (props.children) children.push(props.children);
+			if (name === "Button" && props.title) {
+				children.push(React.createElement("Text", { key: "title" }, props.title));
+			}
+			return React.createElement(name, props, ...children);
+		};
+		Comp.displayName = name;
+		return Comp;
+	};
+
+	return {
+		View: mockComponent("View"),
+		Text: mockComponent("Text"),
+		TextInput: mockComponent("TextInput"),
+		ScrollView: mockComponent("ScrollView"),
+		Image: mockComponent("Image"),
+		TouchableOpacity: mockComponent("TouchableOpacity"),
+		TouchableWithoutFeedback: mockComponent("TouchableWithoutFeedback"),
+		TouchableHighlight: mockComponent("TouchableHighlight"),
+		Pressable: mockComponent("Pressable"),
+		KeyboardAvoidingView: mockComponent("KeyboardAvoidingView"),
+		ActivityIndicator: mockComponent("ActivityIndicator"),
+		Modal: mockComponent("Modal"),
+		FlatList: (props: any) => {
+			const items = props.data || [];
+			const React = require("react");
+			return React.createElement(
+				"FlatList",
+				props,
+				props.ListHeaderComponent && (typeof props.ListHeaderComponent === 'function' ? props.ListHeaderComponent() : props.ListHeaderComponent),
+				items.map((item: any, index: number) => {
+					const key = props.keyExtractor ? props.keyExtractor(item, index) : index;
+					return React.createElement(React.Fragment, { key }, props.renderItem({ item, index }));
+				}),
+				props.ListFooterComponent && (typeof props.ListFooterComponent === 'function' ? props.ListFooterComponent() : props.ListFooterComponent),
+				items.length === 0 && props.ListEmptyComponent && (typeof props.ListEmptyComponent === 'function' ? props.ListEmptyComponent() : props.ListEmptyComponent)
+			);
+		},
+		SectionList: mockComponent("SectionList"),
+		Button: mockComponent("Button"),
+		Switch: mockComponent("Switch"),
+		RefreshControl: mockComponent("RefreshControl"),
+		StyleSheet: {
+			create: (s: any) => s,
+			flatten: (s: any) => Array.isArray(s) ? Object.assign({}, ...s) : s,
+		},
+		Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
+		Alert: {
+			alert: (...args: any[]) => alertMock(...args)
+		},
+		Dimensions: { get: () => ({ width: 375, height: 812 }) },
+		PixelRatio: { get: () => 1, roundToNearestPixel: (n: number) => n },
+		NativeModules: {},
+		NativeEventEmitter: class {
+			addListener() { return { remove: () => {} }; }
+			removeAllListeners() {}
+			emit() {}
+		},
+		TurboModuleRegistry: { get: () => null, getEnforcing: () => null },
+		Linking: {
+			openURL: mock(),
+			canOpenURL: mock(),
+			getInitialURL: mock(),
+			addEventListener: mock(() => ({ remove: mock() })),
+		},
+		Share: { share: mock() },
+		processColor: (c: any) => c,
+		__esModule: true,
+	};
+});
+
+mock.module(resolveModule("../helpers/api_helper"), () => ({
+	api: apiMocks,
+	post: apiMocks.post,
+	postWithAuth: apiMocks.postWithAuth,
+	get: apiMocks.get,
+	getWithAuth: apiMocks.getWithAuth,
+	putWithAuth: apiMocks.putWithAuth,
+	refreshToken: apiMocks.refreshToken,
+	__esModule: true,
+}));
+
+mock.module(resolveModule("../helpers/auth_helper"), () => ({
+	auth: authMocks,
+	storeAuthToken: authMocks.storeAuthToken,
+	getAuthToken: authMocks.getAuthToken,
+	storeUser: authMocks.storeUser,
+	getUser: authMocks.getUser,
+	clearAuthData: authMocks.clearAuthData,
+	checkLoggedIn: authMocks.checkLoggedIn,
+	refreshTokenOnLoad: authMocks.refreshTokenOnLoad,
+	handleSessionExpired: authMocks.handleSessionExpired,
+	__esModule: true,
+}));
+
+mock.module("react-native-gesture-handler", () => ({
+	PanGestureHandler: ({ children }: any) => children,
+	TapGestureHandler: ({ children }: any) => children,
+	GestureHandlerRootView: ({ children }: any) => children,
+	State: {},
+	Directions: {},
+}));
+
+mock.module("react-native-reanimated", () => {
+	const React = require("react");
+	return {
+		default: {
+			View: ({ children, style }: any) => React.createElement("View", { style }, children),
+			Text: ({ children, style }: any) => React.createElement("Text", { style }, children),
+			Image: ({ children, style }: any) => React.createElement("Image", { style }, children),
+			ScrollView: ({ children, style }: any) => React.createElement("ScrollView", { style }, children),
+		},
+		useSharedValue: (v: any) => ({ value: v }),
+		useAnimatedStyle: (cb: any) => ({}),
+		useAnimatedGestureHandler: (callbacks: any) => ({}),
+		withSpring: (v: any) => v,
+		withTiming: (v: any) => v,
+		runOnJS: (fn: any) => fn,
+		__esModule: true,
+	};
+});
+
+mock.module("@react-native-async-storage/async-storage", () => ({
+	default: asyncStorageMock,
+	__esModule: true,
+}));
+
+mock.module("expo-router", () => ({
+	useRouter: () => routerMocks,
+	useNavigation: () => navigationMocks,
+	useLocalSearchParams: () => localSearchParamsMock.params,
+}));
+
+mock.module("expo-font", () => ({
+	useFonts: () => [true, null],
+	loadAsync: mock(),
+	isLoaded: mock(() => true),
+}));
+
+mock.module("expo-modules-core", () => ({
+	EventEmitter: class {
+		addListener = mock(() => ({ remove: mock() }));
+		removeAllListeners = mock();
+		emit = mock();
+	},
+	Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
+	requireNativeViewManager: mock(),
+	requireNativeModule: mock(),
+	NativeModulesProxy: {},
+	UnavailabilityError: class extends Error {
+		constructor(module: string, method: string) {
+			super(`The method or property ${module}.${method} is not available.`);
+		}
+	},
+}));
+
+mock.module("expo-clipboard", () => ({
+	...clipboardMocks,
+}));
+
+mock.module("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+	SafeAreaProvider: ({ children }: any) => children,
+	SafeAreaView: ({ children }: any) => children,
+}));
+
+mock.module("@react-navigation/native", () => ({
+	NavigationContainer: ({ children }: any) => children,
+	useFocusEffect: (callback: () => void) => {
+		const React = require("react");
+		React.useEffect(() => {
+			callback();
+		}, []);
+	},
+	useNavigation: () => navigationMocks,
+}));
+
+mock.module(resolveModule("../app/components/GlobalDropdownMenu"), () => ({
+	useMenu: () => useMenuMock,
+	MenuProvider: ({ children }: any) => children,
+	__esModule: true,
+}));
+
+mock.module(resolveModule("../app/components/Screen"), () => {
+	const React = require("react");
+	return {
+		default: ({ children, loading, error }: any) => {
+			const { View, Text } = require("react-native");
+			return React.createElement(View, {}, 
+				loading && React.createElement(Text, {}, "Loading..."),
+				error && React.createElement(Text, {}, error),
+				!loading && children
+			);
+		},
+		__esModule: true,
+	};
+});
+
+// --- Environment Setup ---
+import { plugin } from "bun";
+import * as React from "react";
 (globalThis as any).__DEV__ = true;
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 process.env.EXPO_OS = "ios";
-
 (globalThis as any).fetch = fetchMock;
 (globalThis as any).AsyncStorage = asyncStorageMock;
 
-// Initialize global state for tests
+(globalThis as any).expo = {
+	EventEmitter: class {
+		addListener = mock(() => ({ remove: mock() }));
+		removeAllListeners = mock();
+		emit = mock();
+	}
+};
+
+require("@testing-library/jest-native/extend-expect");
+
 export const mocks = {
 	storageMap,
-	storage: storageMap,
 	router: routerMocks,
 	routerMocks,
 	navigation: navigationMocks,
@@ -184,7 +399,6 @@ export const mocks = {
 
 (globalThis as any).__mocks = mocks;
 
-// Bun Plugin for assets
 plugin({
 	name: "asset-interceptor",
 	setup(build) {
@@ -193,251 +407,4 @@ plugin({
 			loader: "js",
 		}));
 	},
-});
-
-// Mock react-native
-mock.module("react-native", () => {
-	const React = require("react");
-	const mockComponent = (name: string) => {
-		const Comp = (props: any) => {
-			const children = [];
-			if (props.children) children.push(props.children);
-			if (name === "Button" && props.title) {
-				children.push(React.createElement("Text", { key: "title" }, props.title));
-			}
-			return React.createElement(name, props, ...children);
-		};
-		Comp.displayName = name;
-		return Comp;
-	};
-
-	const View = mockComponent("View");
-	const Text = mockComponent("Text");
-	const TextInput = mockComponent("TextInput");
-	const ScrollView = mockComponent("ScrollView");
-	const Image = mockComponent("Image");
-	const TouchableOpacity = mockComponent("TouchableOpacity");
-	const TouchableWithoutFeedback = mockComponent("TouchableWithoutFeedback");
-	const TouchableHighlight = mockComponent("TouchableHighlight");
-	const Pressable = mockComponent("Pressable");
-	const KeyboardAvoidingView = mockComponent("KeyboardAvoidingView");
-	const ActivityIndicator = mockComponent("ActivityIndicator");
-	const Modal = mockComponent("Modal");
-	
-	const FlatList = (props: any) => {
-		const items = props.data || [];
-		return React.createElement(
-			"FlatList",
-			props,
-			props.ListHeaderComponent && (typeof props.ListHeaderComponent === 'function' ? props.ListHeaderComponent() : props.ListHeaderComponent),
-			items.map((item: any, index: number) => {
-				const key = props.keyExtractor ? props.keyExtractor(item, index) : index;
-				return React.createElement(React.Fragment, { key }, props.renderItem({ item, index }));
-			}),
-			props.ListFooterComponent && (typeof props.ListFooterComponent === 'function' ? props.ListFooterComponent() : props.ListFooterComponent),
-			items.length === 0 && props.ListEmptyComponent && (typeof props.ListEmptyComponent === 'function' ? props.ListEmptyComponent() : props.ListEmptyComponent)
-		);
-	};
-
-	const SectionList = mockComponent("SectionList");
-	const Button = mockComponent("Button");
-	const Switch = mockComponent("Switch");
-	const RefreshControl = mockComponent("RefreshControl");
-
-	const StyleSheet = {
-		create: (s: any) => s,
-		flatten: (s: any) => Array.isArray(s) ? Object.assign({}, ...s) : s,
-	};
-
-	const Platform = {
-		OS: "ios",
-		select: (o: any) => o.ios || o.default,
-	};
-
-	const Alert = {
-		alert: (...args: any[]) => {
-			if ((globalThis as any).__mocks && (globalThis as any).__mocks.alert) {
-				(globalThis as any).__mocks.alert(...args);
-			}
-		}
-	};
-
-	const Dimensions = {
-		get: () => ({ width: 375, height: 812 }),
-	};
-
-	const PixelRatio = {
-		get: () => 1,
-		roundToNearestPixel: (n: number) => n,
-	};
-
-	const NativeModules = {};
-	const NativeEventEmitter = class {
-		addListener() { return { remove: () => {} }; }
-		removeAllListeners() {}
-		emit() {}
-	};
-
-	const TurboModuleRegistry = {
-		get: () => null,
-		getEnforcing: () => null,
-	};
-
-	const Linking = {
-		openURL: mock(),
-		canOpenURL: mock(),
-		getInitialURL: mock(),
-		addEventListener: mock(() => ({ remove: mock() })),
-	};
-
-	const Share = {
-		share: mock(),
-	};
-
-	return {
-		View,
-		Text,
-		TextInput,
-		ScrollView,
-		Image,
-		TouchableOpacity,
-		TouchableWithoutFeedback,
-		TouchableHighlight,
-		Pressable,
-		KeyboardAvoidingView,
-		ActivityIndicator,
-		Modal,
-		FlatList,
-		SectionList,
-		Button,
-		Switch,
-		RefreshControl,
-		StyleSheet,
-		Platform,
-		Alert,
-		Dimensions,
-		PixelRatio,
-		NativeModules,
-		NativeEventEmitter,
-		TurboModuleRegistry,
-		Linking,
-		Share,
-		processColor: (c: any) => c,
-		__esModule: true,
-	};
-});
-
-// Mock Gesture Handler
-mock.module("react-native-gesture-handler", () => {
-	const React = require("react");
-	return {
-		PanGestureHandler: ({ children }: any) => children,
-		TapGestureHandler: ({ children }: any) => children,
-		GestureHandlerRootView: ({ children }: any) => children,
-		State: {},
-		Directions: {},
-	};
-});
-
-// Mock Reanimated
-mock.module("react-native-reanimated", () => {
-	const React = require("react");
-	return {
-		default: {
-			View: ({ children, style }: any) => React.createElement("View", { style }, children),
-			Text: ({ children, style }: any) => React.createElement("Text", { style }, children),
-			Image: ({ children, style }: any) => React.createElement("Image", { style }, children),
-			ScrollView: ({ children, style }: any) => React.createElement("ScrollView", { style }, children),
-		},
-		useSharedValue: (v: any) => ({ value: v }),
-		useAnimatedStyle: (cb: any) => ({}),
-		useAnimatedGestureHandler: (callbacks: any) => ({}),
-		withSpring: (v: any) => v,
-		withTiming: (v: any) => v,
-		runOnJS: (fn: any) => fn,
-		__esModule: true,
-	};
-});
-
-// Mock AsyncStorage
-mock.module("@react-native-async-storage/async-storage", () => ({
-	default: asyncStorageMock,
-	__esModule: true,
-}));
-
-// Global Dropdown Menu mock
-mock.module("../app/components/GlobalDropdownMenu", () => ({
-	useMenu: () => useMenuMock,
-	MenuProvider: ({ children }: any) => children,
-}));
-
-// Mock useApi - keeping it out of mock.module by default to let useApi.test.ts work
-// But providing it for other tests via local mock.module calls
-
-// Other modules
-mock.module("expo-router", () => ({
-	useRouter: () => routerMocks,
-	useNavigation: () => navigationMocks,
-	useLocalSearchParams: () => localSearchParamsMock.params,
-}));
-
-mock.module("expo-font", () => ({
-	useFonts: () => [true, null],
-	loadAsync: mock(),
-	isLoaded: mock(() => true),
-}));
-
-mock.module("expo-modules-core", () => {
-	return {
-		EventEmitter: class {
-			addListener = mock(() => ({ remove: mock() }));
-			removeAllListeners = mock();
-			emit = mock();
-		},
-		Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
-		requireNativeViewManager: mock(),
-		requireNativeModule: mock(),
-		NativeModulesProxy: {},
-		UnavailabilityError: class extends Error {
-			constructor(module: string, method: string) {
-				super(`The method or property ${module}.${method} is not available.`);
-			}
-		},
-	};
-});
-
-mock.module("expo-clipboard", () => ({
-	...clipboardMocks,
-}));
-
-mock.module("react-native-safe-area-context", () => ({
-	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-	SafeAreaProvider: ({ children }: any) => children,
-	SafeAreaView: ({ children }: any) => children,
-}));
-
-mock.module("@react-navigation/native", () => ({
-	NavigationContainer: ({ children }: any) => children,
-	useFocusEffect: (callback: () => void) => {
-		React.useEffect(() => {
-			callback();
-		}, []);
-	},
-	useNavigation: () => navigationMocks,
-}));
-
-// Mock Screen component
-mock.module("../app/components/Screen", () => {
-	const React = require("react");
-	const { View, Text } = require("react-native");
-	return {
-		default: ({ children, loading, error }: any) => (
-			React.createElement(View, {}, 
-				loading && React.createElement(Text, {}, "Loading..."),
-				error && React.createElement(Text, {}, error),
-				!loading && children
-			)
-		),
-		__esModule: true,
-	};
 });
