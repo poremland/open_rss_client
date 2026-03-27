@@ -369,7 +369,7 @@ process.env.EXPO_OS = "ios";
 	}
 };
 
-require("@testing-library/jest-native/extend-expect");
+
 
 export const mocks = {
 	storageMap,
