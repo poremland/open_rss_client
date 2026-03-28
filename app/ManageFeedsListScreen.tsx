@@ -17,13 +17,13 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
-import { getWithAuth } from "../helpers/api_helper";
+import { getWithAuth, exportOpml } from "../helpers/api_helper";
 import { Feed } from "../models/Feed";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
@@ -66,10 +66,23 @@ const ManageFeedsListScreen: React.FC = () => {
 		Clipboard.setStringAsync(item.uri);
 	};
 
+	const handleExportOpml = useCallback(async () => {
+		try {
+			await exportOpml();
+		} catch (error: any) {
+			Alert.alert("Export Failed", error.message || "An unknown error occurred");
+		}
+	}, []);
+
 	useFocusEffect(
 		useCallback(() => {
 			listRef.current?.handleRefresh();
 			const menuItems = [
+				{
+					label: "Export OPML",
+					icon: "download-outline",
+					onPress: handleExportOpml,
+				},
 				{
 					label: "Log-out",
 					icon: "log-out-outline",
@@ -77,7 +90,7 @@ const ManageFeedsListScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [setMenuItems, router]),
+		}, [setMenuItems, router, handleExportOpml]),
 	);
 
 	useEffect(() => {

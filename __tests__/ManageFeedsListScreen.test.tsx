@@ -86,4 +86,18 @@ describe("ManageFeedsListScreen", () => {
 		const { getByText } = render(<ManageFeedsListScreen />);
 		await waitFor(() => expect(getByText("Feed 1")).toBeTruthy());
 	});
+
+	it("should call exportOpml when Export OPML is pressed", async () => {
+		mocks.api.getWithAuth.mockResolvedValue([]);
+
+		render(<ManageFeedsListScreen />);
+
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+		const exportItem = menuItems.find((item: any) => item.label === "Export OPML");
+		expect(exportItem).toBeTruthy();
+		exportItem.onPress();
+
+		expect(mocks.api.exportOpml).toHaveBeenCalled();
+	});
 });
