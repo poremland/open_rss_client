@@ -16,12 +16,11 @@ import "../setup";
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "../setup";
 
 import * as setup from "../setup";
 import React from "react";
 import { expect, describe, it, mock, beforeEach } from "bun:test";
-import { render, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, screen } from "@testing-library/react-native";
 import FeedCard from "../../app/components/FeedCard";
 
 describe("FeedCard", () => {

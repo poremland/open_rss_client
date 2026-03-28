@@ -19,6 +19,21 @@
 import { mock, expect } from "bun:test";
 import * as path from "path";
 
+// Silence react-test-renderer deprecation warning
+const originalWarn = console.warn;
+Object.defineProperty(console, "warn", {
+	value: (...args: any[]) => {
+		if (typeof args[0] === "string" && args[0].includes("react-test-renderer is deprecated")) {
+			return;
+		}
+		originalWarn(...args);
+	},
+	configurable: true,
+	writable: true,
+});
+
+process.env.RNTL_SKIP_DEPS_CHECK = "true";
+
 // Helper to resolve absolute paths for mock.module
 export const resolveModule = (p: string) => path.resolve(__dirname, p);
 
