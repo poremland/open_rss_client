@@ -115,6 +115,10 @@ export const hapticsMock = {
 	},
 };
 
+export const opmlMocks = {
+	validateOpmlFile: mock(async () => true),
+};
+
 export const asyncStorageMock = {
 	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
 	getItem: mock(async (k: string) => { 
@@ -133,6 +137,7 @@ export const apiMocks = {
 	getWithAuth: mock(),
 	getBlobWithAuth: mock(),
 	exportOpml: mock(),
+	importOpml: mock(),
 	postWithAuth: mock(),
 	putWithAuth: mock(),
 	refreshToken: mock(),
@@ -199,6 +204,7 @@ export const resetAll = () => {
 	resetMocksInObj(sharingMock);
 	resetMocksInObj(documentPickerMock);
 	resetMocksInObj(hapticsMock);
+	resetMocksInObj(opmlMocks);
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);
 	}
@@ -311,6 +317,8 @@ mock.module(resolveModule("../helpers/api_helper"), () => ({
 	getWithAuth: apiMocks.getWithAuth,
 	getBlobWithAuth: apiMocks.getBlobWithAuth,
 	exportOpml: apiMocks.exportOpml,
+	importOpml: apiMocks.importOpml,
+	postFormDataWithAuth: apiMocks.postFormDataWithAuth,
 	putWithAuth: apiMocks.putWithAuth,
 	refreshToken: apiMocks.refreshToken,
 	__esModule: true,
@@ -326,6 +334,11 @@ mock.module(resolveModule("../helpers/auth_helper"), () => ({
 	checkLoggedIn: authMocks.checkLoggedIn,
 	refreshTokenOnLoad: authMocks.refreshTokenOnLoad,
 	handleSessionExpired: authMocks.handleSessionExpired,
+	__esModule: true,
+}));
+
+mock.module(resolveModule("../helpers/opml_helper"), () => ({
+	validateOpmlFile: opmlMocks.validateOpmlFile,
 	__esModule: true,
 }));
 
@@ -497,6 +510,8 @@ export const mocks = {
 	documentPickerMock,
 	haptics: hapticsMock,
 	hapticsMock,
+	opml: opmlMocks,
+	opmlMocks,
 	localSearchParams: localSearchParamsMock,
 	resetAll
 };

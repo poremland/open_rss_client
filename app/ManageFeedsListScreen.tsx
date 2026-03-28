@@ -23,7 +23,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
-import { getWithAuth, exportOpml } from "../helpers/api_helper";
+import { getWithAuth, exportOpml, importOpml } from "../helpers/api_helper";
+import { validateOpmlFile } from "../helpers/opml_helper";
+import * as DocumentPicker from "expo-document-picker";
 import { Feed } from "../models/Feed";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
@@ -74,10 +76,40 @@ const ManageFeedsListScreen: React.FC = () => {
 		}
 	}, []);
 
+	const handleImportOpml = useCallback(async () => {
+		try {
+			const result = await DocumentPicker.getDocumentAsync({
+				type: ["text/x-opml", "application/xml", "text/xml", "*/*"],
+				copyToCacheDirectory: true,
+			});
+
+			if (result.canceled || !result.assets || result.assets.length === 0) {
+				return;
+			}
+
+			const fileUri = result.assets[0].uri;
+			await validateOpmlFile(fileUri);
+			const response = await importOpml<{ message: string; count: number }>(fileUri);
+
+			Alert.alert(
+				"Import Started",
+				`Importing ${response.count} feeds in the background. Your feed list will be updated shortly.`
+			);
+			listRef.current?.handleRefresh();
+		} catch (error: any) {
+			Alert.alert("Import Failed", error.message || "An unknown error occurred");
+		}
+	}, []);
+
 	useFocusEffect(
 		useCallback(() => {
 			listRef.current?.handleRefresh();
 			const menuItems = [
+				{
+					label: "Import OPML",
+					icon: "upload-outline",
+					onPress: handleImportOpml,
+				},
 				{
 					label: "Export OPML",
 					icon: "download-outline",
@@ -90,7 +122,7 @@ const ManageFeedsListScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [setMenuItems, router, handleExportOpml]),
+		}, [setMenuItems, router, handleExportOpml, handleImportOpml]),
 	);
 
 	useEffect(() => {

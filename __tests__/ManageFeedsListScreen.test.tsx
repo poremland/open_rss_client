@@ -15,12 +15,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "./setup";
-import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
+
+const mocks = (globalThis as any).__mocks;
 
 describe("ManageFeedsListScreen", () => {
 	const mockFeeds = [
@@ -99,5 +99,38 @@ describe("ManageFeedsListScreen", () => {
 		exportItem.onPress();
 
 		expect(mocks.api.exportOpml).toHaveBeenCalled();
+	});
+
+	it("should call importOpml when Import OPML is pressed and file is valid", async () => {
+		mocks.api.getWithAuth.mockResolvedValue([]);
+		const mockFileUri = "file:///test.opml";
+		mocks.documentPicker.getDocumentAsync.mockResolvedValue({
+			canceled: false,
+			assets: [{
+				uri: mockFileUri,
+				name: "test.opml",
+				mimeType: "text/x-opml",
+				size: 1024,
+			}],
+		} as any);
+		
+		mocks.opml.validateOpmlFile.mockResolvedValue(true);
+		const mockImportResponse = { message: "Import started", count: 5 };
+		mocks.api.importOpml.mockResolvedValue(mockImportResponse);
+
+		render(<ManageFeedsListScreen />);
+
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+		const importItem = menuItems.find((item: any) => item.label === "Import OPML");
+		expect(importItem).toBeTruthy();
+		await importItem.onPress();
+
+		expect(mocks.documentPicker.getDocumentAsync).toHaveBeenCalled();
+		expect(mocks.api.importOpml).toHaveBeenCalledWith(mockFileUri);
+		expect(mocks.alert).toHaveBeenCalledWith(
+			"Import Started",
+			expect.stringContaining("Importing 5 feeds")
+		);
 	});
 });
