@@ -54,7 +54,8 @@ mock.module("../../app/components/SelectableFlatListItem", () => ({
 	default: mockListItemInternal,
 }));
 
-import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { act } from "react";
 import { TouchableOpacity, Text } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import SelectableFlatList from "../../app/components/SelectableFlatList";

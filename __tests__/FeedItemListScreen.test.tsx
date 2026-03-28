@@ -19,7 +19,8 @@ import "./setup";
 import { mocks } from "./setup";
 import { expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { act } from "react";
 import FeedItemListScreen from "../app/FeedItemListScreen";
 
 describe("FeedItemListScreen", () => {
