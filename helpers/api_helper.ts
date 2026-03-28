@@ -23,5 +23,7 @@ export const post = api.post;
 export const postWithAuth = api.postWithAuth;
 export const get = api.get;
 export const getWithAuth = api.getWithAuth;
+export const getBlobWithAuth = api.getBlobWithAuth;
+export const exportOpml = api.exportOpml;
 export const putWithAuth = api.putWithAuth;
 export const refreshToken = api.refreshToken;

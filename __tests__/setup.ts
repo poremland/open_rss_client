@@ -77,6 +77,44 @@ export const clipboardMocks = {
 	isPasteButtonAvailable: true,
 };
 
+export const fileSystemMock = {
+	documentDirectory: "file:///mock-documents/",
+	cacheDirectory: "file:///mock-cache/",
+	writeAsStringAsync: mock(async () => {}),
+	readAsStringAsync: mock(async () => ""),
+	deleteAsync: mock(async () => {}),
+	makeDirectoryAsync: mock(async () => {}),
+	copyAsync: mock(async () => {}),
+	StorageAccessFramework: {
+		requestDirectoryPermissionsAsync: mock(async () => ({ granted: true, directoryUri: "file:///mock-saf/" })),
+		createFileAsync: mock(async () => "file:///mock-saf/file.opml"),
+	}
+};
+
+export const sharingMock = {
+	shareAsync: mock(async () => {}),
+};
+
+export const documentPickerMock = {
+	getDocumentAsync: mock(async () => ({ type: "cancel" })),
+};
+
+export const hapticsMock = {
+	notificationAsync: mock(async () => {}),
+	impactAsync: mock(async () => {}),
+	selectionAsync: mock(async () => {}),
+	NotificationFeedbackType: {
+		Success: "success",
+		Warning: "warning",
+		Error: "error",
+	},
+	ImpactFeedbackStyle: {
+		Light: "light",
+		Medium: "medium",
+		Heavy: "heavy",
+	},
+};
+
 export const asyncStorageMock = {
 	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
 	getItem: mock(async (k: string) => { 
@@ -155,6 +193,13 @@ export const resetAll = () => {
 	resetMocksInObj(apiMocks);
 	resetMocksInObj(authMocks);
 	resetMocksInObj(useMenuMock);
+	resetMocksInObj(fileSystemMock);
+	resetMocksInObj(sharingMock);
+	resetMocksInObj(documentPickerMock);
+	resetMocksInObj(hapticsMock);
+	if (fileSystemMock.StorageAccessFramework) {
+		resetMocksInObj(fileSystemMock.StorageAccessFramework);
+	}
 
 	useApiConfig.data = null;
 	useApiConfig.loading = false;
@@ -345,6 +390,22 @@ mock.module("expo-clipboard", () => ({
 	...clipboardMocks,
 }));
 
+mock.module("expo-file-system", () => ({
+	...fileSystemMock,
+}));
+
+mock.module("expo-sharing", () => ({
+	...sharingMock,
+}));
+
+mock.module("expo-document-picker", () => ({
+	...documentPickerMock,
+}));
+
+mock.module("expo-haptics", () => ({
+	...hapticsMock,
+}));
+
 mock.module("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 	SafeAreaProvider: ({ children }: any) => children,
@@ -424,6 +485,14 @@ export const mocks = {
 	useApiMock,
 	useMenu: useMenuMock,
 	useMenuMock,
+	fileSystem: fileSystemMock,
+	fileSystemMock,
+	sharing: sharingMock,
+	sharingMock,
+	documentPicker: documentPickerMock,
+	documentPickerMock,
+	haptics: hapticsMock,
+	hapticsMock,
 	localSearchParams: localSearchParamsMock,
 	resetAll
 };

@@ -30,6 +30,40 @@ export const navigationMocks = {
 
 export const alertMock = mock();
 
+export const fileSystemMock = {
+	documentDirectory: "file:///mock-documents/",
+	cacheDirectory: "file:///mock-cache/",
+	writeAsStringAsync: mock(async () => {}),
+	readAsStringAsync: mock(async () => ""),
+	deleteAsync: mock(async () => {}),
+	makeDirectoryAsync: mock(async () => {}),
+	copyAsync: mock(async () => {}),
+};
+
+export const sharingMock = {
+	shareAsync: mock(async () => {}),
+};
+
+export const documentPickerMock = {
+	getDocumentAsync: mock(async () => ({ type: "cancel" })),
+};
+
+export const hapticsMock = {
+	notificationAsync: mock(async () => {}),
+	impactAsync: mock(async () => {}),
+	selectionAsync: mock(async () => {}),
+	NotificationFeedbackType: {
+		Success: "success",
+		Warning: "warning",
+		Error: "error",
+	},
+	ImpactFeedbackStyle: {
+		Light: "light",
+		Medium: "medium",
+		Heavy: "heavy",
+	},
+};
+
 export const apiMocks = {
 	get: mock(),
 	post: mock(),
@@ -81,6 +115,9 @@ export const resetAll = () => {
 	navigationMocks.goBack.mockClear();
 	Object.values(apiMocks).forEach(m => m.mockClear());
 	Object.values(authMocks).forEach(m => m.mockClear());
+	Object.values(fileSystemMock).forEach(m => typeof m === 'function' && m.mockClear());
+	Object.values(sharingMock).forEach(m => m.mockClear());
+	Object.values(documentPickerMock).forEach(m => m.mockClear());
 	useApiMock.mockClear();
 	useApiMock.mockReturnValue({
 		data: null,

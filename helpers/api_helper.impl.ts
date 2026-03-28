@@ -17,16 +17,25 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import * as Haptics from "expo-haptics";
 
 export interface ApiDeps {
 	storage: typeof AsyncStorage;
 	fetch: typeof fetch;
+	fileSystem: typeof FileSystem;
+	sharing: typeof Sharing;
+	haptics: typeof Haptics;
 }
 
 export class Api {
 	private deps: ApiDeps = {
 		storage: AsyncStorage,
 		fetch: fetch.bind(globalThis),
+		fileSystem: FileSystem,
+		sharing: Sharing,
+		haptics: Haptics,
 	};
 
 	setDeps(deps: Partial<ApiDeps>) {
@@ -162,6 +171,46 @@ export class Api {
 		}) as Promise<T>;
 	};
 
+	getBlobWithAuth = async (url: string): Promise<Blob> => {
+		const baseUrl = await this.getBaseUrl();
+		const authToken = await this.deps.storage.getItem("authToken");
+		if (!authToken) {
+			throw new Error("No authentication token found.");
+		}
+		const response = await this.deps.fetch(`${baseUrl}${url}`, {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${authToken}`,
+			},
+		});
+
+		if (response.status === 401) {
+			throw new Error("Session expired");
+		}
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(
+				`Request failed with status ${response.status}: ${errorText}`,
+			);
+		}
+		return response.blob();
+	};
+
+	exportOpml = async (): Promise<void> => {
+		const blob = await this.getBlobWithAuth("/feeds/export");
+		const text = await blob.text();
+		const filename = `subscriptions_${new Date().getTime()}.opml`;
+		const fileUri = `${this.deps.fileSystem.cacheDirectory}${filename}`;
+
+		await this.deps.fileSystem.writeAsStringAsync(fileUri, text);
+		await this.deps.sharing.shareAsync(fileUri, {
+			mimeType: "text/x-opml",
+			dialogTitle: "Export Subscriptions",
+			UTI: "public.xml",
+		});
+		await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
+	};
+
 	putWithAuth = async (
 		url: string,
 		body: any,
@@ -229,5 +278,7 @@ export const post = api.post;
 export const postWithAuth = api.postWithAuth;
 export const get = api.get;
 export const getWithAuth = api.getWithAuth;
+export const getBlobWithAuth = api.getBlobWithAuth;
+export const exportOpml = api.exportOpml;
 export const putWithAuth = api.putWithAuth;
 export const refreshToken = api.refreshToken;
