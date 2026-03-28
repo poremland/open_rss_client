@@ -25,5 +25,7 @@ export const get = api.get;
 export const getWithAuth = api.getWithAuth;
 export const getBlobWithAuth = api.getBlobWithAuth;
 export const exportOpml = api.exportOpml;
+export const importOpml = api.importOpml;
+export const postFormDataWithAuth = api.postFormDataWithAuth;
 export const putWithAuth = api.putWithAuth;
 export const refreshToken = api.refreshToken;

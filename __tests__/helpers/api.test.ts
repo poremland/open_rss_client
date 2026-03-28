@@ -338,4 +338,45 @@ describe("API Helper", () => {
 			await expect(api.exportOpml()).rejects.toThrow("Request failed with status 500: Internal Server Error");
 		});
 	});
+
+	describe("importOpml", () => {
+		it("should upload an OPML file and return success", async () => {
+			const mockUri = "file:///test.opml";
+			const mockResponse = { message: "Import started", count: 10 };
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 202,
+				json: async () => mockResponse,
+			} as any);
+
+			const result = await api.importOpml(mockUri);
+
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/import`, {
+				method: "POST",
+				headers: {
+					Authorization: "Bearer test-token",
+					"Accept": "application/json",
+				},
+				body: expect.any(FormData),
+			});
+
+			const formData = fetchMock.mock.calls[0][1].body as FormData;
+			// FormData inspection is tricky in some environments, but we can check if append was likely called
+			expect(result).toEqual(mockResponse);
+			expect(hapticsMock.notificationAsync).toHaveBeenCalledWith("success");
+		});
+
+		it("should throw an error if import fails", async () => {
+			const mockUri = "file:///test.opml";
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
+				ok: false,
+				status: 422,
+				text: async () => JSON.stringify({ error: "No valid feeds found" }),
+			} as any);
+
+			await expect(api.importOpml(mockUri)).rejects.toThrow("Request failed with status 422");
+		});
+	});
 });

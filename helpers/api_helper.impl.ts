@@ -211,7 +211,43 @@ export class Api {
 		await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
 	};
 
+	importOpml = async <T>(fileUri: string): Promise<T> => {
+		const formData = new FormData();
+		// @ts-ignore - React Native FormData.append accepts this object format for files
+		formData.append("file", {
+			uri: fileUri,
+			name: "subscriptions.opml",
+			type: "text/x-opml",
+		});
+
+		const result = await this.postFormDataWithAuth<T>("/feeds/import", formData);
+		await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
+		return result;
+	};
+
+	postFormDataWithAuth = async <T>(url: string, formData: FormData): Promise<T> => {
+		const baseUrl = await this.getBaseUrl();
+		const authToken = await this.deps.storage.getItem("authToken");
+
+		if (!authToken) {
+			throw new Error("No authentication token found.");
+		}
+
+		const response = await this.deps.fetch(`${baseUrl}${url}`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${authToken}`,
+				"Accept": "application/json",
+				// Note: Do NOT set Content-Type header manually when using FormData
+			},
+			body: formData,
+		});
+
+		return this.handleResponse(response) as Promise<T>;
+	};
+
 	putWithAuth = async (
+
 		url: string,
 		body: any,
 		contentType: string = "application/x-www-form-urlencoded",
@@ -280,5 +316,7 @@ export const get = api.get;
 export const getWithAuth = api.getWithAuth;
 export const getBlobWithAuth = api.getBlobWithAuth;
 export const exportOpml = api.exportOpml;
+export const importOpml = api.importOpml;
+export const postFormDataWithAuth = api.postFormDataWithAuth;
 export const putWithAuth = api.putWithAuth;
 export const refreshToken = api.refreshToken;
