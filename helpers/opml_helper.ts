@@ -16,42 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as ExpoFileSystem from "expo-file-system";
+import { validateOpmlFile as validateOpmlFileImpl } from "./opml_helper.impl";
 
-/**
- * Validates a file at the given URI as a basic OPML file.
- * 
- * Note: Since there is no robust XML parser easily available in mobile environments
- * without adding large dependencies, we perform a basic structural check using regex.
- * 
- * @param fileUri The URI of the file to validate.
- * @param fileSystem Optional FileSystem dependency (useful for testing).
- * @returns true if valid, throws an error otherwise.
- */
-export const validateOpmlFile = async (fileUri: string, fileSystem: typeof ExpoFileSystem = ExpoFileSystem): Promise<boolean> => {
-	const content = await fileSystem.readAsStringAsync(fileUri);
-	const trimmed = content.trim();
-
-	// Very basic XML check
-	if (!trimmed.toLowerCase().startsWith("<?xml") && !trimmed.toLowerCase().startsWith("<opml")) {
-		throw new Error("Invalid OPML file: Not a valid XML");
-	}
-
-	// Root element check
-	const withoutXmlTag = trimmed.replace(/^<\?xml[^>]*\?>/i, "").trim();
-	if (!withoutXmlTag.toLowerCase().startsWith("<opml")) {
-		throw new Error("Invalid OPML file: Missing <opml> root element");
-	}
-
-	// Body element check
-	if (!/<body[^>]*>/i.test(trimmed)) {
-		throw new Error("Invalid OPML file: Missing <body> element");
-	}
-
-	// Outline element check - should have at least one
-	if (!/<outline[^>]*>/i.test(trimmed)) {
-		throw new Error("Invalid OPML file: No <outline> elements found");
-	}
-
-	return true;
-};
+export const validateOpmlFile = validateOpmlFileImpl;

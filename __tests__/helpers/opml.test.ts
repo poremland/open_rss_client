@@ -17,7 +17,7 @@
  */
 
 import { expect, describe, it, beforeEach } from "bun:test";
-import { validateOpmlFile } from "../../helpers/opml_helper";
+import { validateOpmlFile } from "../../helpers/opml_helper.impl";
 import { resetAll, fileSystemMock } from "../mocks";
 
 describe("OPML Helper", () => {

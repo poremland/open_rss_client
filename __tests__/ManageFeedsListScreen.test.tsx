@@ -17,7 +17,7 @@
  */
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { render, waitFor, act } from "@testing-library/react-native";
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
 
 const mocks = (globalThis as any).__mocks;
@@ -96,7 +96,9 @@ describe("ManageFeedsListScreen", () => {
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
 		const exportItem = menuItems.find((item: any) => item.label === "Export OPML");
 		expect(exportItem).toBeTruthy();
-		exportItem.onPress();
+		await act(async () => {
+			exportItem.onPress();
+		});
 
 		expect(mocks.api.exportOpml).toHaveBeenCalled();
 	});
@@ -124,7 +126,9 @@ describe("ManageFeedsListScreen", () => {
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
 		const importItem = menuItems.find((item: any) => item.label === "Import OPML");
 		expect(importItem).toBeTruthy();
-		await importItem.onPress();
+		await act(async () => {
+			await importItem.onPress();
+		});
 
 		expect(mocks.documentPicker.getDocumentAsync).toHaveBeenCalled();
 		expect(mocks.api.importOpml).toHaveBeenCalledWith(mockFileUri);
