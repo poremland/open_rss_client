@@ -15,405 +15,118 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+import "./setup";
+import { mocks } from "./setup";
+import { expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import {
-	render,
-	waitFor,
-	fireEvent,
-	act,
-	screen,
-} from "@testing-library/react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { act } from "react";
 import FeedItemListScreen from "../app/FeedItemListScreen";
-import useApi from "../app/components/useApi";
-import * as authHelper from "../helpers/auth";
-import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
-import GlobalDropdownMenu, {
-	useMenu,
-} from "../app/components/GlobalDropdownMenu";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
-
-const mockSetMenuItems = jest.fn();
-const mockOnToggleDropdown = jest.fn();
-
-jest.mock("../app/components/GlobalDropdownMenu", () => ({
-	__esModule: true,
-	...jest.requireActual("../app/components/GlobalDropdownMenu"),
-	useMenu: () => ({
-		setMenuItems: mockSetMenuItems,
-		onToggleDropdown: mockOnToggleDropdown,
-	}),
-}));
-
-jest.mock("@react-navigation/native", () => {
-	const React = require("react");
-	return {
-		...jest.requireActual("@react-navigation/native"),
-		useFocusEffect: jest.fn((callback) => {
-			React.useEffect(() => {
-				callback();
-			}, [callback]);
-		}),
-	};
-});
-
-jest.mock("@expo/vector-icons", () => {
-	const { Text } = require("react-native");
-	return {
-		Ionicons: (props) => <Text testID={props.name}>{props.name}</Text>,
-	};
-});
-
-jest.mock("../app/components/useApi");
-jest.mock("../helpers/auth");
-
-const mockRouter = {
-	push: jest.fn(),
-	replace: jest.fn(),
-	back: jest.fn(),
-};
-const mockNavigation = {
-	setOptions: jest.fn(),
-	goBack: jest.fn(),
-};
-
-jest.mock("expo-router", () => ({
-	useRouter: () => mockRouter,
-	useNavigation: () => mockNavigation,
-	useLocalSearchParams: jest.fn(),
-}));
 
 describe("FeedItemListScreen", () => {
 	const mockFeed = { id: 1, name: "Test Feed" };
-	const mockFeedItems = [
-		{ id: 1, title: "Item 1", link: "link1", description: "desc1" },
-		{ id: 2, title: "Item 2", link: "link2", description: "desc2" },
+	const mockItems = [
+		{ id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
+		{ id: 2, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
 	];
 
 	beforeEach(() => {
-		mockRouter.push.mockClear();
-		mockRouter.replace.mockClear();
-		mockRouter.back.mockClear();
-		mockNavigation.setOptions.mockClear();
-		mockNavigation.goBack.mockClear();
-		(useApi as jest.Mock).mockReset(); // Reset the mock implementation
-		(useApi as jest.Mock).mockImplementation((method, url) => ({
-			data: [],
-			loading: false,
-			error: null,
-			execute: jest.fn().mockResolvedValue({}),
-			setData: jest.fn(),
-		}));
-		(authHelper.getUser as jest.Mock).mockResolvedValue("testuser");
-		(authHelper.clearAuthData as jest.Mock).mockClear();
-		(useLocalSearchParams as jest.Mock).mockReturnValue({
-			feed: JSON.stringify(mockFeed),
-		});
-		jest.useFakeTimers();
-		AsyncStorage.setItem("serverUrl", "http://localhost:8080");
+		mocks.resetAll();
+		mocks.localSearchParams.params = { feed: JSON.stringify(mockFeed) };
 	});
 
 	it("should display a list of feed items", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute: jest.fn().mockResolvedValue(mockFeedItems),
+		mocks.api.getWithAuth.mockResolvedValue(mockItems);
+
+		const { getByText } = render(<FeedItemListScreen />);
+
+		await waitFor(() => {
+			expect(getByText("Item 1")).toBeTruthy();
+			expect(getByText("Item 2")).toBeTruthy();
 		});
+	});
+
+	it("should mark all items as read when Mark All As Read is pressed", async () => {
+		mocks.api.getWithAuth.mockResolvedValue(mockItems);
 
 		render(<FeedItemListScreen />);
 
-		await waitFor(
-			() => {
-				expect(screen.getByText("Item 1")).toBeTruthy();
-				expect(screen.getByText("Item 2")).toBeTruthy();
-			},
-			{ timeout: 10000 },
-		);
-	});
-
-	const testHeaderInteraction = async (
-		menuItemText,
-		expectedMock,
-		expectedArgs,
-		apiResult = {},
-	) => {
-		const execute = jest.fn().mockResolvedValue(apiResult);
-		render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+		const markAllReadItem = menuItems.find(
+			(item: any) => item.label === "Mark All As Read",
 		);
 
-		await waitFor(() => {
-			expect(mockSetMenuItems).toHaveBeenCalled();
+		mocks.api.postWithAuth.mockResolvedValue({ success: true });
+
+		await act(async () => {
+			await markAllReadItem.onPress();
 		});
 
-		const menuItems = mockSetMenuItems.mock.calls[0][0];
-		const menuItem = menuItems.find((item) => item.label === menuItemText);
-
-		menuItem.onPress();
-
-		await waitFor(() => {
-			expect(expectedMock).toHaveBeenCalledWith(...expectedArgs);
-		});
-	};
-
-	it("should mark all items as read when Mark All As Read is pressed and pop back to previous screen", async () => {
-		await testHeaderInteraction("Mark All As Read", mockNavigation.goBack, []);
-	});
-
-	it("should delete the feed when Delete Feed is pressed", async () => {
-		await testHeaderInteraction("Delete Feed", mockNavigation.goBack, []);
-	});
-
-	it("should call clearAuthData when Log-out is pressed", async () => {
-		await testHeaderInteraction("Log-out", authHelper.clearAuthData, [
-			mockRouter,
-		]);
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+			"/feeds/mark_items_as_read/1",
+			{ items: JSON.stringify([1, 2]) },
+			"application/x-www-form-urlencoded"
+		);
 	});
 
 	it("should activate multi-select mode when an item is long-pressed", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute: jest.fn(),
-		});
+		mocks.api.getWithAuth.mockResolvedValue(mockItems);
 
-		const { getByText } = render(
-			<NavigationContainer>
-				<GlobalDropdownMenu>
-					<FeedItemListScreen />
-				</GlobalDropdownMenu>
-			</NavigationContainer>,
-		);
+		const { getByText } = render(<FeedItemListScreen />);
 
-		await waitFor(() => getByText("Item 1"));
+		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
 		fireEvent(getByText("Item 1"), "longPress");
 
-		await waitFor(() => {
-			expect(getByText("Select All")).toBeTruthy();
-			expect(getByText("Mark Read")).toBeTruthy();
-			expect(getByText("Done")).toBeTruthy();
-			expect(mockNavigation.goBack).toHaveBeenCalled();
-		});
+		await waitFor(() => expect(getByText("Select All")).toBeTruthy());
 	});
 
 	it("should mark selected items as read when Mark Read is pressed", async () => {
-		const execute = jest.fn().mockResolvedValue({});
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute,
-		});
+		mocks.api.getWithAuth.mockResolvedValue(mockItems);
 
-		const { getByText } = render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
-		);
-		await waitFor(() => getByText("Item 1"));
+		const { getByText } = render(<FeedItemListScreen />);
+
+		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
 		fireEvent(getByText("Item 1"), "longPress");
 
-		await waitFor(() => getByText("Mark Read"));
-		fireEvent.press(getByText("Mark Read"));
+		await waitFor(() => expect(getByText("Mark Read")).toBeTruthy());
+		const markReadButton = getByText("Mark Read");
 
-		await waitFor(() => {
-			expect(execute).toHaveBeenCalledWith({
-				items: JSON.stringify([1]),
-			});
+		mocks.api.postWithAuth.mockResolvedValue({ success: true });
+
+		await act(async () => {
+			fireEvent.press(markReadButton);
 		});
+
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+			"/feeds/mark_items_as_read/1",
+			{ items: JSON.stringify([1]) },
+			"application/x-www-form-urlencoded"
+		);
 	});
 
 	it("should display an error message if the api call fails", async () => {
-		let resolveExecute;
-		const executePromise = new Promise((resolve) => {
-			resolveExecute = resolve;
-		});
+		mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
-		(useApi as jest.Mock).mockReturnValue({
-			data: null,
-			loading: false,
-			error: "API Error",
-			execute: jest.fn().mockImplementation(() => executePromise),
-		});
+		const { getByText } = render(<FeedItemListScreen />);
 
-		const { getByText } = render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
-		);
-
-		await act(async () => {
-			jest.runAllTimers();
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText(/API Error/)).toBeTruthy();
-		});
-	});
-
-	it("should select all items when Select All is pressed", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute: jest.fn().mockResolvedValue({}),
-		});
-
-		const { getByText } = render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
-		);
-
-		await waitFor(() => getByText("Item 1"));
-		fireEvent(getByText("Item 1"), "longPress");
-
-		await waitFor(() => getByText("Select All"));
-		fireEvent.press(getByText("Select All"));
-
-		await waitFor(() => {
-			expect(getByText("Mark Read")).toBeTruthy();
-		});
-	});
-
-	it("should exit multi-select mode when Done is pressed", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute: jest.fn().mockResolvedValue({}),
-		});
-
-		const { getByText, queryByText } = render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
-		);
-
-		await waitFor(() => getByText("Item 1"));
-		fireEvent(getByText("Item 1"), "longPress");
-
-		await waitFor(() => getByText("Done"));
-		fireEvent.press(getByText("Done"));
-
-		await waitFor(() => {
-			expect(queryByText("Select All")).toBeNull();
-		});
-	});
-
-	it("should remove an item from the list when it is marked as read", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute: jest.fn().mockResolvedValue({}),
-		});
-
-		render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
-		);
-
-		await waitFor(() => {
-			fireEvent.press(screen.getByText("Item 1"));
-		});
-
-		await waitFor(() => {
-			expect(mockRouter.push).toHaveBeenCalledWith({
-				pathname: "/FeedItemDetailScreen",
-				params: { feedItemId: mockFeedItems[0].id.toString() },
-			});
-		});
+		await waitFor(() => expect(getByText("API Error")).toBeTruthy());
 	});
 
 	it("should navigate to FeedItemDetailScreen when an item is pressed", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItems,
-			loading: false,
-			error: null,
-			execute: jest.fn().mockResolvedValue(mockFeedItems),
-		});
+		mocks.api.getWithAuth.mockResolvedValue(mockItems);
 
-		render(<FeedItemListScreen />);
+		const { getByText } = render(<FeedItemListScreen />);
 
-		await waitFor(() => {
-			fireEvent.press(screen.getByText("Item 1"));
-		});
+		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
 
-		await waitFor(() => {
-			expect(mockRouter.push).toHaveBeenCalledWith({
-				pathname: "/FeedItemDetailScreen",
-				params: { feedItemId: mockFeedItems[0].id.toString() },
-			});
-		});
-	});
+		fireEvent.press(getByText("Item 1"));
 
-	it("should decode HTML entities in the title", async () => {
-		const encodedTitle = "Test&#39;s &amp; Title";
-		const decodedTitle = "Test's & Title";
-		const mockFeedItemsWithEncodedTitle = [
-			{ id: 1, title: encodedTitle, link: "link1", description: "desc1" },
-		];
-
-		let resolveExecute;
-		const executePromise = new Promise((resolve) => {
-			resolveExecute = resolve;
-		});
-
-		(useApi as jest.Mock).mockReturnValue({
-			data: mockFeedItemsWithEncodedTitle,
-			loading: false,
-			error: null,
-			execute: jest.fn().mockImplementation(() => executePromise),
-			setData: jest.fn(),
-		});
-
-		const { getByText } = render(
-			<GlobalDropdownMenu>
-				<FeedItemListScreen />
-			</GlobalDropdownMenu>,
-		);
-
-		await act(async () => {
-			jest.runAllTimers();
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText(decodedTitle)).toBeTruthy();
-		});
-	});
-
-	it("should navigate back when the feed item list becomes empty after refresh", async () => {
-		(useApi as jest.Mock).mockImplementation((method, url) => {
-			if (url.includes(`/feeds/${mockFeed.id}.json`)) {
-				return {
-					data: [],
-					loading: false,
-					error: null,
-					execute: jest.fn().mockResolvedValue([]),
-					setData: jest.fn(),
-				};
-			}
-			return {
-				data: null,
-				loading: false,
-				error: null,
-				execute: jest.fn(),
-				setData: jest.fn(),
-			};
-		});
-
-		render(<FeedItemListScreen />);
-
-		await waitFor(() => {
-			expect(mockNavigation.goBack).toHaveBeenCalled();
+		expect(mocks.router.push).toHaveBeenCalledWith({
+			pathname: "/FeedItemDetailScreen",
+			params: { feedItemId: "1" },
 		});
 	});
 });

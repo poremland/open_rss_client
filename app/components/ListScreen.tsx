@@ -16,14 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
 	View,
 	Text,
-	FlatList,
-	RefreshControl,
 	TouchableOpacity,
-	ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import useApi from "./useApi";
@@ -56,7 +53,6 @@ interface ListScreenProps<T, U = T> {
 	selectedItems?: number[];
 	multiSelectActive?: boolean;
 	transformData?: (data: T[]) => U[];
-	headerTitle?: string;
 	swipeEnabled?: boolean;
 	onSwipeAction?: (item: U) => void;
 	swipeActionRequiresConfirmation?: boolean;
@@ -83,7 +79,6 @@ const ListScreen = React.forwardRef(
 			selectedItems: controlledSelectedItems,
 			multiSelectActive: controlledMultiSelectActive,
 			transformData,
-			headerTitle,
 			swipeEnabled,
 			onSwipeAction,
 			swipeActionRequiresConfirmation,
@@ -236,5 +231,7 @@ const ListScreen = React.forwardRef(
 		);
 	},
 );
+
+ListScreen.displayName = "ListScreen";
 
 export default ListScreen;

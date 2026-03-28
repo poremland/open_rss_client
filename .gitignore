@@ -43,3 +43,4 @@ app-example
 app.json
 *.patch
 coverage/
+conductor/

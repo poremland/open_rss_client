@@ -15,97 +15,108 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+import "./setup";
+import { mocks } from "./setup";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { act } from "react";
 import AddFeedScreen from "../app/AddFeedScreen";
-import useApi from "../app/components/useApi";
-import * as authHelper from "../helpers/auth";
-import { useNavigation } from "expo-router";
-
-jest.mock("../app/components/useApi");
-jest.mock("../helpers/auth");
-jest.mock("expo-router", () => ({
-	useNavigation: jest.fn(),
-}));
 
 describe("AddFeedScreen", () => {
-	const mockExecute = jest.fn();
-	const mockGoBack = jest.fn();
-
 	beforeEach(() => {
-		jest.clearAllMocks();
-		(useApi as jest.Mock).mockReturnValue({
-			loading: false,
-			error: null,
-			execute: mockExecute,
-		});
-		(authHelper.getUser as jest.Mock).mockResolvedValue("test-user");
-		(useNavigation as jest.Mock).mockReturnValue({ goBack: mockGoBack });
+		mocks.resetAll();
+		mocks.auth.getUser.mockResolvedValue("test-user");
 	});
 
-	it("renders correctly", () => {
-		const { getByText, getByPlaceholderText } = render(<AddFeedScreen />);
+	it("renders correctly", async () => {
+		const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
 		expect(getByPlaceholderText("FeedName")).toBeTruthy();
 		expect(getByPlaceholderText("FeedUri")).toBeTruthy();
 		expect(getByText("Add Feed")).toBeTruthy();
 	});
 
 	it("calls addFeed with correct parameters on button press", async () => {
-		const { getByText, getByPlaceholderText } = render(<AddFeedScreen />);
-		const feedNameInput = getByPlaceholderText("FeedName");
-		const feedUriInput = getByPlaceholderText("FeedUri");
-		const addButton = getByText("Add Feed");
+		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+		const nameInput = getByPlaceholderText("FeedName");
+		const uriInput = getByPlaceholderText("FeedUri");
+		const addButton = getByTestId("addFeedButton");
 
-		fireEvent.changeText(feedNameInput, "Test Feed");
-		fireEvent.changeText(feedUriInput, "http://test.com/feed.xml");
-		fireEvent.press(addButton);
+		fireEvent.changeText(nameInput, "Test Feed");
+		fireEvent.changeText(uriInput, "http://test.com/feed.xml");
+
+		mocks.api.postWithAuth.mockResolvedValue({ id: 1 });
+
+		await act(async () => {
+			fireEvent.press(addButton);
+		});
 
 		await waitFor(() => {
-			expect(authHelper.getUser).toHaveBeenCalled();
-			expect(mockExecute).toHaveBeenCalledWith({
-				"feed[uri]": "http://test.com/feed.xml",
-				"feed[name]": "Test Feed",
-				"feed[user]": "test-user",
-			});
+			expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+				"/feeds/create",
+				{
+					"feed[name]": "Test Feed",
+					"feed[uri]": "http://test.com/feed.xml",
+					"feed[user]": "test-user",
+				},
+				"application/x-www-form-urlencoded"
+			);
 		});
 	});
 
 	it("navigates back on successful feed addition", async () => {
-		mockExecute.mockResolvedValue({ id: 1 });
-		const { getByText, getByPlaceholderText } = render(<AddFeedScreen />);
-		const feedNameInput = getByPlaceholderText("FeedName");
-		const feedUriInput = getByPlaceholderText("FeedUri");
-		const addButton = getByText("Add Feed");
+		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+		const nameInput = getByPlaceholderText("FeedName");
+		const uriInput = getByPlaceholderText("FeedUri");
+		const addButton = getByTestId("addFeedButton");
 
-		fireEvent.changeText(feedNameInput, "Test Feed");
-		fireEvent.changeText(feedUriInput, "http://test.com/feed.xml");
-		fireEvent.press(addButton);
+		fireEvent.changeText(nameInput, "Test Feed");
+		fireEvent.changeText(uriInput, "http://test.com/feed.xml");
+
+		mocks.api.postWithAuth.mockResolvedValue({ id: 1 });
+
+		await act(async () => {
+			fireEvent.press(addButton);
+		});
 
 		await waitFor(() => {
-			expect(mockGoBack).toHaveBeenCalled();
+			expect(mocks.navigation.goBack).toHaveBeenCalled();
 		});
 	});
 
 	it("displays an error message on failed feed addition", async () => {
-		(useApi as jest.Mock).mockReturnValue({
-			loading: false,
-			error: "Failed to add feed",
-			execute: mockExecute,
+		const { getByTestId, getByText } = render(<AddFeedScreen />);
+		const addButton = getByTestId("addFeedButton");
+
+		mocks.api.postWithAuth.mockRejectedValue(new Error("Failed to add feed"));
+
+		await act(async () => {
+			fireEvent.press(addButton);
 		});
 
-		const { getByText } = render(<AddFeedScreen />);
-		expect(getByText("Failed to add feed")).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText("Failed to add feed")).toBeTruthy();
+		});
 	});
 
-	it("displays a loading indicator when adding a feed", () => {
-		(useApi as jest.Mock).mockReturnValue({
-			loading: true,
-			error: null,
-			execute: mockExecute,
+	it("displays a loading indicator when adding a feed", async () => {
+		const { getByTestId, getByText } = render(<AddFeedScreen />);
+		const addButton = getByTestId("addFeedButton");
+
+		let resolvePromise: any;
+		const promise = new Promise((resolve) => {
+			resolvePromise = resolve;
+		});
+		mocks.api.postWithAuth.mockReturnValue(promise);
+
+		await act(async () => {
+			fireEvent.press(addButton);
 		});
 
-		const { getByText } = render(<AddFeedScreen />);
 		expect(getByText("Loading...")).toBeTruthy();
+
+		await act(async () => {
+			resolvePromise({ id: 1 });
+		});
 	});
 });

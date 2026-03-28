@@ -16,38 +16,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-jest.unmock("../../helpers/api");
-
-jest.doMock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
-);
-
-import { post, postWithAuth, get, getWithAuth } from "../../helpers/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { Api } from "../../helpers/api_helper.impl";
+import { resetAll, asyncStorageMock, fetchMock } from "../mocks";
 
 describe("API Helper", () => {
 	const MOCK_BASE_URL = "http://localhost:3000";
+	let api: Api;
 
 	beforeEach(async () => {
-		mockFetch.mockClear();
-		await AsyncStorage.clear();
-		await AsyncStorage.setItem("serverUrl", MOCK_BASE_URL);
+		resetAll();
+		api = new Api();
+		api.setDeps({
+			storage: asyncStorageMock,
+			fetch: fetchMock as any,
+		});
+		await asyncStorageMock.setItem("serverUrl", MOCK_BASE_URL);
+		fetchMock.mockClear();
 	});
 
 	describe("post", () => {
 		it("should make a POST request and return JSON data", async () => {
 			const mockData = { message: "Success" };
-			mockFetch.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
+				status: 200,
 				json: async () => mockData,
-			});
+			} as any);
 
-			const result = await post("/test", { foo: "bar" });
+			const result = await api.post("/test", { foo: "bar" });
 
-			expect(mockFetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -59,25 +58,25 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if the request fails", async () => {
-			mockFetch.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: false,
 				status: 500,
 				text: async () => "Internal Server Error",
-			});
+			} as any);
 
-			await expect(post("/test", { foo: "bar" })).rejects.toThrow(
+			await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
 				"Request failed with status 500: Internal Server Error",
 			);
 		});
 
 		it("should throw 'Session expired' error if status is 401", async () => {
-			mockFetch.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: false,
 				status: 401,
 				text: async () => "Unauthorized",
-			});
+			} as any);
 
-			await expect(post("/test", { foo: "bar" })).rejects.toThrow(
+			await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
 				"Session expired",
 			);
 		});
@@ -86,15 +85,16 @@ describe("API Helper", () => {
 	describe("postWithAuth", () => {
 		it("should make an authenticated POST request with form data", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			mockFetch.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
+				status: 200,
 				json: async () => mockData,
-			});
+			} as any);
 
-			const result = await postWithAuth("/test", { foo: "bar" });
+			const result = await api.postWithAuth("/test", { foo: "bar" });
 
-			expect(mockFetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -108,19 +108,20 @@ describe("API Helper", () => {
 
 		it("should make an authenticated POST request with JSON data", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			mockFetch.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
+				status: 200,
 				json: async () => mockData,
-			});
+			} as any);
 
-			const result = await postWithAuth(
+			const result = await api.postWithAuth(
 				"/test",
 				{ foo: "bar" },
 				"application/json",
 			);
 
-			expect(mockFetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -133,7 +134,7 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if no auth token is found", async () => {
-			await expect(postWithAuth("/test", { foo: "bar" })).rejects.toThrow(
+			await expect(api.postWithAuth("/test", { foo: "bar" })).rejects.toThrow(
 				"No authentication token found.",
 			);
 		});
@@ -142,14 +143,15 @@ describe("API Helper", () => {
 	describe("get", () => {
 		it("should make a GET request without auth", async () => {
 			const mockData = { message: "Success" };
-			mockFetch.mockResolvedValueOnce({
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
+				status: 200,
 				json: async () => mockData,
-			});
+			} as any);
 
-			const result = await get("/test");
+			const result = await api.get("/test");
 
-			expect(mockFetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "GET",
 				headers: {},
 			});
@@ -158,15 +160,16 @@ describe("API Helper", () => {
 
 		it("should make a GET request with auth if token exists", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			mockFetch.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
+				status: 200,
 				json: async () => mockData,
-			});
+			} as any);
 
-			const result = await get("/test");
+			const result = await api.get("/test");
 
-			expect(mockFetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "GET",
 				headers: {
 					Authorization: "Bearer test-token",
@@ -179,41 +182,43 @@ describe("API Helper", () => {
 
 		it("should retry a failed GET request up to 3 times", async () => {
 			const mockError = new Error("Network error");
-			mockFetch.mockRejectedValue(mockError);
+			fetchMock.mockRejectedValue(mockError);
 
-			await expect(get("/test")).rejects.toThrow("Network error");
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			await expect(api.get("/test")).rejects.toThrow("Network error");
+			expect(fetchMock).toHaveBeenCalledTimes(3);
 		});
 
 		it("should succeed if one of the retry attempts is successful", async () => {
 			const mockData = { message: "Success" };
-			mockFetch
+			fetchMock
 				.mockRejectedValueOnce(new Error("Network error"))
 				.mockResolvedValueOnce({
 					ok: true,
+					status: 200,
 					json: async () => mockData,
-				});
+				} as any);
 
-			const result = await get("/test");
+			const result = await api.get("/test");
 
 			expect(result).toEqual(mockData);
-			expect(mockFetch).toHaveBeenCalledTimes(2);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
 		});
 	});
 
 	describe("getWithAuth", () => {
 		it("should make an authenticated GET request", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			mockFetch.mockResolvedValueOnce({
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
 				ok: true,
+				status: 200,
 				json: async () => mockData,
-			});
+			} as any);
 
-			const result = await getWithAuth("/test");
+			const result = await api.getWithAuth("/test");
 
 			const authToken = "test-token";
-			expect(mockFetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${authToken}`,
@@ -225,34 +230,35 @@ describe("API Helper", () => {
 		});
 
 		it("should throw an error if no auth token is found", async () => {
-			await expect(getWithAuth("/test")).rejects.toThrow(
+			await expect(api.getWithAuth("/test")).rejects.toThrow(
 				"No authentication token found.",
 			);
 		});
 
 		it("should retry a failed GET request up to 3 times", async () => {
 			const mockError = new Error("Network error");
-			await AsyncStorage.setItem("authToken", "test-token");
-			mockFetch.mockRejectedValue(mockError);
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockRejectedValue(mockError);
 
-			await expect(getWithAuth("/test")).rejects.toThrow("Network error");
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			await expect(api.getWithAuth("/test")).rejects.toThrow("Network error");
+			expect(fetchMock).toHaveBeenCalledTimes(3);
 		});
 
 		it("should succeed if one of the retry attempts is successful", async () => {
 			const mockData = { message: "Success" };
-			await AsyncStorage.setItem("authToken", "test-token");
-			mockFetch
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock
 				.mockRejectedValueOnce(new Error("Network error"))
 				.mockResolvedValueOnce({
 					ok: true,
+					status: 200,
 					json: async () => mockData,
-				});
+				} as any);
 
-			const result = await getWithAuth("/test");
+			const result = await api.getWithAuth("/test");
 
 			expect(result).toEqual(mockData);
-			expect(mockFetch).toHaveBeenCalledTimes(2);
+			expect(fetchMock).toHaveBeenCalledTimes(2);
 		});
 	});
 });

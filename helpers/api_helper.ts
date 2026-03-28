@@ -16,31 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
-import { TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { styles } from "../../styles/HeaderRightMenu.styles";
+import { Api } from "./api_helper.impl";
 
-interface HeaderRightMenuProps {
-	onToggleDropdown: () => void;
-}
-
-const HeaderRightMenu: React.FC<HeaderRightMenuProps> = ({
-	onToggleDropdown,
-}) => {
-	return (
-		<TouchableOpacity
-			testID="menu"
-			onPress={onToggleDropdown}
-			style={styles.container}
-		>
-			<Ionicons
-				name="ellipsis-vertical"
-				size={styles.icon.fontSize}
-				color={styles.icon.color}
-			/>
-		</TouchableOpacity>
-	);
-};
-
-export default HeaderRightMenu;
+export const api = new Api();
+export const post = api.post;
+export const postWithAuth = api.postWithAuth;
+export const get = api.get;
+export const getWithAuth = api.getWithAuth;
+export const putWithAuth = api.putWithAuth;
+export const refreshToken = api.refreshToken;

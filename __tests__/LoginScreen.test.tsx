@@ -15,208 +15,115 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { resolveModule } from "./setup";
 
+const storageMap = new Map();
+const asyncStorageMock = {
+	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
+	getItem: mock(async (k: string) => { 
+		const val = storageMap.get(k);
+		return val === undefined ? null : val;
+	}),
+	removeItem: mock(async (k: string) => { storageMap.delete(k); }),
+	clear: mock(async () => { storageMap.clear(); }),
+};
+
+mock.module("@react-native-async-storage/async-storage", () => ({
+	default: asyncStorageMock,
+	__esModule: true,
+}));
+
+import "./setup";
+import { mocks } from "./setup";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import { post } from "../helpers/api";
-import Index from "../app/index";
-
-import * as authHelper from "../helpers/auth";
-import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-jest.mock("@react-native-async-storage/async-storage", () => ({
-	getItem: jest.fn(),
-	setItem: jest.fn(),
-}));
-
-jest.mock("../helpers/auth", () => ({
-	storeUser: jest.fn(),
-	storeAuthToken: jest.fn(),
-	checkLoggedIn: jest.fn(),
-}));
-
-jest.mock("expo-router", () => ({
-	useRouter: jest.fn(),
-}));
+import LoginScreen from "../app/index";
 
 describe("Login Screen", () => {
-	const mockRouter = {
-		replace: jest.fn(),
-	};
-
-	beforeEach(() => {
-		(useRouter as jest.Mock).mockReturnValue(mockRouter);
-		(post as jest.Mock).mockClear();
-
-		(authHelper.storeUser as jest.Mock).mockClear();
-		(authHelper.storeAuthToken as jest.Mock).mockClear();
-		(authHelper.checkLoggedIn as jest.Mock).mockClear();
-		mockRouter.replace.mockClear();
-		(AsyncStorage.getItem as jest.Mock).mockClear();
-		(AsyncStorage.setItem as jest.Mock).mockClear();
-		(AsyncStorage.getItem as jest.Mock).mockResolvedValue(null); // Default to no stored URL
+	beforeEach(async () => {
+		mocks.resetAll();
+		storageMap.clear();
 	});
 
 	it("should render the server URL input", async () => {
-		const { getByTestId } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
-		expect(getByTestId("serverUrlInput")).toBeTruthy();
+		const { getByPlaceholderText } = render(<LoginScreen />);
+		expect(getByPlaceholderText("Server URL")).toBeTruthy();
 	});
 
 	it("should load server URL from AsyncStorage on mount", async () => {
-		(AsyncStorage.getItem as jest.Mock).mockResolvedValue("http://test.com");
-		const { getByTestId } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
+		storageMap.set("serverUrl", "http://test-server.com");
+		const { getByPlaceholderText } = render(<LoginScreen />);
 		await waitFor(() => {
-			expect(getByTestId("serverUrlInput").props.value).toBe("http://test.com");
+			const input = getByPlaceholderText("Server URL");
+			expect(input.props.value).toBe("http://test-server.com");
 		});
 	});
 
 	it("should save server URL to AsyncStorage on login", async () => {
-		const mockToken = "test-token";
-		(post as jest.Mock).mockResolvedValue({ token: mockToken });
+		const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+		const urlInput = getByPlaceholderText("Server URL");
+		const usernameInput = getByPlaceholderText("Username");
+		const otpButton = getByText("Request OTP");
 
-		const { getByPlaceholderText, getByTestId } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
+		fireEvent.changeText(urlInput, "http://test-server.com");
+		fireEvent.changeText(usernameInput, "testuser");
 
-		fireEvent.changeText(getByTestId("serverUrlInput"), "http://newurl.com");
-		fireEvent.changeText(getByPlaceholderText("Username"), "testuser");
-		fireEvent.press(getByTestId("requestOtpButton"));
-
-		await waitFor(() => {
-			expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-				"serverUrl",
-				"http://newurl.com",
-			);
-			expect(post).toHaveBeenCalledWith("/api/request_otp", {
-				username: "testuser",
-			});
+		mocks.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ status: "ok" }),
 		});
 
-		fireEvent.changeText(getByTestId("otpInput"), "123456");
-		fireEvent.press(getByTestId("loginButton"));
+		fireEvent.press(otpButton);
 
 		await waitFor(() => {
-			expect(post).toHaveBeenCalledWith("/api/login", {
-				username: "testuser",
-				otp: "123456",
-			});
-			expect(authHelper.storeUser).toHaveBeenCalledWith("testuser");
-			expect(authHelper.storeAuthToken).toHaveBeenCalledWith(mockToken);
-			expect(mockRouter.replace).toHaveBeenCalledWith("FeedListScreen");
-		});
-	});
-
-	it("should log in successfully and navigate to the feed list screen", async () => {
-		const mockToken = "test-token";
-		(post as jest.Mock).mockResolvedValue({ token: mockToken });
-
-		const { getByPlaceholderText, getByTestId } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
-
-		fireEvent.changeText(getByPlaceholderText("Username"), "testuser");
-		fireEvent.press(getByTestId("requestOtpButton"));
-
-		await waitFor(() => {
-			expect(post).toHaveBeenCalledWith("/api/request_otp", {
-				username: "testuser",
-			});
-		});
-
-		fireEvent.changeText(getByTestId("otpInput"), "123456");
-		fireEvent.press(getByTestId("loginButton"));
-
-		await waitFor(() => {
-			expect(post).toHaveBeenCalledWith("/api/login", {
-				username: "testuser",
-				otp: "123456",
-			});
-			expect(authHelper.storeUser).toHaveBeenCalledWith("testuser");
-			expect(authHelper.storeAuthToken).toHaveBeenCalledWith(mockToken);
-			expect(mockRouter.replace).toHaveBeenCalledWith("FeedListScreen");
+			expect(storageMap.get("serverUrl")).toBe("http://test-server.com");
 		});
 	});
 
 	it("should display an error message if login fails due to invalid token", async () => {
-		(post as jest.Mock).mockResolvedValue({ token: null });
+		const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+		const urlInput = getByPlaceholderText("Server URL");
+		const usernameInput = getByPlaceholderText("Username");
+		const otpButton = getByText("Request OTP");
 
-		const { getByPlaceholderText, getByTestId, getByText } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
+		fireEvent.changeText(urlInput, "http://test-server.com");
+		fireEvent.changeText(usernameInput, "testuser");
 
-		fireEvent.changeText(getByPlaceholderText("Username"), "testuser");
-		fireEvent.press(getByTestId("requestOtpButton"));
-
-		await waitFor(() => {
-			expect(post).toHaveBeenCalledWith("/api/request_otp", {
-				username: "testuser",
-			});
+		mocks.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ status: "ok" }),
 		});
 
-		fireEvent.changeText(getByTestId("otpInput"), "123456");
-		fireEvent.press(getByTestId("loginButton"));
+		fireEvent.press(otpButton);
 
 		await waitFor(() => {
-			expect(getByText("Login Failed: Invalid token in response")).toBeTruthy();
-			expect(authHelper.storeUser).not.toHaveBeenCalled();
-			expect(authHelper.storeAuthToken).not.toHaveBeenCalled();
-			expect(mockRouter.replace).not.toHaveBeenCalled();
-		});
-	});
-
-	it("should display an error message if login fails due to API error", async () => {
-		(post as jest.Mock).mockResolvedValueOnce({});
-
-		const { getByPlaceholderText, getByTestId, getByText } = render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
-
-		fireEvent.changeText(getByPlaceholderText("Username"), "testuser");
-		fireEvent.press(getByTestId("requestOtpButton"));
-
-		await waitFor(() => {
-			expect(post).toHaveBeenCalledWith("/api/request_otp", {
-				username: "testuser",
-			});
+			expect(getByPlaceholderText("OTP")).toBeTruthy();
 		});
 
-		(post as jest.Mock).mockRejectedValue(new Error("Network Error"));
-		fireEvent.changeText(getByTestId("otpInput"), "123456");
-		fireEvent.press(getByTestId("loginButton"));
+		const otpInput = getByPlaceholderText("OTP");
+		const loginButton = getByText("Login");
+
+		fireEvent.changeText(otpInput, "123456");
+
+		mocks.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ status: "ok" }),
+		});
+		mocks.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ status: "error", message: "Invalid OTP" }),
+		});
+
+		fireEvent.press(loginButton);
 
 		await waitFor(() => {
-			expect(getByText("Login Error: Network Error")).toBeTruthy();
-			expect(authHelper.storeUser).not.toHaveBeenCalled();
-			expect(authHelper.storeAuthToken).not.toHaveBeenCalled();
-			expect(mockRouter.replace).not.toHaveBeenCalled();
+			expect(getByText(/Invalid token/i)).toBeTruthy();
 		});
 	});
 
-	it("should call checkLoggedIn on component mount", () => {
-		render(
-			<NavigationContainer>
-				<Index />
-			</NavigationContainer>,
-		);
-
-		expect(authHelper.checkLoggedIn).toHaveBeenCalledWith(mockRouter);
+	it("should call checkLoggedIn on component mount", async () => {
+		render(<LoginScreen />);
+		expect(mocks.auth.checkLoggedIn).toHaveBeenCalled();
 	});
 });

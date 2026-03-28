@@ -17,15 +17,13 @@
  */
 
 import React, { useState, useCallback, useEffect } from "react";
-import { View, Text, Platform, Linking, Share, Alert } from "react-native";
+import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { WebView } from "react-native-webview";
-import { useFocusEffect } from "@react-navigation/native";
 import { decode } from "he";
 import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
-import * as authHelper from "../helpers/auth";
-import { commonStyles } from "../styles/commonStyles";
+import * as authHelper from "../helpers/auth_helper";
 import { FeedItem } from "../models/FeedItem";
 import { useMenu } from "./components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
@@ -75,7 +73,7 @@ const FeedItemDetailScreen: React.FC = () => {
 				await Share.share({
 					message: `${selectedFeedItem.title}: ${selectedFeedItem.link}`,
 				});
-			} catch (error) {
+			} catch {
 				await Clipboard.setStringAsync(selectedFeedItem.link);
 				Alert.alert(
 					"Link Copied",
@@ -98,7 +96,7 @@ const FeedItemDetailScreen: React.FC = () => {
 			} else {
 				setWebViewSource(staticHtml);
 			}
-		} else if (error) {
+		} else {
 			navigation.goBack();
 		}
 
@@ -138,7 +136,15 @@ const FeedItemDetailScreen: React.FC = () => {
 		return () => {
 			setMenuItems([]);
 		};
-	}, [selectedFeedItem, navigation, handleMarkAsRead, handleShare, error]);
+	}, [
+		selectedFeedItem,
+		navigation,
+		handleMarkAsRead,
+		handleShare,
+		onToggleDropdown,
+		router,
+		setMenuItems,
+	]);
 
 	return (
 		<Screen loading={loading} error={error} style={styles.container}>

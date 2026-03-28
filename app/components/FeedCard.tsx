@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { Feed } from "../../models/Feed";
 import { styles } from "../../styles/FeedCard.styles";
 

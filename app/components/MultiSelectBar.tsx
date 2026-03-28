@@ -16,13 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useRef } from "react";
+import React from "react";
 import { View, ViewProps } from "react-native";
 import { commonStyles } from "../../styles/commonStyles";
 
-interface MultiSelectBarProps extends ViewProps {}
-
-const MultiSelectBar = React.forwardRef<View, MultiSelectBarProps>(
+const MultiSelectBar = React.forwardRef<View, ViewProps>(
 	({ children, ...props }, ref) => {
 		return (
 			<View ref={ref} style={commonStyles.topBar} {...props}>
@@ -31,5 +29,7 @@ const MultiSelectBar = React.forwardRef<View, MultiSelectBarProps>(
 		);
 	},
 );
+
+MultiSelectBar.displayName = "MultiSelectBar";
 
 export default MultiSelectBar;

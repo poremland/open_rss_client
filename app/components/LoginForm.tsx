@@ -18,7 +18,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-	StyleSheet,
 	View,
 	Text,
 	TextInput,
@@ -28,8 +27,8 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { post } from "../../helpers/api";
-import * as authHelper from "../../helpers/auth";
+import { post } from "../../helpers/api_helper";
+import * as authHelper from "../../helpers/auth_helper";
 import { LoginResponse } from "../../models/Login";
 
 import { styles, loadingIndicator } from "../../styles/LoginForm.styles";

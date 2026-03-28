@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
 	View,
 	Text,
@@ -29,7 +29,7 @@ import {
 } from "react-native";
 import { useNavigation } from "expo-router";
 import useApi from "./components/useApi";
-import * as authHelper from "../helpers/auth";
+import { auth } from "../helpers/auth_helper";
 import { NewFeedResponse } from "../models/Feed";
 import Screen from "./components/Screen";
 import { styles } from "../styles/AddFeedScreen.styles";
@@ -44,19 +44,19 @@ const AddFeedScreen: React.FC = () => {
 		execute: addFeed,
 	} = useApi<NewFeedResponse>("post", "/feeds/create");
 
-	const handleAddFeed = async () => {
-		const user = await authHelper.getUser();
+	const handleAddFeed = useCallback(async () => {
+		const user = await auth.getUser();
 		const body = {
-			"feed[uri]": `${feedUri}`,
-			"feed[name]": `${feedName}`,
-			"feed[user]": `${user}`,
+			"feed[uri]": String(feedUri),
+			"feed[name]": String(feedName),
+			"feed[user]": String(user),
 		};
 		const response = await addFeed(body);
 
 		if (response?.id && response.id > 0) {
 			navigation.goBack();
 		}
-	};
+	}, [feedUri, feedName, addFeed, navigation]);
 
 	return (
 		<Screen loading={loading} error={error}>
@@ -75,16 +75,22 @@ const AddFeedScreen: React.FC = () => {
 						<TextInput
 							style={styles.input}
 							placeholder="FeedName"
+							testID="feedNameInput"
 							value={feedName}
 							onChangeText={setFeedName}
 						/>
 						<TextInput
 							style={styles.input}
 							placeholder="FeedUri"
+							testID="feedUriInput"
 							value={feedUri}
 							onChangeText={setFeedUri}
 						/>
-						<Button title="Add Feed" onPress={handleAddFeed} />
+						<Button
+							title="Add Feed"
+							testID="addFeedButton"
+							onPress={handleAddFeed}
+						/>
 					</View>
 				</ScrollView>
 			</KeyboardAvoidingView>

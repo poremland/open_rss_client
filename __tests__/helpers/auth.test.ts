@@ -16,88 +16,106 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert } from "react-native";
-import {
-	storeAuthToken,
-	storeUser,
-	getAuthToken,
-	getUser,
-	clearAuthData,
-	checkLoggedIn,
-	refreshTokenOnLoad,
-	handleSessionExpired,
-} from "../../helpers/auth";
-import * as api from "../../helpers/api";
+import { mock, expect, describe, it, beforeEach, spyOn } from "bun:test";
+import { Auth } from "../../helpers/auth_helper.impl";
+import { api as apiInstance } from "../../helpers/api_helper.impl";
 
-const mockRouter = {
-	dismissAll: jest.fn(),
-	replace: jest.fn(),
+const storageMap = new Map();
+const asyncStorageMock = {
+	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
+	getItem: mock(async (k: string) => { 
+		const val = storageMap.get(k);
+		return val === undefined ? null : val;
+	}),
+	removeItem: mock(async (k: string) => { storageMap.delete(k); }),
+	clear: mock(async () => { storageMap.clear(); }),
+	getAllKeys: mock(async () => Array.from(storageMap.keys())),
+	multiGet: mock(async (keys: string[]) => keys.map(k => [k, storageMap.get(k) || null])),
 };
 
-jest.mock("react-native", () => ({ Alert: { alert: jest.fn() } }));
-jest.mock("../../helpers/api", () => ({
-	...jest.requireActual("../../helpers/api"),
-	refreshToken: jest.fn(),
+mock.module("@react-native-async-storage/async-storage", () => ({
+	__esModule: true,
+	default: asyncStorageMock,
+	...asyncStorageMock,
 }));
 
+const alertMock = mock();
+mock.module("react-native", () => ({
+	Alert: { alert: alertMock }
+}));
+
+const routerMocks = {
+	push: mock(),
+	replace: mock(),
+	back: mock(),
+	dismissAll: mock(),
+};
+
 describe("auth helpers", () => {
-	beforeEach(() => {
-		AsyncStorage.clear();
-		mockRouter.dismissAll.mockClear();
-		mockRouter.replace.mockClear();
-		(api.refreshToken as jest.Mock).mockClear();
-		(Alert.alert as jest.Mock).mockClear();
+	let auth: Auth;
+
+	beforeEach(async () => {
+		storageMap.clear();
+		Object.values(asyncStorageMock).forEach(m => m.mockClear());
+		alertMock.mockClear();
+		Object.values(routerMocks).forEach(m => m.mockClear());
+		
+		auth = new Auth();
+		auth.setDeps({
+			storage: asyncStorageMock as any,
+			alert: { alert: alertMock } as any,
+		});
 	});
 
 	it("should store and retrieve auth token", async () => {
-		await storeAuthToken("test-token");
-		const token = await getAuthToken();
+		await auth.storeAuthToken("test-token");
+		const token = await auth.getAuthToken();
 		expect(token).toBe("test-token");
 	});
 
 	it("should store and retrieve user", async () => {
-		await storeUser("test-user");
-		const user = await getUser();
+		await auth.storeUser("test-user");
+		const user = await auth.getUser();
 		expect(user).toBe("test-user");
 	});
 
 	it("should clear auth data and navigate", async () => {
-		await storeAuthToken("test-token");
-		await storeUser("test-user");
+		await auth.storeAuthToken("test-token");
+		await auth.storeUser("test-user");
 
-		await clearAuthData(mockRouter as any);
+		await auth.clearAuthData(routerMocks as any);
 
-		expect(await getAuthToken()).toBeNull();
-		expect(await getUser()).toBeNull();
-		expect(mockRouter.dismissAll).toHaveBeenCalled();
-		expect(mockRouter.replace).toHaveBeenCalledWith("/");
+		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("user");
+		expect(routerMocks.dismissAll).toHaveBeenCalled();
+		expect(routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 
 	it("should navigate to feed list if logged in", async () => {
-		await storeAuthToken("test-token");
-		await checkLoggedIn(mockRouter as any);
-		expect(mockRouter.replace).toHaveBeenCalledWith("FeedListScreen");
+		await auth.storeAuthToken("test-token");
+		await auth.checkLoggedIn(routerMocks as any);
+		expect(routerMocks.replace).toHaveBeenCalledWith("FeedListScreen");
 	});
 
 	it("should not navigate if not logged in", async () => {
-		await checkLoggedIn(mockRouter as any);
-		expect(mockRouter.replace).not.toHaveBeenCalled();
+		await auth.checkLoggedIn(routerMocks as any);
+		expect(routerMocks.replace).not.toHaveBeenCalled();
 	});
 
 	it("should refresh token on load", async () => {
-		(api.refreshToken as jest.Mock).mockResolvedValue("new-token");
-		await refreshTokenOnLoad();
-		expect(await getAuthToken()).toBe("new-token");
+		const refreshTokenSpy = spyOn(apiInstance, "refreshToken").mockResolvedValue("new-token");
+		await auth.refreshTokenOnLoad();
+		expect(await auth.getAuthToken()).toBe("new-token");
+		refreshTokenSpy.mockRestore();
 	});
 
 	it("should handle session expired", async () => {
-		await handleSessionExpired(mockRouter as any);
-		expect(Alert.alert).toHaveBeenCalledWith(
+		await auth.handleSessionExpired(routerMocks as any);
+		expect(alertMock).toHaveBeenCalledWith(
 			"Session Expired",
 			"Your session has expired. Please log in again.",
 		);
-		expect(mockRouter.dismissAll).toHaveBeenCalled();
-		expect(mockRouter.replace).toHaveBeenCalledWith("/");
+		expect(routerMocks.dismissAll).toHaveBeenCalled();
+		expect(routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 });

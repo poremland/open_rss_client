@@ -15,25 +15,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+import "./setup";
+import { mocks } from "./setup";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import HeaderRightMenu from "../app/components/HeaderRightMenu";
 
-jest.mock("@expo/vector-icons", () => ({
-	Ionicons: "Ionicons",
-}));
-
 describe("HeaderRightMenu", () => {
+	beforeEach(() => {
+		mocks.resetAll();
+	});
+
 	it("renders correctly and calls onToggleDropdown when pressed", () => {
-		const mockToggleDropdown = jest.fn();
-		const { getByTestId } = render(
-			<HeaderRightMenu onToggleDropdown={mockToggleDropdown} />,
-		);
+		const onToggleDropdown = mock();
+		const { getByTestId } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
+		const button = getByTestId("menu");
+		expect(button).toBeTruthy();
 
-		const menuButton = getByTestId("menu");
-		fireEvent(menuButton, "pressOut");
-
-		expect(mockToggleDropdown).toHaveBeenCalledTimes(1);
+		fireEvent.press(button);
+		expect(onToggleDropdown).toHaveBeenCalled();
 	});
 });
