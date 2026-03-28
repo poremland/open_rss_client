@@ -102,7 +102,7 @@ const FeedItemListScreen: React.FC = () => {
 			listRef.current?.handleRefresh();
 			router.setParams({ removedItemId: undefined }); // Clear the param after processing
 		}
-	}, [removedItemId]);
+	}, [removedItemId, router]);
 
 	useFocusEffect(
 		useCallback(() => {

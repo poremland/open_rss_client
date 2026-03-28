@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect } from "react";
-import { StatusBar, View } from "react-native";
+import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import GlobalDropdownMenu from "./components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
