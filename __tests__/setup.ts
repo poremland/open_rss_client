@@ -21,17 +21,33 @@ import * as path from "path";
 
 // Silence react-test-renderer deprecation warning
 const originalWarn = console.warn;
+const originalError = console.error;
+const originalLog = console.log;
+
+const filterWarning = (args: any[], originalFn: (...args: any[]) => void) => {
+	if (typeof args[0] === "string" && args[0].includes("react-test-renderer is deprecated")) {
+		return;
+	}
+	originalFn(...args);
+};
+
 Object.defineProperty(console, "warn", {
-	value: (...args: any[]) => {
-		if (typeof args[0] === "string" && args[0].includes("react-test-renderer is deprecated")) {
-			return;
-		}
-		originalWarn(...args);
-	},
+	value: (...args: any[]) => filterWarning(args, originalWarn),
 	configurable: true,
 	writable: true,
 });
 
+Object.defineProperty(console, "error", {
+	value: (...args: any[]) => filterWarning(args, originalError),
+	configurable: true,
+	writable: true,
+});
+
+Object.defineProperty(console, "log", {
+	value: (...args: any[]) => filterWarning(args, originalLog),
+	configurable: true,
+	writable: true,
+});
 process.env.RNTL_SKIP_DEPS_CHECK = "true";
 
 // Helper to resolve absolute paths for mock.module
