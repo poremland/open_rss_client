@@ -39,9 +39,12 @@ describe("API Helper", () => {
 		api.setDeps({
 			storage: asyncStorageMock,
 			fetch: fetchMock as any,
-			fileSystem: fileSystemMock as any,
 			sharing: sharingMock as any,
 			haptics: hapticsMock as any,
+			platform: { OS: "ios" } as any,
+			file: fileSystemMock.File as any,
+			paths: fileSystemMock.Paths as any,
+			directory: fileSystemMock.Directory as any,
 		});
 		await asyncStorageMock.setItem("serverUrl", MOCK_BASE_URL);
 		fetchMock.mockClear();
@@ -344,11 +347,11 @@ describe("API Helper", () => {
 	});
 
 	describe("exportOpml", () => {
-		it("should fetch OPML text, save to file, and share it", async () => {
+		it("should fetch OPML text and share it on iOS", async () => {
 			const mockOpml = '<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body></body></opml>';
 			await asyncStorageMock.setItem("authToken", "test-token");
+			api.setDeps({ platform: { OS: "ios" } as any });
 			
-			// Mock the underlying fetch that getWithAuth uses
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
@@ -359,18 +362,35 @@ describe("API Helper", () => {
 
 			await api.exportOpml();
 
-			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/export`, expect.objectContaining({
-				method: "GET",
-				headers: expect.objectContaining({
-					Authorization: "Bearer test-token",
-				}),
-			}));
-			// Note: We can't easily check file.write because it's called on a new instance
-			// but we can check if shareAsync was called with a URI containing "subscriptions"
 			expect(sharingMock.shareAsync).toHaveBeenCalledWith(
 				expect.stringContaining("subscriptions"),
 				expect.any(Object)
 			);
+			expect(hapticsMock.notificationAsync).toHaveBeenCalledWith("success");
+		});
+
+		it("should fetch OPML text and save to folder on Android", async () => {
+			const mockOpml = '<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body></body></opml>';
+			await asyncStorageMock.setItem("authToken", "test-token");
+			api.setDeps({ platform: { OS: "android" } as any });
+			
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "text/x-opml" : null },
+				json: async () => { throw new Error("not json"); },
+				text: async () => mockOpml,
+			} as any);
+
+			const mockFile = { write: mock(async () => {}), uri: "file:///mock-saf/file.opml" };
+			const mockDirectory = { createFile: mock(() => mockFile) };
+			fileSystemMock.Directory.pickDirectoryAsync = mock(async () => mockDirectory);
+
+			await api.exportOpml();
+
+			expect(fileSystemMock.Directory.pickDirectoryAsync).toHaveBeenCalled();
+			expect(mockDirectory.createFile).toHaveBeenCalledWith(expect.stringContaining("subscriptions"), "text/x-opml");
+			expect(mockFile.write).toHaveBeenCalledWith(mockOpml);
 			expect(hapticsMock.notificationAsync).toHaveBeenCalledWith("success");
 		});
 

@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { File, Paths } from "expo-file-system";
+import { File, Paths, Directory } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Haptics from "expo-haptics";
 
@@ -26,6 +27,10 @@ export interface ApiDeps {
 	fetch: typeof fetch;
 	sharing: typeof Sharing;
 	haptics: typeof Haptics;
+	platform: typeof Platform;
+	file: typeof File;
+	paths: typeof Paths;
+	directory: typeof Directory;
 }
 
 export class Api {
@@ -34,6 +39,10 @@ export class Api {
 		fetch: fetch.bind(globalThis),
 		sharing: Sharing,
 		haptics: Haptics,
+		platform: Platform,
+		file: File,
+		paths: Paths,
+		directory: Directory,
 	};
 
 	setDeps(deps: Partial<ApiDeps>) {
@@ -198,14 +207,22 @@ export class Api {
 	exportOpml = async (): Promise<void> => {
 		const text = await this.getWithAuth<string>("/feeds/export");
 		const filename = `subscriptions_${new Date().getTime()}.opml`;
-		const file = new File(Paths.cache, filename);
 
-		await file.write(text);
-		await this.deps.sharing.shareAsync(file.uri, {
-			mimeType: "text/x-opml",
-			dialogTitle: "Export Subscriptions",
-			UTI: "public.xml",
-		});
+		if (this.deps.platform.OS === "android") {
+			const directory = await this.deps.directory.pickDirectoryAsync();
+			if (!directory) return;
+
+			const file = directory.createFile(filename, "text/x-opml");
+			await file.write(text);
+		} else {
+			const file = new (this.deps.file)(this.deps.paths.cache, filename);
+			await file.write(text);
+			await this.deps.sharing.shareAsync(file.uri, {
+				mimeType: "text/x-opml",
+				dialogTitle: "Export Subscriptions",
+				UTI: "public.xml",
+			});
+		}
 		await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
 	};
 

@@ -119,10 +119,12 @@ export const fileSystemMock = {
 			create() { return Promise.resolve(); }
 			delete() { return Promise.resolve(); }
 			createFile(name: string) { return new (fileSystemMock.File as any)("file:///mock-uri", name); }
+			static pickDirectoryAsync() { return Promise.resolve(null); }
 		};
 		(D.prototype as any).create = mock(async () => {});
 		(D.prototype as any).delete = mock(async () => {});
 		(D.prototype as any).createFile = mock((name: string) => new (fileSystemMock.File as any)("file:///mock-uri", name));
+		(D as any).pickDirectoryAsync = mock(async () => null);
 		return D;
 	})(),
 };
