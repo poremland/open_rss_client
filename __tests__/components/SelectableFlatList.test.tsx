@@ -21,7 +21,7 @@ import * as setup from "../setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
-import { TouchableOpacity, Text } from "react-native";
+import { TouchableOpacity, Text, View } from "react-native";
 import { GestureHandlerRootView, State } from "react-native-gesture-handler";
 import SelectableFlatList from "../../app/components/SelectableFlatList";
 
@@ -145,5 +145,199 @@ describe("SelectableFlatList", () => {
 
 		fireEvent.press(getByText("Item 1"));
 		expect(onSelectionChange).toHaveBeenCalledWith([]);
+	});
+
+	it("should not call onSwipeAction when swipe threshold is not met", async () => {
+		const onSwipeAction = mock();
+		const { getByTestId } = render(
+			<GestureHandlerRootView>
+				<SelectableFlatList
+					data={mockData.slice(0, 1)}
+					renderItem={renderItem}
+					onRefresh={() => {}}
+					refreshing={false}
+					multiSelectActive={false}
+					onSelectionChange={() => {}}
+					selectedItems={[]}
+					onItemPress={() => {}}
+					swipeEnabled={true}
+					onSwipeAction={onSwipeAction}
+					swipeActionRequiresConfirmation={false}
+				/>
+			</GestureHandlerRootView>,
+		);
+
+		const handler = getByTestId("pan-gesture-handler");
+		// Simulate a swipe that doesn't meet the threshold (translationX = 10)
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: 10 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: 10 },
+		});
+
+		expect(onSwipeAction).not.toHaveBeenCalled();
+	});
+
+	it("should call onSwipeAction when swipe threshold is met", async () => {
+		const onSwipeAction = mock();
+		const { getByTestId } = render(
+			<GestureHandlerRootView>
+				<SelectableFlatList
+					data={mockData.slice(0, 1)}
+					renderItem={renderItem}
+					onRefresh={() => {}}
+					refreshing={false}
+					multiSelectActive={false}
+					onSelectionChange={() => {}}
+					selectedItems={[]}
+					onItemPress={() => {}}
+					swipeEnabled={true}
+					onSwipeAction={onSwipeAction}
+					swipeActionRequiresConfirmation={false}
+				/>
+			</GestureHandlerRootView>,
+		);
+
+		const handler = getByTestId("pan-gesture-handler");
+		// Simulate a swipe that meets the threshold (threshold is 50% of screen width)
+		// Our mock uses Dimensions.get('window').width which is likely 750 or 0 in test
+		// SelectableFlatListItem.tsx defines SWIPE_THRESHOLD = SCREEN_WIDTH * 0.5
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
+		});
+
+		expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
+	});
+
+	it("should show a confirmation dialog if confirmation is set", async () => {
+		const onSwipeAction = mock();
+		const { getByTestId } = render(
+			<GestureHandlerRootView>
+				<SelectableFlatList
+					data={mockData.slice(0, 1)}
+					renderItem={renderItem}
+					onRefresh={() => {}}
+					refreshing={false}
+					multiSelectActive={false}
+					onSelectionChange={() => {}}
+					selectedItems={[]}
+					onItemPress={() => {}}
+					swipeEnabled={true}
+					onSwipeAction={onSwipeAction}
+					swipeActionRequiresConfirmation={true}
+					swipeConfirmationMessage="Confirm delete?"
+				/>
+			</GestureHandlerRootView>,
+		);
+
+		const handler = getByTestId("pan-gesture-handler");
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
+		});
+
+		await waitFor(() => {
+			expect(setup.alertMock).toHaveBeenCalledWith(
+				"Confirm Action",
+				"Confirm delete?",
+				expect.any(Array),
+				expect.any(Object),
+			);
+		});
+		expect(onSwipeAction).not.toHaveBeenCalled();
+	});
+
+	it("if confirmation is set on the SelectableFlatList the action is only called if confirmed", async () => {
+		const onSwipeAction = mock();
+		const { getByTestId } = render(
+			<GestureHandlerRootView>
+				<SelectableFlatList
+					data={mockData.slice(0, 1)}
+					renderItem={renderItem}
+					onRefresh={() => {}}
+					refreshing={false}
+					multiSelectActive={false}
+					onSelectionChange={() => {}}
+					selectedItems={[]}
+					onItemPress={() => {}}
+					swipeEnabled={true}
+					onSwipeAction={onSwipeAction}
+					swipeActionRequiresConfirmation={true}
+					swipeConfirmationMessage="Confirm delete?"
+				/>
+			</GestureHandlerRootView>,
+		);
+
+		const handler = getByTestId("pan-gesture-handler");
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
+		});
+
+		await waitFor(() => {
+			expect(setup.alertMock).toHaveBeenCalledTimes(1);
+		});
+
+		const alertOptions = setup.alertMock.mock.calls[0][2];
+		const confirmButton = alertOptions.find((option: any) => option.text === "Yes");
+		expect(confirmButton).toBeDefined();
+
+		act(() => {
+			confirmButton.onPress();
+		});
+
+		expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
+	});
+
+	it("if confirmation is set on the SelectableFlatList the action is not executed if canceled", async () => {
+		const onSwipeAction = mock();
+		const { getByTestId } = render(
+			<GestureHandlerRootView>
+				<SelectableFlatList
+					data={mockData.slice(0, 1)}
+					renderItem={renderItem}
+					onRefresh={() => {}}
+					refreshing={false}
+					multiSelectActive={false}
+					onSelectionChange={() => {}}
+					selectedItems={[]}
+					onItemPress={() => {}}
+					swipeEnabled={true}
+					onSwipeAction={onSwipeAction}
+					swipeActionRequiresConfirmation={true}
+					swipeConfirmationMessage="Confirm delete?"
+				/>
+			</GestureHandlerRootView>,
+		);
+
+		const handler = getByTestId("pan-gesture-handler");
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
+		});
+
+		await waitFor(() => {
+			expect(setup.alertMock).toHaveBeenCalledTimes(1);
+		});
+
+		const alertOptions = setup.alertMock.mock.calls[0][2];
+		const cancelButton = alertOptions.find((option: any) => option.text === "No");
+		expect(cancelButton).toBeDefined();
+
+		act(() => {
+			cancelButton.onPress();
+		});
+
+		expect(onSwipeAction).not.toHaveBeenCalled();
 	});
 });

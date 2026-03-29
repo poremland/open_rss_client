@@ -133,27 +133,29 @@ const SelectableFlatListItem = <T extends { id: number }>({
 
 	const onTapEvent = useCallback((event: any) => {
 		if (event.nativeEvent.state === State.END) {
-			runOnJS(onPress)();
+			onPress();
 		}
 	}, [onPress]);
 
 	if (swipeEnabled) {
 		return (
-			<TapGestureHandler
-				onHandlerStateChange={onTapEvent}
-				testID="tap-gesture-handler"
+			<PanGestureHandler
+				onGestureEvent={gestureHandler}
+				activeOffsetX={[-20, 20]}
+				failOffsetY={[-10, 10]}
+				testID="pan-gesture-handler"
+				{...(process.env.NODE_ENV === "test" && { item })}
 			>
-				<Animated.View>
-					<PanGestureHandler
-						onGestureEvent={gestureHandler}
-						activeOffsetX={[-20, 20]}
-						failOffsetY={[-10, 10]}
-						{...(process.env.NODE_ENV === "test" && { item })}
+				<Animated.View style={animatedStyle}>
+					<TapGestureHandler
+						onHandlerStateChange={onTapEvent}
+						testID="tap-gesture-handler"
+						shouldCancelWhenOutside={true}
 					>
-						<Animated.View style={animatedStyle}>{itemContent}</Animated.View>
-					</PanGestureHandler>
+						<Animated.View>{itemContent}</Animated.View>
+					</TapGestureHandler>
 				</Animated.View>
-			</TapGestureHandler>
+			</PanGestureHandler>
 		);
 	}
 

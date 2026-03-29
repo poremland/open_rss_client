@@ -59,4 +59,24 @@ describe("FeedItemDetailScreen", () => {
 			expect(webViewContainer).toBeTruthy();
 		});
 	});
+
+	it("should NOT call goBack on mount when feedItemId is present", async () => {
+		// Mock API to stay in loading state or return nothing yet
+		mocks.api.getWithAuth.mockReturnValue(new Promise(() => {})); // Never resolves
+
+		render(<FeedItemDetailScreen />);
+
+		// Check that goBack was not called
+		expect(mocks.navigation.goBack).not.toHaveBeenCalled();
+	});
+
+	it("should call goBack on mount when feedItemId is missing", async () => {
+		mocks.localSearchParams.params = {}; // Missing feedItemId
+
+		render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			expect(mocks.navigation.goBack).toHaveBeenCalled();
+		});
+	});
 });
