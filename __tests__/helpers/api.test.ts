@@ -18,7 +18,7 @@
 
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { Api } from "../../helpers/api_helper.impl";
-import { resetAll, asyncStorageMock, fetchMock } from "../mocks";
+import { resetAll, asyncStorageMock, fetchMock, fileSystemMock, sharingMock, hapticsMock } from "../mocks";
 
 describe("API Helper", () => {
 	const MOCK_BASE_URL = "http://localhost:3000";
@@ -26,13 +26,31 @@ describe("API Helper", () => {
 
 	beforeEach(async () => {
 		resetAll();
+		fetchMock.mockImplementation(() => Promise.resolve({ 
+			ok: true, 
+			status: 200,
+			headers: {
+				get: (name: string) => name.toLowerCase() === "content-type" ? "application/json" : null
+			},
+			json: async () => ({}),
+			text: async () => ""
+		}));
 		api = new Api();
 		api.setDeps({
 			storage: asyncStorageMock,
 			fetch: fetchMock as any,
+			sharing: sharingMock as any,
+			haptics: hapticsMock as any,
+			platform: { OS: "ios" } as any,
+			file: fileSystemMock.File as any,
+			paths: fileSystemMock.Paths as any,
+			directory: fileSystemMock.Directory as any,
 		});
 		await asyncStorageMock.setItem("serverUrl", MOCK_BASE_URL);
 		fetchMock.mockClear();
+		fileSystemMock.writeAsStringAsync.mockClear();
+		sharingMock.shareAsync.mockClear();
+		hapticsMock.notificationAsync.mockClear();
 	});
 
 	describe("post", () => {
@@ -41,6 +59,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -80,6 +99,34 @@ describe("API Helper", () => {
 				"Session expired",
 			);
 		});
+
+		it("should return text if response is not JSON", async () => {
+			const mockText = "not json content";
+			let consumed = false;
+			const checkConsumed = () => {
+				if (consumed) throw new Error("Already read");
+				consumed = true;
+			};
+
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: {
+					get: (name: string) => name.toLowerCase() === "content-type" ? "text/plain" : null
+				},
+				json: async () => { 
+					checkConsumed();
+					throw new Error("Unexpected token 'n', \"not json ...\" is not valid JSON"); 
+				},
+				text: async () => {
+					checkConsumed();
+					return mockText;
+				},
+			} as any);
+
+			const result = await api.post("/test", { foo: "bar" });
+			expect(result).toBe(mockText);
+		});
 	});
 
 	describe("postWithAuth", () => {
@@ -89,6 +136,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -112,6 +160,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -146,6 +195,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -164,6 +214,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -195,6 +246,7 @@ describe("API Helper", () => {
 				.mockResolvedValueOnce({
 					ok: true,
 					status: 200,
+					headers: { get: () => "application/json" },
 					json: async () => mockData,
 				} as any);
 
@@ -212,6 +264,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -252,6 +305,7 @@ describe("API Helper", () => {
 				.mockResolvedValueOnce({
 					ok: true,
 					status: 200,
+					headers: { get: () => "application/json" },
 					json: async () => mockData,
 				} as any);
 
@@ -259,6 +313,139 @@ describe("API Helper", () => {
 
 			expect(result).toEqual(mockData);
 			expect(fetchMock).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	describe("getBlobWithAuth", () => {
+		it("should make an authenticated GET request and return a blob", async () => {
+			const mockBlob = { size: 1024, type: "text/x-opml" };
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: { get: () => "text/x-opml" },
+				blob: async () => mockBlob,
+			} as any);
+
+
+			const result = await api.getBlobWithAuth("/test");
+
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+				method: "GET",
+				headers: {
+					Authorization: "Bearer test-token",
+				},
+			});
+			expect(result).toEqual(mockBlob);
+		});
+
+		it("should throw an error if no auth token is found", async () => {
+			await expect(api.getBlobWithAuth("/test")).rejects.toThrow(
+				"No authentication token found.",
+			);
+		});
+	});
+
+	describe("exportOpml", () => {
+		it("should fetch OPML text and share it on iOS", async () => {
+			const mockOpml = '<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body></body></opml>';
+			await asyncStorageMock.setItem("authToken", "test-token");
+			api.setDeps({ platform: { OS: "ios" } as any });
+			
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "text/x-opml" : null },
+				json: async () => { throw new Error("not json"); },
+				text: async () => mockOpml,
+			} as any);
+
+			await api.exportOpml();
+
+			expect(sharingMock.shareAsync).toHaveBeenCalledWith(
+				expect.stringContaining("subscriptions"),
+				expect.any(Object)
+			);
+			expect(hapticsMock.notificationAsync).toHaveBeenCalledWith("success");
+		});
+
+		it("should fetch OPML text and save to folder on Android", async () => {
+			const mockOpml = '<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body></body></opml>';
+			await asyncStorageMock.setItem("authToken", "test-token");
+			api.setDeps({ platform: { OS: "android" } as any });
+			
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "text/x-opml" : null },
+				json: async () => { throw new Error("not json"); },
+				text: async () => mockOpml,
+			} as any);
+
+			const mockFile = { write: mock(async () => {}), uri: "file:///mock-saf/file.opml" };
+			const mockDirectory = { createFile: mock(() => mockFile) };
+			fileSystemMock.Directory.pickDirectoryAsync = mock(async () => mockDirectory);
+
+			await api.exportOpml();
+
+			expect(fileSystemMock.Directory.pickDirectoryAsync).toHaveBeenCalled();
+			expect(mockDirectory.createFile).toHaveBeenCalledWith(expect.stringContaining("subscriptions"), "text/x-opml");
+			expect(mockFile.write).toHaveBeenCalledWith(mockOpml);
+			expect(hapticsMock.notificationAsync).toHaveBeenCalledWith("success");
+		});
+
+		it("should throw an error if export fails", async () => {
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				text: async () => "Internal Server Error",
+			} as any);
+
+			await expect(api.exportOpml()).rejects.toThrow("Request failed with status 500: Internal Server Error");
+		});
+	});
+
+	describe("importOpml", () => {
+		it("should upload an OPML file and return success", async () => {
+			const mockUri = "file:///test.opml";
+			const mockResponse = { message: "Import started", count: 10 };
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: { get: () => "application/json" },
+				json: async () => mockResponse,
+			} as any);
+
+
+			const result = await api.importOpml(mockUri);
+
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/import`, {
+				method: "POST",
+				headers: {
+					Authorization: "Bearer test-token",
+					"Accept": "application/json",
+				},
+				body: expect.any(FormData),
+			});
+
+			const formData = fetchMock.mock.calls[0][1].body as FormData;
+			// FormData inspection is tricky in some environments, but we can check if append was likely called
+			expect(result).toEqual(mockResponse);
+			expect(hapticsMock.notificationAsync).toHaveBeenCalledWith("success");
+		});
+
+		it("should throw an error if import fails", async () => {
+			const mockUri = "file:///test.opml";
+			await asyncStorageMock.setItem("authToken", "test-token");
+			fetchMock.mockResolvedValueOnce({
+				ok: false,
+				status: 422,
+				text: async () => JSON.stringify({ error: "No valid feeds found" }),
+			} as any);
+
+			await expect(api.importOpml(mockUri)).rejects.toThrow("Request failed with status 422");
 		});
 	});
 });

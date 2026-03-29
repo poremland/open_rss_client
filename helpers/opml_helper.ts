@@ -16,16 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Api } from "./api_helper.impl";
+import { validateOpmlFile as validateOpmlFileImpl } from "./opml_helper.impl";
 
-export const api = new Api();
-export const post = api.post;
-export const postWithAuth = api.postWithAuth;
-export const get = api.get;
-export const getWithAuth = api.getWithAuth;
-export const getBlobWithAuth = api.getBlobWithAuth;
-export const exportOpml = api.exportOpml;
-export const importOpml = api.importOpml;
-export const postFormDataWithAuth = api.postFormDataWithAuth;
-export const putWithAuth = api.putWithAuth;
-export const refreshToken = api.refreshToken;
+export const validateOpmlFile = validateOpmlFileImpl;

@@ -77,6 +77,86 @@ export const clipboardMocks = {
 	isPasteButtonAvailable: true,
 };
 
+export const fileSystemMock = {
+	documentDirectory: "file:///mock-documents/",
+	cacheDirectory: "file:///mock-cache/",
+	writeAsStringAsync: mock(async () => {}),
+	readAsStringAsync: mock(async () => ""),
+	deleteAsync: mock(async () => {}),
+	makeDirectoryAsync: mock(async () => {}),
+	copyAsync: mock(async () => {}),
+	StorageAccessFramework: {
+		requestDirectoryPermissionsAsync: mock(async () => ({ granted: true, directoryUri: "file:///mock-saf/" })),
+		createFileAsync: mock(async () => "file:///mock-saf/file.opml"),
+	},
+	File: (() => {
+		const F = class {
+			uri: string;
+			exists = true;
+			constructor(path: string, name?: string) {
+				this.uri = name ? `${path}/${name}` : path;
+			}
+			write() { return Promise.resolve(); }
+			text() { return Promise.resolve(""); }
+			delete() { return Promise.resolve(); }
+		};
+		(F.prototype as any).write = mock(async () => {});
+		(F.prototype as any).text = mock(async () => "");
+		(F.prototype as any).delete = mock(async () => {});
+		return F;
+	})(),
+	Paths: {
+		cache: "file:///mock-cache",
+		document: "file:///mock-documents",
+	},
+	Directory: (() => {
+		const D = class {
+			uri: string;
+			exists = true;
+			constructor(path: string, name?: string) {
+				this.uri = name ? `${path}/${name}` : path;
+			}
+			create() { return Promise.resolve(); }
+			delete() { return Promise.resolve(); }
+			createFile(name: string) { return new (fileSystemMock.File as any)("file:///mock-uri", name); }
+			static pickDirectoryAsync() { return Promise.resolve(null); }
+		};
+		(D.prototype as any).create = mock(async () => {});
+		(D.prototype as any).delete = mock(async () => {});
+		(D.prototype as any).createFile = mock((name: string) => new (fileSystemMock.File as any)("file:///mock-uri", name));
+		(D as any).pickDirectoryAsync = mock(async () => null);
+		return D;
+	})(),
+};
+
+export const sharingMock = {
+	shareAsync: mock(async () => {}),
+};
+
+export const documentPickerMock = {
+	getDocumentAsync: mock(async () => ({ type: "cancel" })),
+};
+
+export const hapticsMock = {
+	notificationAsync: mock(async () => {}),
+	impactAsync: mock(async () => {}),
+	selectionAsync: mock(async () => {}),
+	NotificationFeedbackType: {
+		Success: "success",
+		Warning: "warning",
+		Error: "error",
+	},
+	ImpactFeedbackStyle: {
+		Light: "light",
+		Medium: "medium",
+		Heavy: "heavy",
+	},
+};
+
+export const opmlMocks = {
+	validateOpmlFile: mock(async () => true),
+};
+
 export const asyncStorageMock = {
 	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
 	getItem: mock(async (k: string) => { 
@@ -93,6 +173,9 @@ export const apiMocks = {
 	get: mock(),
 	post: mock(),
 	getWithAuth: mock(),
+	getBlobWithAuth: mock(),
+	exportOpml: mock(),
+	importOpml: mock(),
 	postWithAuth: mock(),
 	putWithAuth: mock(),
 	refreshToken: mock(),
@@ -155,6 +238,14 @@ export const resetAll = () => {
 	resetMocksInObj(apiMocks);
 	resetMocksInObj(authMocks);
 	resetMocksInObj(useMenuMock);
+	resetMocksInObj(fileSystemMock);
+	resetMocksInObj(sharingMock);
+	resetMocksInObj(documentPickerMock);
+	resetMocksInObj(hapticsMock);
+	resetMocksInObj(opmlMocks);
+	if (fileSystemMock.StorageAccessFramework) {
+		resetMocksInObj(fileSystemMock.StorageAccessFramework);
+	}
 
 	useApiConfig.data = null;
 	useApiConfig.loading = false;
@@ -175,7 +266,14 @@ export const resetAll = () => {
 	localSearchParamsMock.params = {};
 
 	alertMock.mockClear().mockImplementation(() => {});
-	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
+	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ 
+		ok: true, 
+		headers: {
+			get: (name: string) => name.toLowerCase() === "content-type" ? "application/json" : null
+		},
+		json: async () => ({}),
+		text: async () => ""
+	}));
 };
 
 // --- Bun Module Mocks ---
@@ -262,6 +360,10 @@ mock.module(resolveModule("../helpers/api_helper"), () => ({
 	postWithAuth: apiMocks.postWithAuth,
 	get: apiMocks.get,
 	getWithAuth: apiMocks.getWithAuth,
+	getBlobWithAuth: apiMocks.getBlobWithAuth,
+	exportOpml: apiMocks.exportOpml,
+	importOpml: apiMocks.importOpml,
+	postFormDataWithAuth: apiMocks.postFormDataWithAuth,
 	putWithAuth: apiMocks.putWithAuth,
 	refreshToken: apiMocks.refreshToken,
 	__esModule: true,
@@ -277,6 +379,11 @@ mock.module(resolveModule("../helpers/auth_helper"), () => ({
 	checkLoggedIn: authMocks.checkLoggedIn,
 	refreshTokenOnLoad: authMocks.refreshTokenOnLoad,
 	handleSessionExpired: authMocks.handleSessionExpired,
+	__esModule: true,
+}));
+
+mock.module(resolveModule("../helpers/opml_helper"), () => ({
+	validateOpmlFile: opmlMocks.validateOpmlFile,
 	__esModule: true,
 }));
 
@@ -343,6 +450,22 @@ mock.module("expo-modules-core", () => ({
 
 mock.module("expo-clipboard", () => ({
 	...clipboardMocks,
+}));
+
+mock.module("expo-file-system", () => ({
+	...fileSystemMock,
+}));
+
+mock.module("expo-sharing", () => ({
+	...sharingMock,
+}));
+
+mock.module("expo-document-picker", () => ({
+	...documentPickerMock,
+}));
+
+mock.module("expo-haptics", () => ({
+	...hapticsMock,
 }));
 
 mock.module("react-native-safe-area-context", () => ({
@@ -424,6 +547,16 @@ export const mocks = {
 	useApiMock,
 	useMenu: useMenuMock,
 	useMenuMock,
+	fileSystem: fileSystemMock,
+	fileSystemMock,
+	sharing: sharingMock,
+	sharingMock,
+	documentPicker: documentPickerMock,
+	documentPickerMock,
+	haptics: hapticsMock,
+	hapticsMock,
+	opml: opmlMocks,
+	opmlMocks,
 	localSearchParams: localSearchParamsMock,
 	resetAll
 };
