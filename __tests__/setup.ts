@@ -387,13 +387,24 @@ mock.module(resolveModule("../helpers/opml_helper"), () => ({
 	__esModule: true,
 }));
 
-mock.module("react-native-gesture-handler", () => ({
-	PanGestureHandler: ({ children }: any) => children,
-	TapGestureHandler: ({ children }: any) => children,
-	GestureHandlerRootView: ({ children }: any) => children,
-	State: {},
-	Directions: {},
-}));
+mock.module("react-native-gesture-handler", () => {
+	const React = require("react");
+	const { View } = require("react-native");
+	return {
+		PanGestureHandler: (props: any) => React.createElement(View, props, props.children),
+		TapGestureHandler: (props: any) => React.createElement(View, props, props.children),
+		GestureHandlerRootView: ({ children }: any) => children,
+		State: {
+			UNDETERMINED: 0,
+			FAILED: 1,
+			BEGAN: 2,
+			CANCELLED: 3,
+			ACTIVE: 4,
+			END: 5,
+		},
+		Directions: {},
+	};
+});
 
 mock.module("react-native-reanimated", () => {
 	const React = require("react");
