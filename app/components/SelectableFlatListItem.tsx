@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Alert, Dimensions } from "react-native";
-import { PanGestureHandler } from "react-native-gesture-handler";
+import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
@@ -126,10 +126,16 @@ const SelectableFlatListItem = <T extends { id: number }>({
 
 	const itemContent = renderItem({
 		item,
-		onPress,
+		onPress: swipeEnabled ? () => {} : onPress,
 		onLongPress,
 		isItemSelected,
 	});
+
+	const onTapEvent = useCallback((event: any) => {
+		if (event.nativeEvent.state === State.END) {
+			onPress();
+		}
+	}, [onPress]);
 
 	if (swipeEnabled) {
 		return (
@@ -137,9 +143,18 @@ const SelectableFlatListItem = <T extends { id: number }>({
 				onGestureEvent={gestureHandler}
 				activeOffsetX={[-20, 20]}
 				failOffsetY={[-10, 10]}
+				testID="pan-gesture-handler"
 				{...(process.env.NODE_ENV === "test" && { item })}
 			>
-				<Animated.View style={animatedStyle}>{itemContent}</Animated.View>
+				<Animated.View style={animatedStyle}>
+					<TapGestureHandler
+						onHandlerStateChange={onTapEvent}
+						testID="tap-gesture-handler"
+						shouldCancelWhenOutside={true}
+					>
+						<Animated.View>{itemContent}</Animated.View>
+					</TapGestureHandler>
+				</Animated.View>
 			</PanGestureHandler>
 		);
 	}

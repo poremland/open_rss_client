@@ -96,7 +96,7 @@ const FeedItemDetailScreen: React.FC = () => {
 			} else {
 				setWebViewSource(staticHtml);
 			}
-		} else {
+		} else if (!loading && !selectedFeedItem && !feedItemId) {
 			navigation.goBack();
 		}
 

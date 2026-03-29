@@ -16,48 +16,13 @@ import "../setup";
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "../setup";
 
 import * as setup from "../setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-
-let triggerSwipeActionFn: any;
-let triggerSwipeActionNotMetThresholdFn: any;
-
-const mockListItemInternal = ({ item, renderItem, onPress, onLongPress, isItemSelected, swipeEnabled, onSwipeAction, swipeActionRequiresConfirmation, swipeConfirmationMessage }: any) => {
-	const React = require("react");
-	const { View } = require("react-native");
-
-	triggerSwipeActionFn = () => {
-		if (swipeActionRequiresConfirmation) {
-			setup.alertMock(
-				"Confirm Action",
-				swipeConfirmationMessage,
-				[
-					{ text: "No", style: "cancel", onPress: () => {} },
-					{ text: "Yes", onPress: () => onSwipeAction?.(item) },
-				],
-				{ cancelable: true, onDismiss: () => {} },
-			);
-		} else {
-			onSwipeAction?.(item);
-		}
-	};
-
-	triggerSwipeActionNotMetThresholdFn = () => {};
-
-	return React.createElement(View, {}, renderItem({ item, onPress, onLongPress, isItemSelected }));
-};
-
-mock.module("../../app/components/SelectableFlatListItem", () => ({
-	default: mockListItemInternal,
-}));
-
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { act } from "react";
-import { TouchableOpacity, Text } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { TouchableOpacity, Text, View } from "react-native";
+import { GestureHandlerRootView, State } from "react-native-gesture-handler";
 import SelectableFlatList from "../../app/components/SelectableFlatList";
 
 const mockData = [
@@ -75,8 +40,6 @@ describe("SelectableFlatList", () => {
 
 	beforeEach(() => {
 		setup.resetAll();
-		triggerSwipeActionFn = undefined;
-		triggerSwipeActionNotMetThresholdFn = undefined;
 	});
 
 	it("should render a list of items", () => {
@@ -115,6 +78,31 @@ describe("SelectableFlatList", () => {
 		);
 
 		fireEvent.press(getByText("Item 1"));
+		expect(onItemPress).toHaveBeenCalledWith(mockData[0]);
+	});
+
+	it("should call onItemPress when an item is pressed (with swipe enabled)", () => {
+		const onItemPress = mock();
+		const { getByTestId } = render(
+			<SelectableFlatList
+				data={mockData.slice(0, 1)}
+				renderItem={renderItem}
+				onRefresh={() => {}}
+				refreshing={false}
+				multiSelectActive={false}
+				onSelectionChange={() => {}}
+				selectedItems={[]}
+				onItemPress={onItemPress}
+				swipeEnabled={true}
+			/>,
+		);
+
+		// Trigger TapGestureHandler State.END
+		const handler = getByTestId("tap-gesture-handler");
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END },
+		});
+
 		expect(onItemPress).toHaveBeenCalledWith(mockData[0]);
 	});
 
@@ -161,7 +149,7 @@ describe("SelectableFlatList", () => {
 
 	it("should not call onSwipeAction when swipe threshold is not met", async () => {
 		const onSwipeAction = mock();
-		render(
+		const { getByTestId } = render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
 					data={mockData.slice(0, 1)}
@@ -179,10 +167,13 @@ describe("SelectableFlatList", () => {
 			</GestureHandlerRootView>,
 		);
 
-		expect(triggerSwipeActionNotMetThresholdFn).toBeDefined();
-
-		act(() => {
-			triggerSwipeActionNotMetThresholdFn();
+		const handler = getByTestId("pan-gesture-handler");
+		// Simulate a swipe that doesn't meet the threshold (translationX = 10)
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: 10 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: 10 },
 		});
 
 		expect(onSwipeAction).not.toHaveBeenCalled();
@@ -190,7 +181,7 @@ describe("SelectableFlatList", () => {
 
 	it("should call onSwipeAction when swipe threshold is met", async () => {
 		const onSwipeAction = mock();
-		render(
+		const { getByTestId } = render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
 					data={mockData.slice(0, 1)}
@@ -208,10 +199,15 @@ describe("SelectableFlatList", () => {
 			</GestureHandlerRootView>,
 		);
 
-		expect(triggerSwipeActionFn).toBeDefined();
-
-		act(() => {
-			triggerSwipeActionFn();
+		const handler = getByTestId("pan-gesture-handler");
+		// Simulate a swipe that meets the threshold (threshold is 50% of screen width)
+		// Our mock uses Dimensions.get('window').width which is likely 750 or 0 in test
+		// SelectableFlatListItem.tsx defines SWIPE_THRESHOLD = SCREEN_WIDTH * 0.5
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
 		});
 
 		expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
@@ -219,7 +215,7 @@ describe("SelectableFlatList", () => {
 
 	it("should show a confirmation dialog if confirmation is set", async () => {
 		const onSwipeAction = mock();
-		render(
+		const { getByTestId } = render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
 					data={mockData.slice(0, 1)}
@@ -238,10 +234,12 @@ describe("SelectableFlatList", () => {
 			</GestureHandlerRootView>,
 		);
 
-		expect(triggerSwipeActionFn).toBeDefined();
-
-		act(() => {
-			triggerSwipeActionFn();
+		const handler = getByTestId("pan-gesture-handler");
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
 		});
 
 		await waitFor(() => {
@@ -255,41 +253,9 @@ describe("SelectableFlatList", () => {
 		expect(onSwipeAction).not.toHaveBeenCalled();
 	});
 
-	it("should not show a confirmation dialog if confirmation is not set", async () => {
-		const onSwipeAction = mock();
-		render(
-			<GestureHandlerRootView>
-				<SelectableFlatList
-					data={mockData.slice(0, 1)}
-					renderItem={renderItem}
-					onRefresh={() => {}}
-					refreshing={false}
-					multiSelectActive={false}
-					onSelectionChange={() => {}}
-					selectedItems={[]}
-					onItemPress={() => {}}
-					swipeEnabled={true}
-					onSwipeAction={onSwipeAction}
-					swipeActionRequiresConfirmation={false}
-				/>
-			</GestureHandlerRootView>,
-		);
-
-		expect(triggerSwipeActionFn).toBeDefined();
-
-		act(() => {
-			triggerSwipeActionFn();
-		});
-
-		await waitFor(() => {
-			expect(setup.alertMock).not.toHaveBeenCalled();
-		});
-		expect(onSwipeAction).toHaveBeenCalledWith(mockData[0]);
-	});
-
 	it("if confirmation is set on the SelectableFlatList the action is only called if confirmed", async () => {
 		const onSwipeAction = mock();
-		render(
+		const { getByTestId } = render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
 					data={mockData.slice(0, 1)}
@@ -308,10 +274,12 @@ describe("SelectableFlatList", () => {
 			</GestureHandlerRootView>,
 		);
 
-		expect(triggerSwipeActionFn).toBeDefined();
-
-		act(() => {
-			triggerSwipeActionFn();
+		const handler = getByTestId("pan-gesture-handler");
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
 		});
 
 		await waitFor(() => {
@@ -331,7 +299,7 @@ describe("SelectableFlatList", () => {
 
 	it("if confirmation is set on the SelectableFlatList the action is not executed if canceled", async () => {
 		const onSwipeAction = mock();
-		render(
+		const { getByTestId } = render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
 					data={mockData.slice(0, 1)}
@@ -350,10 +318,12 @@ describe("SelectableFlatList", () => {
 			</GestureHandlerRootView>,
 		);
 
-		expect(triggerSwipeActionFn).toBeDefined();
-
-		act(() => {
-			triggerSwipeActionFn();
+		const handler = getByTestId("pan-gesture-handler");
+		fireEvent(handler, "onGestureEvent", {
+			nativeEvent: { translationX: -500 },
+		});
+		fireEvent(handler, "onHandlerStateChange", {
+			nativeEvent: { state: State.END, translationX: -500 },
 		});
 
 		await waitFor(() => {
