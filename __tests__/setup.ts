@@ -417,11 +417,23 @@ mock.module("react-native-reanimated", () => {
 		},
 		useSharedValue: (v: any) => ({ value: v }),
 		useAnimatedStyle: (cb: any) => ({}),
-		useAnimatedGestureHandler: (callbacks: any) => ({}),
+		useAnimatedGestureHandler: (callbacks: any) => {
+			const ctx = {};
+			return (event: any) => {
+				if (event.nativeEvent.state === 2) callbacks.onStart?.(event.nativeEvent, ctx);
+				if (event.nativeEvent.state === 4) callbacks.onActive?.(event.nativeEvent, ctx);
+				if (event.nativeEvent.state === 5) callbacks.onEnd?.(event.nativeEvent, ctx);
+				// Fallback for simple fireEvent calls that might not provide state
+				if (event.nativeEvent.translationX !== undefined && !event.nativeEvent.state) {
+					callbacks.onStart?.(event.nativeEvent, ctx);
+					callbacks.onActive?.(event.nativeEvent, ctx);
+					callbacks.onEnd?.(event.nativeEvent, ctx);
+				}
+			};
+		},
 		withSpring: (v: any) => v,
-		withTiming: (v: any) => v,
 		runOnJS: (fn: any) => fn,
-		__esModule: true,
+		makeMutable: (v: any) => ({ value: v }),
 	};
 });
 
