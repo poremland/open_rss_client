@@ -297,28 +297,26 @@ describe("API Helper", () => {
 	});
 
 	describe("exportOpml", () => {
-		it("should fetch OPML blob, save to file, and share it", async () => {
+		it("should fetch OPML text, save to file, and share it", async () => {
 			const mockOpml = '<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body></body></opml>';
-			const mockBlob = { 
-				size: mockOpml.length, 
-				type: "text/x-opml",
-				text: async () => mockOpml
-			};
 			await asyncStorageMock.setItem("authToken", "test-token");
+			
+			// Mock the underlying fetch that getWithAuth uses
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
-				blob: async () => mockBlob,
+				json: async () => { throw new Error("not json"); },
+				text: async () => mockOpml,
 			} as any);
 
 			await api.exportOpml();
 
-			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/export`, {
+			expect(fetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/export`, expect.objectContaining({
 				method: "GET",
-				headers: {
+				headers: expect.objectContaining({
 					Authorization: "Bearer test-token",
-				},
-			});
+				}),
+			}));
 			expect(fileSystemMock.writeAsStringAsync).toHaveBeenCalledWith(
 				expect.stringContaining("subscriptions"),
 				mockOpml

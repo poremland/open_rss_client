@@ -197,8 +197,7 @@ export class Api {
 	};
 
 	exportOpml = async (): Promise<void> => {
-		const blob = await this.getBlobWithAuth("/feeds/export");
-		const text = await blob.text();
+		const text = await this.getWithAuth<string>("/feeds/export");
 		const filename = `subscriptions_${new Date().getTime()}.opml`;
 		const fileUri = `${this.deps.fileSystem.cacheDirectory}${filename}`;
 
