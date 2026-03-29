@@ -81,4 +81,31 @@ describe("SelectableFlatListItem", () => {
 		fireEvent.press(getByText("Test Item"));
 		expect(onPress).toHaveBeenCalled();
 	});
+
+	it("should NOT call onPress from child when swipe is enabled (preventing double push)", () => {
+		let childOnPressCalled = false;
+		const onPress = mock();
+		const renderItemWithSpy = ({ onPress: childOnPress }: any) => (
+			<TouchableOpacity onPress={() => { childOnPress(); childOnPressCalled = true; }}>
+				<Text>Test Item</Text>
+			</TouchableOpacity>
+		);
+
+		const { getByText } = render(
+			<SelectableFlatListItem
+				item={mockItem}
+				renderItem={renderItemWithSpy}
+				onPress={onPress}
+				onLongPress={mock()}
+				isItemSelected={false}
+				swipeEnabled={true}
+				swipeActionRequiresConfirmation={false}
+				swipeConfirmationMessage=""
+			/>
+		);
+
+		fireEvent.press(getByText("Test Item"));
+		expect(childOnPressCalled).toBe(true);
+		expect(onPress).not.toHaveBeenCalled();
+	});
 });

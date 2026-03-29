@@ -126,7 +126,7 @@ const SelectableFlatListItem = <T extends { id: number }>({
 
 	const itemContent = renderItem({
 		item,
-		onPress,
+		onPress: swipeEnabled ? () => {} : onPress,
 		onLongPress,
 		isItemSelected,
 	});
