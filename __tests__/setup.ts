@@ -88,7 +88,43 @@ export const fileSystemMock = {
 	StorageAccessFramework: {
 		requestDirectoryPermissionsAsync: mock(async () => ({ granted: true, directoryUri: "file:///mock-saf/" })),
 		createFileAsync: mock(async () => "file:///mock-saf/file.opml"),
-	}
+	},
+	File: (() => {
+		const F = class {
+			uri: string;
+			exists = true;
+			constructor(path: string, name?: string) {
+				this.uri = name ? `${path}/${name}` : path;
+			}
+			write() { return Promise.resolve(); }
+			text() { return Promise.resolve(""); }
+			delete() { return Promise.resolve(); }
+		};
+		(F.prototype as any).write = mock(async () => {});
+		(F.prototype as any).text = mock(async () => "");
+		(F.prototype as any).delete = mock(async () => {});
+		return F;
+	})(),
+	Paths: {
+		cache: "file:///mock-cache",
+		document: "file:///mock-documents",
+	},
+	Directory: (() => {
+		const D = class {
+			uri: string;
+			exists = true;
+			constructor(path: string, name?: string) {
+				this.uri = name ? `${path}/${name}` : path;
+			}
+			create() { return Promise.resolve(); }
+			delete() { return Promise.resolve(); }
+			createFile(name: string) { return new (fileSystemMock.File as any)("file:///mock-uri", name); }
+		};
+		(D.prototype as any).create = mock(async () => {});
+		(D.prototype as any).delete = mock(async () => {});
+		(D.prototype as any).createFile = mock((name: string) => new (fileSystemMock.File as any)("file:///mock-uri", name));
+		return D;
+	})(),
 };
 
 export const sharingMock = {

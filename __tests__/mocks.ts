@@ -38,6 +38,42 @@ export const fileSystemMock = {
 	deleteAsync: mock(async () => {}),
 	makeDirectoryAsync: mock(async () => {}),
 	copyAsync: mock(async () => {}),
+	File: (() => {
+		const F = class {
+			uri: string;
+			exists = true;
+			constructor(path: string, name?: string) {
+				this.uri = name ? `${path}/${name}` : path;
+			}
+			write() { return Promise.resolve(); }
+			text() { return Promise.resolve(""); }
+			delete() { return Promise.resolve(); }
+		};
+		(F.prototype as any).write = mock(async () => {});
+		(F.prototype as any).text = mock(async () => "");
+		(F.prototype as any).delete = mock(async () => {});
+		return F;
+	})(),
+	Paths: {
+		cache: "file:///mock-cache",
+		document: "file:///mock-documents",
+	},
+	Directory: (() => {
+		const D = class {
+			uri: string;
+			exists = true;
+			constructor(path: string, name?: string) {
+				this.uri = name ? `${path}/${name}` : path;
+			}
+			create() { return Promise.resolve(); }
+			delete() { return Promise.resolve(); }
+			createFile(name: string) { return new (fileSystemMock.File as any)("file:///mock-uri", name); }
+		};
+		(D.prototype as any).create = mock(async () => {});
+		(D.prototype as any).delete = mock(async () => {});
+		(D.prototype as any).createFile = mock((name: string) => new (fileSystemMock.File as any)("file:///mock-uri", name));
+		return D;
+	})(),
 };
 
 export const sharingMock = {
@@ -125,11 +161,11 @@ export const resetAll = () => {
 	routerMocks.setParams.mockClear();
 	navigationMocks.setOptions.mockClear();
 	navigationMocks.goBack.mockClear();
-	Object.values(apiMocks).forEach(m => m.mockClear());
-	Object.values(authMocks).forEach(m => m.mockClear());
-	Object.values(fileSystemMock).forEach(m => typeof m === 'function' && m.mockClear());
-	Object.values(sharingMock).forEach(m => m.mockClear());
-	Object.values(documentPickerMock).forEach(m => m.mockClear());
+	Object.values(apiMocks).forEach(m => typeof m.mockClear === 'function' && m.mockClear());
+	Object.values(authMocks).forEach(m => typeof m.mockClear === 'function' && m.mockClear());
+	Object.values(fileSystemMock).forEach(m => typeof m.mockClear === 'function' && m.mockClear());
+	Object.values(sharingMock).forEach(m => typeof m.mockClear === 'function' && m.mockClear());
+	Object.values(documentPickerMock).forEach(m => typeof m.mockClear === 'function' && m.mockClear());
 	useApiMock.mockClear();
 	useApiMock.mockReturnValue({
 		data: null,

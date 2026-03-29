@@ -17,14 +17,13 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Haptics from "expo-haptics";
 
 export interface ApiDeps {
 	storage: typeof AsyncStorage;
 	fetch: typeof fetch;
-	fileSystem: typeof FileSystem;
 	sharing: typeof Sharing;
 	haptics: typeof Haptics;
 }
@@ -33,7 +32,6 @@ export class Api {
 	private deps: ApiDeps = {
 		storage: AsyncStorage,
 		fetch: fetch.bind(globalThis),
-		fileSystem: FileSystem,
 		sharing: Sharing,
 		haptics: Haptics,
 	};
@@ -200,10 +198,10 @@ export class Api {
 	exportOpml = async (): Promise<void> => {
 		const text = await this.getWithAuth<string>("/feeds/export");
 		const filename = `subscriptions_${new Date().getTime()}.opml`;
-		const fileUri = `${this.deps.fileSystem.cacheDirectory}${filename}`;
+		const file = new File(Paths.cache, filename);
 
-		await this.deps.fileSystem.writeAsStringAsync(fileUri, text);
-		await this.deps.sharing.shareAsync(fileUri, {
+		await file.write(text);
+		await this.deps.sharing.shareAsync(file.uri, {
 			mimeType: "text/x-opml",
 			dialogTitle: "Export Subscriptions",
 			UTI: "public.xml",

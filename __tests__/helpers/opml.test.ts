@@ -16,9 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { expect, describe, it, beforeEach } from "bun:test";
+import { expect, describe, it, beforeEach, mock } from "bun:test";
 import { validateOpmlFile } from "../../helpers/opml_helper.impl";
-import { resetAll, fileSystemMock } from "../mocks";
+import { resetAll } from "../mocks";
+import { File } from "expo-file-system";
 
 describe("OPML Helper", () => {
 	beforeEach(() => {
@@ -37,9 +38,9 @@ describe("OPML Helper", () => {
 				</body>
 			</opml>
 		`;
-		fileSystemMock.readAsStringAsync.mockResolvedValue(validOpml);
+		File.prototype.text = mock(async () => validOpml);
 
-		const result = await validateOpmlFile("file:///test.opml", fileSystemMock as any);
+		const result = await validateOpmlFile("file:///test.opml");
 		expect(result).toBe(true);
 	});
 
@@ -51,17 +52,17 @@ describe("OPML Helper", () => {
 				</body>
 			</opml>
 		`;
-		fileSystemMock.readAsStringAsync.mockResolvedValue(validOpml);
+		File.prototype.text = mock(async () => validOpml);
 
-		const result = await validateOpmlFile("file:///test.opml", fileSystemMock as any);
+		const result = await validateOpmlFile("file:///test.opml");
 		expect(result).toBe(true);
 	});
 
 	it("should throw an error if the file is not valid XML", async () => {
 		const invalidXml = "not xml at all";
-		fileSystemMock.readAsStringAsync.mockResolvedValue(invalidXml);
+		File.prototype.text = mock(async () => invalidXml);
 
-		await expect(validateOpmlFile("file:///test.opml", fileSystemMock as any)).rejects.toThrow("Invalid OPML file: Not a valid XML");
+		await expect(validateOpmlFile("file:///test.opml")).rejects.toThrow("Invalid OPML file: Not a valid XML");
 	});
 
 	it("should throw an error if the root element is not <opml>", async () => {
@@ -71,9 +72,9 @@ describe("OPML Helper", () => {
 				<body></body>
 			</notopml>
 		`;
-		fileSystemMock.readAsStringAsync.mockResolvedValue(wrongRoot);
+		File.prototype.text = mock(async () => wrongRoot);
 
-		await expect(validateOpmlFile("file:///test.opml", fileSystemMock as any)).rejects.toThrow("Invalid OPML file: Missing <opml> root element");
+		await expect(validateOpmlFile("file:///test.opml")).rejects.toThrow("Invalid OPML file: Missing <opml> root element");
 	});
 
 	it("should throw an error if <body> is missing", async () => {
@@ -82,9 +83,9 @@ describe("OPML Helper", () => {
 				<head></head>
 			</opml>
 		`;
-		fileSystemMock.readAsStringAsync.mockResolvedValue(missingBody);
+		File.prototype.text = mock(async () => missingBody);
 
-		await expect(validateOpmlFile("file:///test.opml", fileSystemMock as any)).rejects.toThrow("Invalid OPML file: Missing <body> element");
+		await expect(validateOpmlFile("file:///test.opml")).rejects.toThrow("Invalid OPML file: Missing <body> element");
 	});
 
 	it("should throw an error if no <outline> elements are found", async () => {
@@ -93,8 +94,8 @@ describe("OPML Helper", () => {
 				<body></body>
 			</opml>
 		`;
-		fileSystemMock.readAsStringAsync.mockResolvedValue(emptyBody);
+		File.prototype.text = mock(async () => emptyBody);
 
-		await expect(validateOpmlFile("file:///test.opml", fileSystemMock as any)).rejects.toThrow("Invalid OPML file: No <outline> elements found");
+		await expect(validateOpmlFile("file:///test.opml")).rejects.toThrow("Invalid OPML file: No <outline> elements found");
 	});
 });

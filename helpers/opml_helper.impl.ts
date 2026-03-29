@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as ExpoFileSystem from "expo-file-system";
+import { File } from "expo-file-system";
 
 /**
  * Validates a file at the given URI as a basic OPML file.
@@ -25,11 +25,11 @@ import * as ExpoFileSystem from "expo-file-system";
  * without adding large dependencies, we perform a basic structural check using regex.
  * 
  * @param fileUri The URI of the file to validate.
- * @param fileSystem Optional FileSystem dependency (useful for testing).
  * @returns true if valid, throws an error otherwise.
  */
-export const validateOpmlFile = async (fileUri: string, fileSystem: typeof ExpoFileSystem = ExpoFileSystem): Promise<boolean> => {
-	const content = await fileSystem.readAsStringAsync(fileUri);
+export const validateOpmlFile = async (fileUri: string): Promise<boolean> => {
+	const file = new File(fileUri);
+	const content = await file.text();
 	const trimmed = content.trim();
 
 	// Very basic XML check
