@@ -228,7 +228,14 @@ export const resetAll = () => {
 	localSearchParamsMock.params = {};
 
 	alertMock.mockClear().mockImplementation(() => {});
-	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
+	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ 
+		ok: true, 
+		headers: {
+			get: (name: string) => name.toLowerCase() === "content-type" ? "application/json" : null
+		},
+		json: async () => ({}),
+		text: async () => ""
+	}));
 };
 
 // --- Bun Module Mocks ---

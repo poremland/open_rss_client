@@ -52,11 +52,12 @@ export class Api {
 				`Request failed with status ${response.status}: ${errorText}`,
 			);
 		}
-		try {
+
+		const contentType = response.headers.get("content-type");
+		if (contentType && contentType.includes("application/json")) {
 			return await response.json();
-		} catch {
-			return await response.text();
 		}
+		return await response.text();
 	};
 
 	private getBaseUrl = async (): Promise<string> => {

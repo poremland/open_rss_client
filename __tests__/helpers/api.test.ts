@@ -26,6 +26,15 @@ describe("API Helper", () => {
 
 	beforeEach(async () => {
 		resetAll();
+		fetchMock.mockImplementation(() => Promise.resolve({ 
+			ok: true, 
+			status: 200,
+			headers: {
+				get: (name: string) => name.toLowerCase() === "content-type" ? "application/json" : null
+			},
+			json: async () => ({}),
+			text: async () => ""
+		}));
 		api = new Api();
 		api.setDeps({
 			storage: asyncStorageMock,
@@ -47,6 +56,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -86,6 +96,34 @@ describe("API Helper", () => {
 				"Session expired",
 			);
 		});
+
+		it("should return text if response is not JSON", async () => {
+			const mockText = "not json content";
+			let consumed = false;
+			const checkConsumed = () => {
+				if (consumed) throw new Error("Already read");
+				consumed = true;
+			};
+
+			fetchMock.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: {
+					get: (name: string) => name.toLowerCase() === "content-type" ? "text/plain" : null
+				},
+				json: async () => { 
+					checkConsumed();
+					throw new Error("Unexpected token 'n', \"not json ...\" is not valid JSON"); 
+				},
+				text: async () => {
+					checkConsumed();
+					return mockText;
+				},
+			} as any);
+
+			const result = await api.post("/test", { foo: "bar" });
+			expect(result).toBe(mockText);
+		});
 	});
 
 	describe("postWithAuth", () => {
@@ -95,6 +133,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -118,6 +157,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -152,6 +192,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -170,6 +211,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -201,6 +243,7 @@ describe("API Helper", () => {
 				.mockResolvedValueOnce({
 					ok: true,
 					status: 200,
+					headers: { get: () => "application/json" },
 					json: async () => mockData,
 				} as any);
 
@@ -218,6 +261,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockData,
 			} as any);
 
@@ -258,6 +302,7 @@ describe("API Helper", () => {
 				.mockResolvedValueOnce({
 					ok: true,
 					status: 200,
+					headers: { get: () => "application/json" },
 					json: async () => mockData,
 				} as any);
 
@@ -275,8 +320,10 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: () => "text/x-opml" },
 				blob: async () => mockBlob,
 			} as any);
+
 
 			const result = await api.getBlobWithAuth("/test");
 
@@ -305,6 +352,7 @@ describe("API Helper", () => {
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
+				headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "text/x-opml" : null },
 				json: async () => { throw new Error("not json"); },
 				text: async () => mockOpml,
 			} as any);
@@ -344,9 +392,11 @@ describe("API Helper", () => {
 			await asyncStorageMock.setItem("authToken", "test-token");
 			fetchMock.mockResolvedValueOnce({
 				ok: true,
-				status: 202,
+				status: 200,
+				headers: { get: () => "application/json" },
 				json: async () => mockResponse,
 			} as any);
+
 
 			const result = await api.importOpml(mockUri);
 

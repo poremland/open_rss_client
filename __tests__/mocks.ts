@@ -109,7 +109,14 @@ export const resetAll = () => {
 	asyncStorageMock.clear.mockClear();
 	asyncStorageMock.getAllKeys.mockClear();
 	asyncStorageMock.multiGet.mockClear();
-	fetchMock.mockClear();
+	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ 
+		ok: true, 
+		headers: {
+			get: (name: string) => name.toLowerCase() === "content-type" ? "application/json" : null
+		},
+		json: async () => ({}),
+		text: async () => ""
+	}));
 	alertMock.mockClear();
 	routerMocks.push.mockClear();
 	routerMocks.replace.mockClear();
