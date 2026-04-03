@@ -22,7 +22,6 @@ import React, {
 	useState,
 	useCallback,
 	useMemo,
-	useRef,
 } from "react";
 import {
 	View,
@@ -65,14 +64,9 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 }) => {
 	const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 	const [menuItems, setMenuItemsState] = useState<MenuItem[]>([]);
-	const menuItemsRef = useRef<string>("");
 
 	const setMenuItems = useCallback((items: MenuItem[]) => {
-		const itemsKey = JSON.stringify(items.map(i => i.label));
-		if (itemsKey !== menuItemsRef.current) {
-			menuItemsRef.current = itemsKey;
-			setMenuItemsState(items);
-		}
+		setMenuItemsState(items);
 	}, []);
 
 	const onToggleDropdown = useCallback(() => {

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { expect, describe, it, beforeEach, spyOn } from "bun:test";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { View, Text, TouchableOpacity } from "react-native";
@@ -25,26 +25,26 @@ import { resetAll } from "./setup";
 // Import from the .impl file to bypass the global mock of GlobalDropdownMenu.tsx
 import GlobalDropdownMenu, { useMenu, MenuItem } from "../components/GlobalDropdownMenu.impl";
 
+const TestScreen: React.FC<{ id: string; items: MenuItem[] }> = ({ id, items }) => {
+	const { setMenuItems, onToggleDropdown } = useMenu();
+	useEffect(() => {
+		setMenuItems(items);
+	}, [items, setMenuItems]);
+
+	return (
+		<View testID={`screen-${id}`}>
+			<Text>{id} Screen</Text>
+			<TouchableOpacity testID="toggleButton" onPress={onToggleDropdown}>
+				<Text>Toggle Menu</Text>
+			</TouchableOpacity>
+		</View>
+	);
+};
+
 describe("GlobalDropdownMenu Integration", () => {
 	beforeEach(() => {
 		resetAll();
 	});
-
-	const TestScreen: React.FC<{ id: string; items: MenuItem[] }> = ({ id, items }) => {
-		const { setMenuItems, onToggleDropdown } = useMenu();
-		useEffect(() => {
-			setMenuItems(items);
-		}, [items, setMenuItems]);
-
-		return (
-			<View testID={`screen-${id}`}>
-				<Text>{id} Screen</Text>
-				<TouchableOpacity testID="toggleButton" onPress={onToggleDropdown}>
-					<Text>Toggle Menu</Text>
-				</TouchableOpacity>
-			</View>
-		);
-	};
 
 	it("should render the component and manage menu items correctly", async () => {
 		const items: MenuItem[] = [
@@ -98,27 +98,39 @@ describe("GlobalDropdownMenu Integration", () => {
 		});
 	});
 
-	it("should ignore redundant updates with identical items (identity check)", async () => {
-		const items: MenuItem[] = [{ label: "Stable Item", onPress: () => {}, icon: "star" }];
-		
-		const { getByText, getByTestId, rerender } = render(
+	it("should update menu item handlers even if labels remain the same", async () => {
+		let result = 0;
+		const items1: MenuItem[] = [{ label: "Click Me", onPress: () => { result = 1; }, icon: "add" }];
+		const items2: MenuItem[] = [{ label: "Click Me", onPress: () => { result = 2; }, icon: "add" }];
+
+		const TestWrapper = ({ items }: { items: MenuItem[] }) => (
 			<GlobalDropdownMenu>
 				<TestScreen id="A" items={items} />
 			</GlobalDropdownMenu>
 		);
 
+		const { getByText, getByTestId, rerender } = render(<TestWrapper items={items1} />);
+
 		fireEvent.press(getByTestId("toggleButton"));
-		await waitFor(() => expect(getByText("Stable Item")).toBeTruthy());
+		await waitFor(() => expect(getByText("Click Me")).toBeTruthy());
 
-		// Rerender multiple times with the same items
-		rerender(
-			<GlobalDropdownMenu>
-				<TestScreen id="A" items={[...items]} />
-			</GlobalDropdownMenu>
-		);
+		// Trigger click
+		fireEvent.press(getByText("Click Me"));
+		expect(result).toBe(1);
 
-		// Menu should still be there and correct
-		expect(getByText("Stable Item")).toBeTruthy();
+		// Re-render with new handler but same label
+		rerender(<TestWrapper items={items2} />);
+
+		// Open menu again if it closed (rerender might reset state in RTL)
+		const toggleButton = getByTestId("toggleButton");
+		fireEvent.press(toggleButton);
+
+		// Wait for potential update
+		await waitFor(() => expect(getByText("Click Me")).toBeTruthy());
+
+		// Trigger click again
+		fireEvent.press(getByText("Click Me"));
+		expect(result).toBe(2);
 	});
 
 	it("should throw error if useMenu is not used within MenuProvider", () => {

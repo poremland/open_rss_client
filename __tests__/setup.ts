@@ -527,7 +527,7 @@ mock.module("@react-navigation/native", () => ({
 		const React = require("react");
 		React.useEffect(() => {
 			callback();
-		}, []);
+		}, [callback]);
 	},
 	useNavigation: () => navigationMocks,
 	useIsFocused: () => true,
