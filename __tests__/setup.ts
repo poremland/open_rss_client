@@ -533,13 +533,13 @@ mock.module("@react-navigation/native", () => ({
 	useIsFocused: () => true,
 }));
 
-mock.module(resolveModule("../app/components/GlobalDropdownMenu"), () => ({
+mock.module(resolveModule("../components/GlobalDropdownMenu"), () => ({
 	default: ({ children }: any) => children,
 	useMenu: () => useMenuMock,
 	__esModule: true,
 }));
 
-mock.module(resolveModule("../app/components/Screen"), () => {
+mock.module(resolveModule("../components/Screen"), () => {
 	const React = require("react");
 	return {
 		default: ({ children, loading, error }: any) => {

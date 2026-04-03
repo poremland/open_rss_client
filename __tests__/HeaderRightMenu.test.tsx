@@ -20,7 +20,7 @@ import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
-import HeaderRightMenu from "../app/components/HeaderRightMenu";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 
 describe("HeaderRightMenu", () => {
 	beforeEach(() => {

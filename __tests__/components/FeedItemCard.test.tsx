@@ -22,7 +22,7 @@ import * as setup from "../setup";
 import React from "react";
 import { expect, describe, it, mock, beforeEach } from "bun:test";
 import { render, fireEvent } from "@testing-library/react-native";
-import FeedItemCard from "../../app/components/FeedItemCard";
+import FeedItemCard from "../../components/FeedItemCard";
 
 describe("FeedItemCard", () => {
 	beforeEach(() => {

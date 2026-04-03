@@ -21,14 +21,14 @@ import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { WebView } from "react-native-webview";
 import { decode } from "he";
-import useApi from "./components/useApi";
-import HeaderRightMenu from "./components/HeaderRightMenu";
+import useApi from "../components/useApi";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { FeedItem } from "../models/FeedItem";
-import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
 
-import Screen from "./components/Screen";
+import Screen from "../components/Screen";
 import { styles } from "../styles/FeedItemDetailScreen.styles";
 
 const FeedItemDetailScreen: React.FC = () => {

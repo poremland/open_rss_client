@@ -27,7 +27,7 @@ import useApi from "./useApi";
 import Screen from "./Screen";
 import MultiSelectBar from "./MultiSelectBar";
 import SelectableFlatList from "./SelectableFlatList";
-import { styles } from "../../styles/ListScreen.styles";
+import { styles } from "../styles/ListScreen.styles";
 
 interface ListScreenProps<T, U = T> {
 	fetchUrl: string;

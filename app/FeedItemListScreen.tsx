@@ -8,14 +8,14 @@ import React, {
 import { View } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import useApi from "./components/useApi";
-import HeaderRightMenu from "./components/HeaderRightMenu";
+import useApi from "../components/useApi";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { styles } from "../styles/FeedItemListScreen.styles";
 import { FeedItem } from "../models/FeedItem";
-import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
-import ListScreen from "./components/ListScreen";
-import FeedItemCard from "./components/FeedItemCard";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
+import ListScreen from "../components/ListScreen";
+import FeedItemCard from "../components/FeedItemCard";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);

@@ -31,8 +31,8 @@ import {
 	TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { commonStyles } from "../../styles/commonStyles";
-import { styles } from "../../styles/GlobalDropdownMenu.styles";
+import { commonStyles } from "../styles/commonStyles";
+import { styles } from "../styles/GlobalDropdownMenu.styles";
 
 export interface MenuItem {
 	label: string;

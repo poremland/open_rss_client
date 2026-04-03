@@ -23,7 +23,7 @@ import React from "react";
 import { expect, describe, it, beforeEach } from "bun:test";
 import { render } from "@testing-library/react-native";
 import { Text } from "react-native";
-import MultiSelectBar from "../../app/components/MultiSelectBar";
+import MultiSelectBar from "../../components/MultiSelectBar";
 
 describe("MultiSelectBar", () => {
 	beforeEach(() => {

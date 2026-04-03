@@ -29,7 +29,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 
 import * as authHelper from "../helpers/auth_helper";
-import LoginForm from "./components/LoginForm";
+import LoginForm from "../components/LoginForm";
 import { styles } from "../styles/LoginScreen.styles";
 
 const Index: React.FC = () => {

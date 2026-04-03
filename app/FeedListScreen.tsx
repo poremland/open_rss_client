@@ -5,11 +5,11 @@ import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import * as authHelper from "../helpers/auth_helper";
 import { Feed, FeedItemFromAPI } from "../models/Feed";
-import HeaderRightMenu from "./components/HeaderRightMenu";
-import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
+import HeaderRightMenu from "../components/HeaderRightMenu";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import { styles } from "../styles/FeedListScreen.styles";
-import ListScreen from "./components/ListScreen";
-import FeedCard from "./components/FeedCard";
+import ListScreen from "../components/ListScreen";
+import FeedCard from "../components/FeedCard";
 
 interface ListScreenHandle {
 	handleRefresh: () => void;

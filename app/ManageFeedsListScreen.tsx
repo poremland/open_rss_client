@@ -21,17 +21,17 @@ import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
-import HeaderRightMenu from "./components/HeaderRightMenu";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { getWithAuth, exportOpml, importOpml, readTextFile } from "../helpers/api_helper";
 import { validateOpmlFile } from "../helpers/opml_helper";
 import * as DocumentPicker from "expo-document-picker";
 import { Feed } from "../models/Feed";
-import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
 import { styles as listScreenStyles } from "../styles/ListScreen.styles";
 import { commonStyles } from "../styles/commonStyles";
-import ListScreen from "./components/ListScreen";
+import ListScreen from "../components/ListScreen";
 
 const ManageFeedsListScreen: React.FC = () => {
 	const listRef = useRef<{ handleRefresh: () => void }>(null);

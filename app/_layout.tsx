@@ -19,7 +19,7 @@
 import React, { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
-import GlobalDropdownMenu from "./components/GlobalDropdownMenu";
+import GlobalDropdownMenu from "../components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
 

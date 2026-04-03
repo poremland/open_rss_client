@@ -23,7 +23,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { resetAll } from "./setup";
 
 // Import from the .impl file to bypass the global mock of GlobalDropdownMenu.tsx
-import GlobalDropdownMenu, { useMenu, MenuItem } from "../app/components/GlobalDropdownMenu.impl";
+import GlobalDropdownMenu, { useMenu, MenuItem } from "../components/GlobalDropdownMenu.impl";
 
 describe("GlobalDropdownMenu Integration", () => {
 	beforeEach(() => {

@@ -22,7 +22,7 @@ import { alertMock } from "../setup";
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { View, Text } from "react-native";
-import SelectableFlatList from "../../app/components/SelectableFlatList";
+import SelectableFlatList from "../../components/SelectableFlatList";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 describe("SelectableFlatList", () => {

@@ -19,7 +19,7 @@
 import React from "react";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { styles } from "../../styles/HeaderRightMenu.styles";
+import { styles } from "../styles/HeaderRightMenu.styles";
 
 interface HeaderRightMenuProps {
 	onToggleDropdown: () => void;

@@ -18,7 +18,7 @@
 
 import React from "react";
 import { View, Text, ActivityIndicator } from "react-native";
-import { styles, loadingIndicator } from "../../styles/Screen.styles";
+import { styles, loadingIndicator } from "../styles/Screen.styles";
 
 interface ScreenProps {
 	children: React.ReactNode;
