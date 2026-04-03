@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity } from "react-native";
-import { Feed } from "../../models/Feed";
-import { styles } from "../../styles/FeedCard.styles";
+import { Feed } from "../models/Feed";
+import { styles } from "../styles/FeedCard.styles";
 
 interface FeedCardProps {
 	item: Feed;

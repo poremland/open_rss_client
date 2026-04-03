@@ -25,7 +25,7 @@ const originalError = console.error;
 const originalLog = console.log;
 
 const filterWarning = (args: any[], originalFn: (...args: any[]) => void) => {
-	if (typeof args[0] === "string" && args[0].includes("react-test-renderer is deprecated")) {
+	if (typeof args[0] === "string" && (args[0].includes("react-test-renderer is deprecated") || args[0].includes("current testing environment is not configured to support act"))) {
 		return;
 	}
 	originalFn(...args);
@@ -176,6 +176,8 @@ export const apiMocks = {
 	getBlobWithAuth: mock(),
 	exportOpml: mock(),
 	importOpml: mock(),
+	readTextFile: mock(),
+	postFormDataWithAuth: mock(),
 	postWithAuth: mock(),
 	putWithAuth: mock(),
 	refreshToken: mock(),
@@ -199,6 +201,7 @@ export const useMenuMock = {
 
 export const localSearchParamsMock = {
 	params: {} as any,
+	mockReturnValue: (p: any) => { localSearchParamsMock.params = p; }
 };
 
 export const useApiConfig = {
@@ -283,7 +286,13 @@ mock.module("react-native", () => {
 	const mockComponent = (name: string) => {
 		const Comp = (props: any) => {
 			const children = [];
-			if (props.children) children.push(props.children);
+			if (props.children) {
+				if (Array.isArray(props.children)) {
+					children.push(...props.children);
+				} else {
+					children.push(props.children);
+				}
+			}
 			if (name === "Button" && props.title) {
 				children.push(React.createElement("Text", { key: "title" }, props.title));
 			}
@@ -307,11 +316,12 @@ mock.module("react-native", () => {
 		ActivityIndicator: mockComponent("ActivityIndicator"),
 		Modal: mockComponent("Modal"),
 		FlatList: (props: any) => {
-			const items = props.data || [];
+			const items = Array.isArray(props.data) ? props.data : [];
 			const React = require("react");
+			const { View } = require("react-native");
 			return React.createElement(
-				"FlatList",
-				props,
+				View,
+				{ ...props, testID: props.testID, style: props.style },
 				props.ListHeaderComponent && (typeof props.ListHeaderComponent === 'function' ? props.ListHeaderComponent() : props.ListHeaderComponent),
 				items.map((item: any, index: number) => {
 					const key = props.keyExtractor ? props.keyExtractor(item, index) : index;
@@ -329,28 +339,28 @@ mock.module("react-native", () => {
 			create: (s: any) => s,
 			flatten: (s: any) => Array.isArray(s) ? Object.assign({}, ...s) : s,
 		},
-		Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
+		Platform: {
+			OS: "ios",
+			select: (obj: any) => obj.ios || obj.default,
+		},
 		Alert: {
-			alert: (...args: any[]) => alertMock(...args)
+			alert: alertMock,
 		},
-		Dimensions: { get: () => ({ width: 375, height: 812 }) },
-		PixelRatio: { get: () => 1, roundToNearestPixel: (n: number) => n },
-		NativeModules: {},
-		NativeEventEmitter: class {
-			addListener() { return { remove: () => {} }; }
-			removeAllListeners() {}
-			emit() {}
-		},
-		TurboModuleRegistry: { get: () => null, getEnforcing: () => null },
 		Linking: {
-			openURL: mock(),
-			canOpenURL: mock(),
-			getInitialURL: mock(),
+			openURL: mock(async () => {}),
+			canOpenURL: mock(async () => true),
+		},
+		Share: {
+			share: mock(async () => {}),
+		},
+		Dimensions: {
+			get: () => ({ width: 375, height: 812 }),
 			addEventListener: mock(() => ({ remove: mock() })),
 		},
-		Share: { share: mock() },
-		processColor: (c: any) => c,
-		__esModule: true,
+		AppState: {
+			addEventListener: mock(() => ({ remove: mock() })),
+			currentState: "active",
+		},
 	};
 });
 
@@ -363,6 +373,7 @@ mock.module(resolveModule("../helpers/api_helper"), () => ({
 	getBlobWithAuth: apiMocks.getBlobWithAuth,
 	exportOpml: apiMocks.exportOpml,
 	importOpml: apiMocks.importOpml,
+	readTextFile: apiMocks.readTextFile,
 	postFormDataWithAuth: apiMocks.postFormDataWithAuth,
 	putWithAuth: apiMocks.putWithAuth,
 	refreshToken: apiMocks.refreshToken,
@@ -389,20 +400,45 @@ mock.module(resolveModule("../helpers/opml_helper"), () => ({
 
 mock.module("react-native-gesture-handler", () => {
 	const React = require("react");
-	const { View } = require("react-native");
+	const mockComponent = (name: string) => (props: any) => React.createElement(name, props, props.children);
 	return {
-		PanGestureHandler: (props: any) => React.createElement(View, props, props.children),
-		TapGestureHandler: (props: any) => React.createElement(View, props, props.children),
-		GestureHandlerRootView: ({ children }: any) => children,
-		State: {
-			UNDETERMINED: 0,
-			FAILED: 1,
-			BEGAN: 2,
-			CANCELLED: 3,
-			ACTIVE: 4,
-			END: 5,
+		GestureHandlerRootView: mockComponent("GestureHandlerRootView"),
+		Swipeable: mockComponent("Swipeable"),
+		RectButton: mockComponent("RectButton"),
+		TapGestureHandler: (props: any) => {
+			const React = require("react");
+			return React.createElement("TapGestureHandler", {
+				...props,
+				onPress: () => {
+					if (props.onHandlerStateChange) {
+						props.onHandlerStateChange({ nativeEvent: { state: 6 } }); // State.END
+					}
+				}
+			}, props.children);
 		},
-		Directions: {},
+		PanGestureHandler: (props: any) => {
+			const React = require("react");
+			return React.createElement("PanGestureHandler", {
+				...props,
+				// Allow tests to trigger swipe by calling onHandlerStateChange with State.END
+				simulateSwipe: (translationX: number) => {
+					if (props.onGestureEvent) {
+						props.onGestureEvent({ translationX });
+					}
+					if (props.onHandlerStateChange) {
+						props.onHandlerStateChange({ nativeEvent: { state: 6, translationX } });
+					}
+				}
+			}, props.children);
+		},
+		State: {
+			BEGAN: 1,
+			FAILED: 2,
+			POSSIBLE: 3,
+			CANCELLED: 4,
+			ACTIVE: 5,
+			END: 6,
+		},
 	};
 });
 
@@ -410,65 +446,45 @@ mock.module("react-native-reanimated", () => {
 	const React = require("react");
 	return {
 		default: {
-			View: ({ children, style }: any) => React.createElement("View", { style }, children),
-			Text: ({ children, style }: any) => React.createElement("Text", { style }, children),
-			Image: ({ children, style }: any) => React.createElement("Image", { style }, children),
-			ScrollView: ({ children, style }: any) => React.createElement("ScrollView", { style }, children),
+			View: (props: any) => React.createElement("View", props, props.children),
 		},
 		useSharedValue: (v: any) => ({ value: v }),
-		useAnimatedStyle: (cb: any) => ({}),
-		useAnimatedGestureHandler: (callbacks: any) => {
+		useAnimatedStyle: (cb: any) => cb(),
+		useAnimatedGestureHandler: (handlers: any) => {
 			const ctx = {};
 			return (event: any) => {
-				if (event.nativeEvent.state === 2) callbacks.onStart?.(event.nativeEvent, ctx);
-				if (event.nativeEvent.state === 4) callbacks.onActive?.(event.nativeEvent, ctx);
-				if (event.nativeEvent.state === 5) callbacks.onEnd?.(event.nativeEvent, ctx);
-				// Fallback for simple fireEvent calls that might not provide state
-				if (event.nativeEvent.translationX !== undefined && !event.nativeEvent.state) {
-					callbacks.onStart?.(event.nativeEvent, ctx);
-					callbacks.onActive?.(event.nativeEvent, ctx);
-					callbacks.onEnd?.(event.nativeEvent, ctx);
-				}
+				if (handlers.onStart) handlers.onStart(event, ctx);
+				if (handlers.onActive) handlers.onActive(event, ctx);
+				if (handlers.onEnd) handlers.onEnd(event, ctx);
 			};
 		},
 		withSpring: (v: any) => v,
+		withTiming: (v: any) => v,
 		runOnJS: (fn: any) => fn,
-		makeMutable: (v: any) => ({ value: v }),
+		interpolate: (v: any, input: any[], output: any[]) => v,
+		Extrapolate: { CLAMP: "clamp" },
 	};
 });
 
 mock.module("@react-native-async-storage/async-storage", () => ({
 	default: asyncStorageMock,
-	__esModule: true,
 }));
 
 mock.module("expo-router", () => ({
 	useRouter: () => routerMocks,
-	useNavigation: () => navigationMocks,
 	useLocalSearchParams: () => localSearchParamsMock.params,
+	useNavigation: () => navigationMocks,
+	Stack: ({ children }: any) => children,
+	Link: ({ children }: any) => children,
 }));
 
 mock.module("expo-font", () => ({
 	useFonts: () => [true, null],
-	loadAsync: mock(),
-	isLoaded: mock(() => true),
+	loadAsync: mock(async () => {}),
 }));
 
 mock.module("expo-modules-core", () => ({
-	EventEmitter: class {
-		addListener = mock(() => ({ remove: mock() }));
-		removeAllListeners = mock();
-		emit = mock();
-	},
-	Platform: { OS: "ios", select: (o: any) => o.ios || o.default },
-	requireNativeViewManager: mock(),
-	requireNativeModule: mock(),
-	NativeModulesProxy: {},
-	UnavailabilityError: class extends Error {
-		constructor(module: string, method: string) {
-			super(`The method or property ${module}.${method} is not available.`);
-		}
-	},
+	requireNativeModule: mock(() => ({})),
 }));
 
 mock.module("expo-clipboard", () => ({
@@ -491,6 +507,14 @@ mock.module("expo-haptics", () => ({
 	...hapticsMock,
 }));
 
+mock.module("@expo/vector-icons", () => {
+	const React = require("react");
+	const { Text } = require("react-native");
+	return {
+		Ionicons: (props: any) => React.createElement(Text, {}, props.name),
+	};
+});
+
 mock.module("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 	SafeAreaProvider: ({ children }: any) => children,
@@ -503,18 +527,19 @@ mock.module("@react-navigation/native", () => ({
 		const React = require("react");
 		React.useEffect(() => {
 			callback();
-		}, []);
+		}, [callback]);
 	},
 	useNavigation: () => navigationMocks,
+	useIsFocused: () => true,
 }));
 
-mock.module(resolveModule("../app/components/GlobalDropdownMenu"), () => ({
+mock.module(resolveModule("../components/GlobalDropdownMenu"), () => ({
+	default: ({ children }: any) => children,
 	useMenu: () => useMenuMock,
-	MenuProvider: ({ children }: any) => children,
 	__esModule: true,
 }));
 
-mock.module(resolveModule("../app/components/Screen"), () => {
+mock.module(resolveModule("../components/Screen"), () => {
 	const React = require("react");
 	return {
 		default: ({ children, loading, error }: any) => {

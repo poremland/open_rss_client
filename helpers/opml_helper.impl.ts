@@ -16,20 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { File } from "expo-file-system";
-
 /**
- * Validates a file at the given URI as a basic OPML file.
+ * Validates a basic OPML string.
  * 
  * Note: Since there is no robust XML parser easily available in mobile environments
  * without adding large dependencies, we perform a basic structural check using regex.
  * 
- * @param fileUri The URI of the file to validate.
+ * @param content The OPML content to validate.
  * @returns true if valid, throws an error otherwise.
  */
-export const validateOpmlFile = async (fileUri: string): Promise<boolean> => {
-	const file = new File(fileUri);
-	const content = await file.text();
+export const validateOpmlFile = async (content: string): Promise<boolean> => {
 	const trimmed = content.trim();
 
 	// Very basic XML check

@@ -19,9 +19,9 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { decode } from "he";
-import { FeedItem } from "../../models/FeedItem";
-import { styles } from "../../styles/FeedItemCard.styles";
-import { commonStyles } from "../../styles/commonStyles";
+import { FeedItem } from "../models/FeedItem";
+import { styles } from "../styles/FeedItemCard.styles";
+import { commonStyles } from "../styles/commonStyles";
 
 interface FeedItemCardProps {
 	item: FeedItem;

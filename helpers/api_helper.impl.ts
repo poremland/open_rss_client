@@ -31,10 +31,11 @@ export interface ApiDeps {
 	file: typeof File;
 	paths: typeof Paths;
 	directory: typeof Directory;
+	blob: typeof Blob;
 }
 
 export class Api {
-	private deps: ApiDeps = {
+	deps: ApiDeps = {
 		storage: AsyncStorage,
 		fetch: fetch.bind(globalThis),
 		sharing: Sharing,
@@ -43,6 +44,7 @@ export class Api {
 		file: File,
 		paths: Paths,
 		directory: Directory,
+		blob: globalThis.Blob,
 	};
 
 	setDeps(deps: Partial<ApiDeps>) {
@@ -85,7 +87,7 @@ export class Api {
 			} catch (error) {
 				lastError = error;
 				if (i < retries - 1) {
-					await new Promise((resolve) => setTimeout(resolve, 200 * (i + 1)));
+				        await new Promise((resolve) => setTimeout(resolve, 200 * (i + 1)));
 				}
 			}
 		}
@@ -102,7 +104,7 @@ export class Api {
 			},
 			body: Object.keys(body)
 				.map(
-					(key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
+				        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
 				)
 				.join("&"),
 		});
@@ -135,7 +137,7 @@ export class Api {
 			headers["Content-Type"] = "application/x-www-form-urlencoded";
 			requestBody = Object.keys(body)
 				.map(
-					(key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
+				        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
 				)
 				.join("&");
 		}
@@ -204,11 +206,31 @@ export class Api {
 		return response.blob();
 	};
 
+	readTextFile = async (fileUri: string): Promise<string> => {
+		if (this.deps.platform.OS === "web") {
+			const response = await fetch(fileUri);
+			return await response.text();
+		}
+		const file = new (this.deps.file)(fileUri);
+		return await file.text();
+	};
+
 	exportOpml = async (): Promise<void> => {
 		const text = await this.getWithAuth<string>("/feeds/export");
 		const filename = `subscriptions_${new Date().getTime()}.opml`;
 
-		if (this.deps.platform.OS === "android") {
+		if (this.deps.platform.OS === "web") {
+			const blob = new (this.deps.blob)([text], { type: "text/x-opml" });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.setAttribute("download", filename);
+			a.style.display = "none";
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		} else if (this.deps.platform.OS === "android") {
 			const directory = await this.deps.directory.pickDirectoryAsync();
 			if (!directory) return;
 
@@ -223,32 +245,51 @@ export class Api {
 				UTI: "public.xml",
 			});
 		}
-		await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
+		if (this.deps.haptics.notificationAsync && this.deps.platform.OS !== "web") {
+			await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
+		}
 	};
 
 	importOpml = async <T>(fileUri: string): Promise<T> => {
-		// Ensure we have a clean local file URI by copying to cache using new API
-		const sourceFile = new (this.deps.file)(fileUri);
-		const content = await sourceFile.text();
-		
-		const filename = `import_${new Date().getTime()}.opml`;
-		const cacheFile = new (this.deps.file)(this.deps.paths.cache, filename);
-		await cacheFile.write(content);
+		let content: string;
+		if (this.deps.platform.OS === "web") {
+			const response = await fetch(fileUri);
+			content = await response.text();
+		} else {
+			// Ensure we have a clean local file URI by copying to cache using new API
+			const sourceFile = new (this.deps.file)(fileUri);
+			content = await sourceFile.text();
+		}
 
 		const formData = new FormData();
-		// @ts-ignore - React Native FormData.append accepts this object format for files
-		formData.append("file", {
-			uri: cacheFile.uri,
-			name: "subscriptions.opml",
-			type: "text/x-opml",
-		});
+
+		if (this.deps.platform.OS === "web") {
+			const blob = new (this.deps.blob)([content], { type: "text/x-opml" });
+			formData.append("file", blob, "subscriptions.opml");
+		} else {
+			const filename = `import_${new Date().getTime()}.opml`;
+			const cacheFile = new (this.deps.file)(this.deps.paths.cache, filename);
+			await cacheFile.write(content);
+
+			// @ts-ignore - React Native FormData.append accepts this object format for files
+			formData.append("file", {
+				uri: cacheFile.uri,
+				name: "subscriptions.opml",
+				type: "text/x-opml",
+			});
+
+			// We'll clean up later
+			const result = await this.postFormDataWithAuth<T>("/feeds/import", formData);
+			if (this.deps.haptics.notificationAsync) {
+				await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
+			}
+
+			// Clean up cache file
+			try { await cacheFile.delete(); } catch {}
+			return result;
+		}
 
 		const result = await this.postFormDataWithAuth<T>("/feeds/import", formData);
-		await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
-		
-		// Clean up cache file
-		try { await cacheFile.delete(); } catch {}
-		
 		return result;
 	};
 
@@ -267,17 +308,17 @@ export class Api {
 				xhr.open("POST", `${baseUrl}${url}`);
 				xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
 				xhr.setRequestHeader("Accept", "application/json");
-				
+
 				xhr.onload = () => {
-					if (xhr.status >= 200 && xhr.status < 300) {
-						try {
-							resolve(JSON.parse(xhr.responseText) as T);
-						} catch {
-							resolve(xhr.responseText as any as T);
-						}
-					} else {
-						reject(new Error(`Request failed with status ${xhr.status}: ${xhr.responseText}`));
-					}
+				        if (xhr.status >= 200 && xhr.status < 300) {
+				                try {
+				                        resolve(JSON.parse(xhr.responseText) as T);
+				                } catch {
+				                        resolve(xhr.responseText as any as T);
+				                }
+				        } else {
+				                reject(new Error(`Request failed with status ${xhr.status}: ${xhr.responseText}`));
+				        }
 				};
 				xhr.onerror = () => reject(new Error("Network request failed"));
 				xhr.send(formData);
@@ -297,7 +338,6 @@ export class Api {
 	};
 
 	putWithAuth = async (
-
 		url: string,
 		body: any,
 		contentType: string = "application/x-www-form-urlencoded",
@@ -323,7 +363,7 @@ export class Api {
 			headers["Content-Type"] = "application/x-www-form-urlencoded";
 			requestBody = Object.keys(body)
 				.map(
-					(key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
+				        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
 				)
 				.join("&");
 		}
@@ -367,6 +407,7 @@ export const getWithAuth = api.getWithAuth;
 export const getBlobWithAuth = api.getBlobWithAuth;
 export const exportOpml = api.exportOpml;
 export const importOpml = api.importOpml;
+export const readTextFile = api.readTextFile;
 export const postFormDataWithAuth = api.postFormDataWithAuth;
 export const putWithAuth = api.putWithAuth;
 export const refreshToken = api.refreshToken;

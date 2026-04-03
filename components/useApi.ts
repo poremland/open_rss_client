@@ -17,8 +17,8 @@
  */
 
 import { useState, useCallback } from "react";
-import { api } from "../../helpers/api_helper";
-import { auth } from "../../helpers/auth_helper";
+import { api } from "../helpers/api_helper";
+import { auth } from "../helpers/auth_helper";
 import { useRouter } from "expo-router";
 
 export interface ApiResponse<T> {

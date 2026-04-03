@@ -15,9 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 import "./setup";
 import { mocks } from "./setup";
-import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
 import FeedListScreen from "../app/FeedListScreen";
@@ -30,12 +31,11 @@ describe("FeedListScreen", () => {
 
 	beforeEach(() => {
 		mocks.resetAll();
-		mocks.auth.getUser.mockResolvedValue("test-user");
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
+		mocks.auth.getUser.mockResolvedValue("testuser");
 	});
 
 	it("should display a list of feeds", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
-
 		const { getByText } = render(<FeedListScreen />);
 
 		await waitFor(() => {
@@ -45,16 +45,25 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should navigate to AddFeedScreen when Add Feed is pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
-
 		render(<FeedListScreen />);
 
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const addItem = menuItems.find((item: any) => item.label === "Add Feed");
-		addItem.onPress();
+		const addFeedAction = menuItems.find((item: any) => item.label === "Add Feed");
+		addFeedAction.onPress();
 
 		expect(mocks.router.push).toHaveBeenCalledWith("/AddFeedScreen");
+	});
+
+	it("should navigate to ManageFeedsListScreen when Manage Feeds is pressed", async () => {
+		render(<FeedListScreen />);
+
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+		const manageFeedsAction = menuItems.find((item: any) => item.label === "Manage Feeds");
+		manageFeedsAction.onPress();
+
+		expect(mocks.router.push).toHaveBeenCalledWith("/ManageFeedsListScreen");
 	});
 
 	it("should call clearAuthData when Log-out is pressed", async () => {
@@ -64,8 +73,8 @@ describe("FeedListScreen", () => {
 
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const logoutItem = menuItems.find((item: any) => item.label === "Log-out");
-		logoutItem.onPress();
+		const logoutAction = menuItems.find((item: any) => item.label === "Log-out");
+		logoutAction.onPress();
 
 		expect(mocks.auth.clearAuthData).toHaveBeenCalled();
 	});

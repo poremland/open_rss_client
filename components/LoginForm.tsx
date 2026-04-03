@@ -27,11 +27,11 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { post } from "../../helpers/api_helper";
-import * as authHelper from "../../helpers/auth_helper";
-import { LoginResponse } from "../../models/Login";
+import { post } from "../helpers/api_helper";
+import * as authHelper from "../helpers/auth_helper";
+import { LoginResponse } from "../models/Login";
 
-import { styles, loadingIndicator } from "../../styles/LoginForm.styles";
+import { styles, loadingIndicator } from "../styles/LoginForm.styles";
 
 const LoginForm: React.FC = () => {
 	const [username, setUsername] = useState<string>("");

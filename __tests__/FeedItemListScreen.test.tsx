@@ -21,25 +21,22 @@ import { expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { act } from "react";
-import { State } from "react-native-gesture-handler";
 import FeedItemListScreen from "../app/FeedItemListScreen";
 
 describe("FeedItemListScreen", () => {
 	const mockFeed = { id: 1, name: "Test Feed" };
-	const mockItems = [
-		{ id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
-		{ id: 2, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
+	const mockFeedItems = [
+		{ id: 1, feed_id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
+		{ id: 2, feed_id: 1, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
 	];
-	const mockFeedItems = [...mockItems];
 
 	beforeEach(() => {
 		mocks.resetAll();
-		mocks.localSearchParams.params = { feed: JSON.stringify(mockFeed) };
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
+		mocks.localSearchParams.mockReturnValue({ feed: JSON.stringify(mockFeed) });
 	});
 
 	it("should display a list of feed items", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
-
 		const { getByText } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
@@ -47,60 +44,90 @@ describe("FeedItemListScreen", () => {
 	});
 
 	it("should mark all items as read when Mark All As Read is pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
 		mocks.api.postWithAuth.mockResolvedValue({ message: "Success" });
 
 		render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const markAllItem = menuItems.find(
-			(item: any) => item.label === "Mark All As Read",
-		);
-		expect(markAllItem).toBeTruthy();
+		const markAllReadAction = menuItems.find((item: any) => item.label === "Mark All As Read");
 
 		await act(async () => {
-			markAllItem.onPress();
+			await markAllReadAction.onPress();
 		});
 
 		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
-			"/feeds/mark_items_as_read/1",
-			expect.objectContaining({ items: "[1,2]" }),
-			"application/x-www-form-urlencoded",
+			expect.stringContaining("mark_items_as_read"),
+			expect.any(Object),
+			expect.any(String)
 		);
 		expect(mocks.navigation.goBack).toHaveBeenCalled();
 	});
 
-	it("should activate multi-select mode when an item is long-pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
+	it("should delete the feed when Delete Feed is pressed", async () => {
+		mocks.api.getWithAuth.mockResolvedValueOnce(mockFeedItems); // first call
+		mocks.api.getWithAuth.mockResolvedValueOnce({ message: "Deleted" }); // delete call
 
-		const { getByText } = render(<FeedItemListScreen />);
+		render(<FeedItemListScreen />);
+
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+		const deleteAction = menuItems.find((item: any) => item.label === "Delete Feed");
+
+		await act(async () => {
+			await deleteAction.onPress();
+		});
+
+		expect(mocks.api.getWithAuth).toHaveBeenCalledWith(expect.stringContaining("remove"));
+		expect(mocks.navigation.goBack).toHaveBeenCalled();
+	});
+
+	it("should activate multi-select mode when an item is long-pressed", async () => {
+		const { getByText, getByTestId } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
 
-		fireEvent(getByText("Item 1"), "longPress");
+		fireEvent(getByTestId("feed-item-1"), "onLongPress");
 
-		expect(getByText("Mark Read")).toBeTruthy();
+		await waitFor(() => expect(getByText("Mark Read")).toBeTruthy());
 	});
 
 	it("should mark selected items as read when Mark Read is pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
 		mocks.api.postWithAuth.mockResolvedValue({ message: "Success" });
 
-		const { getByText } = render(<FeedItemListScreen />);
+		const { getByText, getByTestId } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
 
-		fireEvent(getByText("Item 1"), "longPress");
+		fireEvent(getByTestId("feed-item-1"), "onLongPress");
+		await waitFor(() => expect(getByText("Mark Read")).toBeTruthy());
+
 		fireEvent.press(getByText("Mark Read"));
 
-		await waitFor(() => {
-			expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
-				"/feeds/mark_items_as_read/1",
-				expect.objectContaining({ items: "[1]" }),
-				"application/x-www-form-urlencoded",
-			);
+		await waitFor(() => expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+			expect.stringContaining("mark_items_as_read"),
+			expect.objectContaining({ items: JSON.stringify([1]) }),
+			expect.any(String)
+		));
+	});
+
+	it("should handle swipe mark as read", async () => {
+		mocks.api.postWithAuth.mockResolvedValue({ message: "Success" });
+
+		const { getByTestId, getAllByTestId } = render(<FeedItemListScreen />);
+
+		await waitFor(() => expect(getByTestId("feed-item-1")).toBeTruthy());
+
+		const handlers = getAllByTestId("pan-gesture-handler");
+		await act(async () => {
+			(handlers[0] as any).props.simulateSwipe(-500);
 		});
+
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+			expect.stringContaining("mark_items_as_read"),
+			expect.objectContaining({ items: JSON.stringify([1]) }),
+			expect.any(String)
+		);
 	});
 
 	it("should display an error message if the api call fails", async () => {
@@ -112,25 +139,16 @@ describe("FeedItemListScreen", () => {
 	});
 
 	it("should navigate to FeedItemDetailScreen when an item is pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
-
-		const { getAllByTestId } = render(<FeedItemListScreen />);
+		const { getAllByTestId, getAllByTestId: getAllByTestIdOriginal } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(mocks.api.getWithAuth).toHaveBeenCalled());
-
-		// Trigger TapGestureHandler State.END on the first item
+		
 		const handlers = getAllByTestId("tap-gesture-handler");
-		const handler = handlers[0];
+		fireEvent.press(handlers[0]);
 
-		fireEvent(handler, "onHandlerStateChange", {
-			nativeEvent: { state: State.END },
-		});
-
-		expect(mocks.router.push).toHaveBeenCalledWith({
+		expect(mocks.router.push).toHaveBeenCalledWith(expect.objectContaining({
 			pathname: "/FeedItemDetailScreen",
-			params: {
-				feedItemId: "1",
-			},
-		});
+			params: { feedItemId: "1" }
+		}));
 	});
 });

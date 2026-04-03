@@ -28,10 +28,10 @@ import {
 	Platform,
 } from "react-native";
 import { useNavigation } from "expo-router";
-import useApi from "./components/useApi";
+import useApi from "../components/useApi";
 import { auth } from "../helpers/auth_helper";
 import { NewFeedResponse } from "../models/Feed";
-import Screen from "./components/Screen";
+import Screen from "../components/Screen";
 import { styles } from "../styles/AddFeedScreen.styles";
 
 const AddFeedScreen: React.FC = () => {

@@ -16,25 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { decode } from "he";
-import useApi from "./components/useApi";
-import HeaderRightMenu from "./components/HeaderRightMenu";
+import useApi from "../components/useApi";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { FeedItem } from "../models/FeedItem";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
 
-import Screen from "./components/Screen";
+import Screen from "../components/Screen";
 import { styles } from "../styles/FeedItemDetailScreen.styles";
 
 const FeedItemDetailScreen: React.FC = () => {
 	const [webViewSource, setWebViewSource] = useState<string>("");
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const { feedItemId } = useLocalSearchParams<{ feedItemId: string }>();
 	const {
 		data: selectedFeedItem,
@@ -56,8 +58,6 @@ const FeedItemDetailScreen: React.FC = () => {
 			? `/feed_items/mark_as_read/${selectedFeedItem.id}.json`
 			: "",
 	);
-
-	const { setMenuItems, onToggleDropdown } = useMenu();
 
 	const handleMarkAsRead = useCallback(async () => {
 		if (selectedFeedItem) {
@@ -83,6 +83,40 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [selectedFeedItem]);
 
+	const { setMenuItems, onToggleDropdown } = useMenu();
+
+	useFocusEffect(
+		useCallback(() => {
+			if (!isFocused) return;
+
+			const menuItems: MenuItem[] = [
+				{
+					label: "Mark As Read",
+					icon: "checkmark-sharp",
+					onPress: handleMarkAsRead,
+					testID: "mark-as-read-button",
+				},
+				{
+					label: "Open Full Site",
+					icon: "open-outline",
+					onPress: () =>
+						selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
+				},
+				{
+					label: "Share",
+					icon: "share-social-outline",
+					onPress: handleShare,
+				},
+				{
+					label: "Log-out",
+					icon: "log-out-outline",
+					onPress: () => authHelper.clearAuthData(router),
+				},
+			];
+			setMenuItems(menuItems);
+		}, [isFocused, handleMarkAsRead, handleShare, router, selectedFeedItem, setMenuItems]),
+	);
+
 	useEffect(() => {
 		if (selectedFeedItem) {
 			const decodedItem = { ...selectedFeedItem };
@@ -100,50 +134,18 @@ const FeedItemDetailScreen: React.FC = () => {
 			navigation.goBack();
 		}
 
-		const menuItems = [
-			{
-				label: "Mark As Read",
-				icon: "checkmark-sharp",
-				onPress: handleMarkAsRead,
-				testID: "mark-as-read-button",
-			},
-			{
-				label: "Open Full Site",
-				icon: "open-outline",
-				onPress: () =>
-					selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
-			},
-			{
-				label: "Share",
-				icon: "share-social-outline",
-				onPress: handleShare,
-			},
-			{
-				label: "Log-out",
-				icon: "log-out-outline",
-				onPress: () => authHelper.clearAuthData(router),
-			},
-		];
-		setMenuItems(menuItems);
-
 		navigation.setOptions({
 			headerTitle: selectedFeedItem?.title || "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
 			),
 		});
-
-		return () => {
-			setMenuItems([]);
-		};
 	}, [
 		selectedFeedItem,
+		loading,
+		feedItemId,
 		navigation,
-		handleMarkAsRead,
-		handleShare,
 		onToggleDropdown,
-		router,
-		setMenuItems,
 	]);
 
 	return (

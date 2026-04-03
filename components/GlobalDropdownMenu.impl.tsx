@@ -30,10 +30,10 @@ import {
 	TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { commonStyles } from "../../styles/commonStyles";
-import { styles } from "../../styles/GlobalDropdownMenu.styles";
+import { commonStyles } from "../styles/commonStyles";
+import { styles } from "../styles/GlobalDropdownMenu.styles";
 
-interface MenuItem {
+export interface MenuItem {
 	label: string;
 	onPress: () => void;
 	icon: keyof typeof Ionicons.glyphMap;
@@ -63,7 +63,11 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 	children,
 }) => {
 	const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-	const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+	const [menuItems, setMenuItemsState] = useState<MenuItem[]>([]);
+
+	const setMenuItems = useCallback((items: MenuItem[]) => {
+		setMenuItemsState(items);
+	}, []);
 
 	const onToggleDropdown = useCallback(() => {
 		setIsDropdownVisible((prev) => !prev);

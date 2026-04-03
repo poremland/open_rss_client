@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useCallback } from "react";
-import { Alert, Dimensions } from "react-native";
+import React, { useCallback, useRef, useEffect } from "react";
+import { Alert, Dimensions, View, TouchableOpacity } from "react-native";
 import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import Animated, {
 	useSharedValue,
@@ -65,6 +65,23 @@ const SelectableFlatListItem = <T extends { id: number }>({
 }: SelectableFlatListItemProps<T>) => {
 	const translateX = useSharedValue(0);
 
+	// Use a ref to store all current handlers and state to avoid stale closures in the gesture handler
+	const latestProps = useRef({
+		onSwipeAction,
+		swipeActionRequiresConfirmation,
+		swipeConfirmationMessage,
+		item,
+	});
+
+	useEffect(() => {
+		latestProps.current = {
+			onSwipeAction,
+			swipeActionRequiresConfirmation,
+			swipeConfirmationMessage,
+			item,
+		};
+	}, [onSwipeAction, swipeActionRequiresConfirmation, swipeConfirmationMessage, item]);
+
 	const animatedStyle = useAnimatedStyle(() => {
 		return {
 			transform: [{ translateX: translateX.value }],
@@ -72,10 +89,10 @@ const SelectableFlatListItem = <T extends { id: number }>({
 	});
 
 	const handleSwipeAction = (swipedItem: T) => {
-		if (swipeActionRequiresConfirmation) {
+		if (latestProps.current.swipeActionRequiresConfirmation) {
 			Alert.alert(
 				"Confirm Action",
-				swipeConfirmationMessage,
+				latestProps.current.swipeConfirmationMessage,
 				[
 					{
 						text: "No",
@@ -87,7 +104,7 @@ const SelectableFlatListItem = <T extends { id: number }>({
 					{
 						text: "Yes",
 						onPress: () => {
-							onSwipeAction?.(swipedItem);
+							latestProps.current.onSwipeAction?.(swipedItem);
 							translateX.value = withSpring(0);
 						},
 					},
@@ -112,11 +129,13 @@ const SelectableFlatListItem = <T extends { id: number }>({
 		},
 		onEnd: () => {
 			if (swipeEnabled && Math.abs(translateX.value) > SWIPE_THRESHOLD) {
-				if (!swipeActionRequiresConfirmation) {
-					runOnJS(onSwipeAction as (item: T) => void)(item);
+				if (!latestProps.current.swipeActionRequiresConfirmation) {
+					if (latestProps.current.onSwipeAction) {
+						runOnJS(latestProps.current.onSwipeAction)(latestProps.current.item);
+					}
 					translateX.value = withSpring(-SCREEN_WIDTH);
 				} else {
-					runOnJS(handleSwipeAction)(item);
+					runOnJS(handleSwipeAction)(latestProps.current.item);
 				}
 			} else {
 				translateX.value = withSpring(0, { damping: 20, stiffness: 90 });
@@ -150,16 +169,27 @@ const SelectableFlatListItem = <T extends { id: number }>({
 					<TapGestureHandler
 						onHandlerStateChange={onTapEvent}
 						testID="tap-gesture-handler"
-						shouldCancelWhenOutside={true}
 					>
-						<Animated.View>{itemContent}</Animated.View>
+						<View>
+							{itemContent}
+						</View>
 					</TapGestureHandler>
 				</Animated.View>
 			</PanGestureHandler>
 		);
 	}
 
-	return itemContent;
+	return (
+		<TouchableOpacity
+			onPress={onPress}
+			onLongPress={onLongPress}
+			testID="tap-gesture-handler"
+		>
+			<View>
+				{itemContent}
+			</View>
+		</TouchableOpacity>
+	);
 };
 
 export default SelectableFlatListItem;

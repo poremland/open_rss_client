@@ -18,7 +18,7 @@
 
 import React from "react";
 import { View, ViewProps } from "react-native";
-import { commonStyles } from "../../styles/commonStyles";
+import { commonStyles } from "../styles/commonStyles";
 
 const MultiSelectBar = React.forwardRef<View, ViewProps>(
 	({ children, ...props }, ref) => {

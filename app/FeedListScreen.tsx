@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useNavigation } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import * as authHelper from "../helpers/auth_helper";
 import { Feed, FeedItemFromAPI } from "../models/Feed";
-import HeaderRightMenu from "./components/HeaderRightMenu";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import HeaderRightMenu from "../components/HeaderRightMenu";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import { styles } from "../styles/FeedListScreen.styles";
-import ListScreen from "./components/ListScreen";
-import FeedCard from "./components/FeedCard";
+import ListScreen from "../components/ListScreen";
+import FeedCard from "../components/FeedCard";
 
 interface ListScreenHandle {
 	handleRefresh: () => void;
@@ -19,6 +19,7 @@ const FeedListScreen: React.FC = () => {
 	const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const { setMenuItems, onToggleDropdown } = useMenu();
 	const listRef = React.useRef<ListScreenHandle>(null);
 
@@ -32,8 +33,10 @@ const FeedListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			if (!isFocused) return;
+
 			listRef.current?.handleRefresh();
-			const menuItems = [
+			const menuItems: MenuItem[] = [
 				{
 					label: "Add Feed",
 					icon: "duplicate-outline",
@@ -51,7 +54,7 @@ const FeedListScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [router, setMenuItems]),
+		}, [isFocused, router, setMenuItems]),
 	);
 
 	useEffect(() => {

@@ -7,23 +7,24 @@ import React, {
 } from "react";
 import { View } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
-import useApi from "./components/useApi";
-import HeaderRightMenu from "./components/HeaderRightMenu";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import useApi from "../components/useApi";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { styles } from "../styles/FeedItemListScreen.styles";
 import { FeedItem } from "../models/FeedItem";
-import { useMenu } from "./components/GlobalDropdownMenu";
-import ListScreen from "./components/ListScreen";
-import FeedItemCard from "./components/FeedItemCard";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
+import ListScreen from "../components/ListScreen";
+import FeedItemCard from "../components/FeedItemCard";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);
 	const [isMultiSelectActive, setMultiSelectActive] = useState<boolean>(false);
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const listRef = useRef<{
-		handleRefresh: () => void;
+		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
 		getData: () => FeedItem[];
 	}>(null);
@@ -106,6 +107,8 @@ const FeedItemListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			if (!isFocused) return;
+
 			const refreshAndCheck = async () => {
 				const refreshedData = await listRef.current?.handleRefresh();
 				if (refreshedData?.length === 0) {
@@ -114,7 +117,7 @@ const FeedItemListScreen: React.FC = () => {
 			};
 			refreshAndCheck();
 
-			const menuItems = [
+			const menuItems: MenuItem[] = [
 				{
 					label: "Mark All As Read",
 					icon: "checkmark-done",
@@ -139,11 +142,8 @@ const FeedItemListScreen: React.FC = () => {
 					<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
 				),
 			});
-
-			return () => {
-				setMenuItems([]);
-			};
 		}, [
+			isFocused,
 			selectedFeed,
 			navigation,
 			router,
@@ -151,7 +151,6 @@ const FeedItemListScreen: React.FC = () => {
 			handleDeleteFeed,
 			setMenuItems,
 			onToggleDropdown,
-			listRef,
 		]),
 	);
 

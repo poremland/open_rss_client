@@ -17,7 +17,7 @@
  */
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import { render, waitFor, act } from "@testing-library/react-native";
+import { render, waitFor, act, fireEvent } from "@testing-library/react-native";
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
 
 const mocks = (globalThis as any).__mocks;
@@ -28,8 +28,9 @@ describe("ManageFeedsListScreen", () => {
 		{ id: 2, name: "Feed 2", uri: "http://feed2.com" },
 	];
 
-	beforeEach(async () => {
+	beforeEach(() => {
 		mocks.resetAll();
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 	});
 
 	it("should fetch feeds when the screen is focused", async () => {
@@ -38,7 +39,7 @@ describe("ManageFeedsListScreen", () => {
 		render(<ManageFeedsListScreen />);
 
 		await waitFor(() => {
-			expect(mocks.api.getWithAuth).toHaveBeenCalled();
+			expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/all.json");
 		});
 	});
 
@@ -49,7 +50,9 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => {
 			expect(getByText("Feed 1")).toBeTruthy();
+			expect(getByText("http://feed1.com")).toBeTruthy();
 			expect(getByText("Feed 2")).toBeTruthy();
+			expect(getByText("http://feed2.com")).toBeTruthy();
 		});
 	});
 
@@ -60,8 +63,8 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const logoutItem = menuItems.find((item: any) => item.label === "Log-out");
-		logoutItem.onPress();
+		const logoutAction = menuItems.find((item: any) => item.label === "Log-out");
+		logoutAction.onPress();
 
 		expect(mocks.auth.clearAuthData).toHaveBeenCalled();
 	});
@@ -83,8 +86,14 @@ describe("ManageFeedsListScreen", () => {
 	it("should copy feed uri to clipboard on press", async () => {
 		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 
-		const { getByText } = render(<ManageFeedsListScreen />);
+		const { getByText, getAllByTestId } = render(<ManageFeedsListScreen />);
 		await waitFor(() => expect(getByText("Feed 1")).toBeTruthy());
+
+		// Trigger via the tap gesture handler mock which calls onHandlerStateChange
+		const handlers = getAllByTestId("tap-gesture-handler");
+		fireEvent.press(handlers[0]);
+
+		expect(mocks.clipboard.setStringAsync).toHaveBeenCalledWith("http://feed1.com");
 	});
 
 	it("should call exportOpml when Export OPML is pressed", async () => {
@@ -94,29 +103,39 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const exportItem = menuItems.find((item: any) => item.label === "Export OPML");
-		expect(exportItem).toBeTruthy();
+		const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
+		
 		await act(async () => {
-			exportItem.onPress();
+			await exportAction.onPress();
 		});
 
 		expect(mocks.api.exportOpml).toHaveBeenCalled();
 	});
 
-	it("should call importOpml when Import OPML is pressed and file is valid", async () => {
+	it("should handle export failure", async () => {
 		mocks.api.getWithAuth.mockResolvedValue([]);
+		mocks.api.exportOpml.mockRejectedValue(new Error("Export Error"));
+
+		render(<ManageFeedsListScreen />);
+
+		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+		const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
+		
+		await act(async () => {
+			await exportAction.onPress();
+		});
+
+		expect(mocks.alert).toHaveBeenCalledWith("Export Failed", "Export Error");
+	});
+
+	it("should call importOpml when Import OPML is pressed and file is valid", async () => {
 		const mockFileUri = "file:///test.opml";
 		mocks.documentPicker.getDocumentAsync.mockResolvedValue({
 			canceled: false,
-			assets: [{
-				uri: mockFileUri,
-				name: "test.opml",
-				mimeType: "text/x-opml",
-				size: 1024,
-			}],
-		} as any);
-		
-		mocks.opml.validateOpmlFile.mockResolvedValue(true);
+			assets: [{ uri: mockFileUri }]
+		});
+		mocks.api.readTextFile.mockResolvedValue("<opml>test</opml>");
 		const mockImportResponse = { message: "Import started", count: 5 };
 		mocks.api.importOpml.mockResolvedValue(mockImportResponse);
 
@@ -124,10 +143,10 @@ describe("ManageFeedsListScreen", () => {
 
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const importItem = menuItems.find((item: any) => item.label === "Import OPML");
-		expect(importItem).toBeTruthy();
+		const importAction = menuItems.find((item: any) => item.label === "Import OPML");
+		
 		await act(async () => {
-			await importItem.onPress();
+			await importAction.onPress();
 		});
 
 		expect(mocks.documentPicker.getDocumentAsync).toHaveBeenCalled();

@@ -19,19 +19,19 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
-import HeaderRightMenu from "./components/HeaderRightMenu";
+import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
-import { getWithAuth, exportOpml, importOpml } from "../helpers/api_helper";
+import { getWithAuth, exportOpml, importOpml, readTextFile } from "../helpers/api_helper";
 import { validateOpmlFile } from "../helpers/opml_helper";
 import * as DocumentPicker from "expo-document-picker";
 import { Feed } from "../models/Feed";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
 import { styles as listScreenStyles } from "../styles/ListScreen.styles";
 import { commonStyles } from "../styles/commonStyles";
-import ListScreen from "./components/ListScreen";
+import ListScreen from "../components/ListScreen";
 
 const ManageFeedsListScreen: React.FC = () => {
 	const listRef = useRef<{ handleRefresh: () => void }>(null);
@@ -39,6 +39,7 @@ const ManageFeedsListScreen: React.FC = () => {
 	const [isMultiSelectActive, setMultiSelectActive] = useState<boolean>(false);
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const { setMenuItems, onToggleDropdown } = useMenu();
 
 	const handleSelectionChange = useCallback((selectedIds: number[]) => {
@@ -88,9 +89,9 @@ const ManageFeedsListScreen: React.FC = () => {
 			}
 
 			const fileUri = result.assets[0].uri;
-			await validateOpmlFile(fileUri);
+			const content = await readTextFile(fileUri);
+			await validateOpmlFile(content);
 			const response = await importOpml<{ message: string; count: number }>(fileUri);
-
 			Alert.alert(
 				"Import Started",
 				`Importing ${response.count} feeds in the background. Your feed list will be updated shortly.`
@@ -103,26 +104,31 @@ const ManageFeedsListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			if (!isFocused) return;
+
 			listRef.current?.handleRefresh();
-			const menuItems = [
+			const menuItems: MenuItem[] = [
 				{
 					label: "Import OPML",
 					icon: "upload-outline",
 					onPress: handleImportOpml,
+					testID: "import-opml-button",
 				},
 				{
 					label: "Export OPML",
 					icon: "download-outline",
 					onPress: handleExportOpml,
+					testID: "export-opml-button",
 				},
 				{
 					label: "Log-out",
 					icon: "log-out-outline",
 					onPress: () => authHelper.clearAuthData(router),
+					testID: "logout-button",
 				},
 			];
 			setMenuItems(menuItems);
-		}, [setMenuItems, router, handleExportOpml, handleImportOpml]),
+		}, [isFocused, setMenuItems, router, handleExportOpml, handleImportOpml]),
 	);
 
 	useEffect(() => {

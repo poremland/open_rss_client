@@ -21,7 +21,7 @@ import React, { useCallback } from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { View, Text, TouchableOpacity } from "react-native";
-import SelectableFlatListItem from "../../app/components/SelectableFlatListItem";
+import SelectableFlatListItem from "../../components/SelectableFlatListItem";
 import { State, TapGestureHandler } from "react-native-gesture-handler";
 import * as setup from "../setup";
 
