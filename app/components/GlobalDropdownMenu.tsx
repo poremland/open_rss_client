@@ -22,6 +22,7 @@ import React, {
 	useState,
 	useCallback,
 	useMemo,
+	useRef,
 } from "react";
 import {
 	View,
@@ -33,7 +34,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { commonStyles } from "../../styles/commonStyles";
 import { styles } from "../../styles/GlobalDropdownMenu.styles";
 
-interface MenuItem {
+export interface MenuItem {
 	label: string;
 	onPress: () => void;
 	icon: keyof typeof Ionicons.glyphMap;
@@ -63,7 +64,16 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 	children,
 }) => {
 	const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-	const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+	const [menuItems, setMenuItemsState] = useState<MenuItem[]>([]);
+	const menuItemsRef = useRef<string>("");
+
+	const setMenuItems = useCallback((items: MenuItem[]) => {
+		const itemsKey = JSON.stringify(items.map(i => i.label));
+		if (itemsKey !== menuItemsRef.current) {
+			menuItemsRef.current = itemsKey;
+			setMenuItemsState(items);
+		}
+	}, []);
 
 	const onToggleDropdown = useCallback(() => {
 		setIsDropdownVisible((prev) => !prev);

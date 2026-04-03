@@ -13,7 +13,7 @@ import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { styles } from "../styles/FeedItemListScreen.styles";
 import { FeedItem } from "../models/FeedItem";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
 import ListScreen from "./components/ListScreen";
 import FeedItemCard from "./components/FeedItemCard";
 
@@ -23,7 +23,7 @@ const FeedItemListScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const listRef = useRef<{
-		handleRefresh: () => void;
+		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
 		getData: () => FeedItem[];
 	}>(null);
@@ -114,7 +114,7 @@ const FeedItemListScreen: React.FC = () => {
 			};
 			refreshAndCheck();
 
-			const menuItems = [
+			const menuItems: MenuItem[] = [
 				{
 					label: "Mark All As Read",
 					icon: "checkmark-done",
@@ -137,10 +137,9 @@ const FeedItemListScreen: React.FC = () => {
 				headerTitle: selectedFeed?.name || "Feed Items",
 				headerRight: () => (
 					<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
-					),
-					});
-					}, [
-
+				),
+			});
+		}, [
 			selectedFeed,
 			navigation,
 			router,
@@ -148,7 +147,6 @@ const FeedItemListScreen: React.FC = () => {
 			handleDeleteFeed,
 			setMenuItems,
 			onToggleDropdown,
-			listRef,
 		]),
 	);
 

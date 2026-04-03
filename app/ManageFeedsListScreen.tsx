@@ -27,7 +27,7 @@ import { getWithAuth, exportOpml, importOpml, readTextFile } from "../helpers/ap
 import { validateOpmlFile } from "../helpers/opml_helper";
 import * as DocumentPicker from "expo-document-picker";
 import { Feed } from "../models/Feed";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
 import { styles } from "../styles/ManageFeedsListScreen.styles";
 import { styles as listScreenStyles } from "../styles/ListScreen.styles";
 import { commonStyles } from "../styles/commonStyles";
@@ -104,7 +104,7 @@ const ManageFeedsListScreen: React.FC = () => {
 	useFocusEffect(
 		useCallback(() => {
 			listRef.current?.handleRefresh();
-			const menuItems = [
+			const menuItems: MenuItem[] = [
 				{
 					label: "Import OPML",
 					icon: "upload-outline",

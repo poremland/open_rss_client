@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { WebView } from "react-native-webview";
@@ -25,7 +25,7 @@ import useApi from "./components/useApi";
 import HeaderRightMenu from "./components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
 import { FeedItem } from "../models/FeedItem";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
 
 import Screen from "./components/Screen";
@@ -57,8 +57,6 @@ const FeedItemDetailScreen: React.FC = () => {
 			: "",
 	);
 
-	const { setMenuItems, onToggleDropdown } = useMenu();
-
 	const handleMarkAsRead = useCallback(async () => {
 		if (selectedFeedItem) {
 			await markItemAsRead();
@@ -83,6 +81,33 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [selectedFeedItem]);
 
+	const menuItems = useMemo<MenuItem[]>(() => [
+		{
+			label: "Mark As Read",
+			icon: "checkmark-sharp",
+			onPress: handleMarkAsRead,
+			testID: "mark-as-read-button",
+		},
+		{
+			label: "Open Full Site",
+			icon: "open-outline",
+			onPress: () =>
+				selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
+		},
+		{
+			label: "Share",
+			icon: "share-social-outline",
+			onPress: handleShare,
+		},
+		{
+			label: "Log-out",
+			icon: "log-out-outline",
+			onPress: () => authHelper.clearAuthData(router),
+		},
+	], [handleMarkAsRead, handleShare, router, selectedFeedItem]);
+
+	const { onToggleDropdown } = useMenu(menuItems);
+
 	useEffect(() => {
 		if (selectedFeedItem) {
 			const decodedItem = { ...selectedFeedItem };
@@ -100,47 +125,18 @@ const FeedItemDetailScreen: React.FC = () => {
 			navigation.goBack();
 		}
 
-		const menuItems = [
-			{
-				label: "Mark As Read",
-				icon: "checkmark-sharp",
-				onPress: handleMarkAsRead,
-				testID: "mark-as-read-button",
-			},
-			{
-				label: "Open Full Site",
-				icon: "open-outline",
-				onPress: () =>
-					selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
-			},
-			{
-				label: "Share",
-				icon: "share-social-outline",
-				onPress: handleShare,
-			},
-			{
-				label: "Log-out",
-				icon: "log-out-outline",
-				onPress: () => authHelper.clearAuthData(router),
-			},
-		];
-		setMenuItems(menuItems);
-
 		navigation.setOptions({
 			headerTitle: selectedFeedItem?.title || "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
-				),
-				});
-				}, [
-
+			),
+		});
+	}, [
 		selectedFeedItem,
+		loading,
+		feedItemId,
 		navigation,
-		handleMarkAsRead,
-		handleShare,
 		onToggleDropdown,
-		router,
-		setMenuItems,
 	]);
 
 	return (

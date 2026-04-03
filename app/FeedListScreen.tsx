@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useNavigation } from "expo-router";
@@ -6,7 +6,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as authHelper from "../helpers/auth_helper";
 import { Feed, FeedItemFromAPI } from "../models/Feed";
 import HeaderRightMenu from "./components/HeaderRightMenu";
-import { useMenu } from "./components/GlobalDropdownMenu";
+import { useMenu, MenuItem } from "./components/GlobalDropdownMenu";
 import { styles } from "../styles/FeedListScreen.styles";
 import ListScreen from "./components/ListScreen";
 import FeedCard from "./components/FeedCard";
@@ -33,7 +33,7 @@ const FeedListScreen: React.FC = () => {
 	useFocusEffect(
 		useCallback(() => {
 			listRef.current?.handleRefresh();
-			const menuItems = [
+			const menuItems: MenuItem[] = [
 				{
 					label: "Add Feed",
 					icon: "duplicate-outline",
