@@ -19,6 +19,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { decode } from "he";
 import useApi from "../components/useApi";
@@ -81,32 +82,37 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [selectedFeedItem]);
 
-	const menuItems = useMemo<MenuItem[]>(() => [
-		{
-			label: "Mark As Read",
-			icon: "checkmark-sharp",
-			onPress: handleMarkAsRead,
-			testID: "mark-as-read-button",
-		},
-		{
-			label: "Open Full Site",
-			icon: "open-outline",
-			onPress: () =>
-				selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
-		},
-		{
-			label: "Share",
-			icon: "share-social-outline",
-			onPress: handleShare,
-		},
-		{
-			label: "Log-out",
-			icon: "log-out-outline",
-			onPress: () => authHelper.clearAuthData(router),
-		},
-	], [handleMarkAsRead, handleShare, router, selectedFeedItem]);
+	const { setMenuItems, onToggleDropdown } = useMenu();
 
-	const { onToggleDropdown } = useMenu(menuItems);
+	useFocusEffect(
+		useCallback(() => {
+			const menuItems: MenuItem[] = [
+				{
+					label: "Mark As Read",
+					icon: "checkmark-sharp",
+					onPress: handleMarkAsRead,
+					testID: "mark-as-read-button",
+				},
+				{
+					label: "Open Full Site",
+					icon: "open-outline",
+					onPress: () =>
+						selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
+				},
+				{
+					label: "Share",
+					icon: "share-social-outline",
+					onPress: handleShare,
+				},
+				{
+					label: "Log-out",
+					icon: "log-out-outline",
+					onPress: () => authHelper.clearAuthData(router),
+				},
+			];
+			setMenuItems(menuItems);
+		}, [handleMarkAsRead, handleShare, router, selectedFeedItem, setMenuItems]),
+	);
 
 	useEffect(() => {
 		if (selectedFeedItem) {

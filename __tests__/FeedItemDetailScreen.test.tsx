@@ -71,6 +71,23 @@ describe("FeedItemDetailScreen", () => {
 		expect(mocks.navigation.goBack).not.toHaveBeenCalled();
 	});
 
+	it("should set the correct menu items", async () => {
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			expect(mocks.useMenu.setMenuItems).toHaveBeenCalledWith(
+				expect.arrayContaining([
+					expect.objectContaining({ label: "Mark As Read" }),
+					expect.objectContaining({ label: "Open Full Site" }),
+					expect.objectContaining({ label: "Share" }),
+					expect.objectContaining({ label: "Log-out" }),
+				]),
+			);
+		});
+	});
+
 	it("should call goBack on mount when feedItemId is missing", async () => {
 		mocks.localSearchParams.params = {}; // Missing feedItemId
 
