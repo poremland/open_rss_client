@@ -137,13 +137,10 @@ const FeedItemListScreen: React.FC = () => {
 				headerTitle: selectedFeed?.name || "Feed Items",
 				headerRight: () => (
 					<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
-				),
-			});
+					),
+					});
+					}, [
 
-			return () => {
-				setMenuItems([]);
-			};
-		}, [
 			selectedFeed,
 			navigation,
 			router,

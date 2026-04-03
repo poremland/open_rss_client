@@ -130,13 +130,10 @@ const FeedItemDetailScreen: React.FC = () => {
 			headerTitle: selectedFeedItem?.title || "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
-			),
-		});
+				),
+				});
+				}, [
 
-		return () => {
-			setMenuItems([]);
-		};
-	}, [
 		selectedFeedItem,
 		navigation,
 		handleMarkAsRead,

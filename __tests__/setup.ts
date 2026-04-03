@@ -176,6 +176,7 @@ export const apiMocks = {
 	getBlobWithAuth: mock(),
 	exportOpml: mock(),
 	importOpml: mock(),
+	readTextFile: mock(),
 	postWithAuth: mock(),
 	putWithAuth: mock(),
 	refreshToken: mock(),
@@ -363,7 +364,9 @@ mock.module(resolveModule("../helpers/api_helper"), () => ({
 	getBlobWithAuth: apiMocks.getBlobWithAuth,
 	exportOpml: apiMocks.exportOpml,
 	importOpml: apiMocks.importOpml,
+	readTextFile: apiMocks.readTextFile,
 	postFormDataWithAuth: apiMocks.postFormDataWithAuth,
+
 	putWithAuth: apiMocks.putWithAuth,
 	refreshToken: apiMocks.refreshToken,
 	__esModule: true,

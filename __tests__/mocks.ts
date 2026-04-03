@@ -109,6 +109,7 @@ export const apiMocks = {
 	getBlobWithAuth: mock(),
 	exportOpml: mock(),
 	importOpml: mock(),
+	readTextFile: mock(),
 	postFormDataWithAuth: mock(),
 	postWithAuth: mock(),
 	putWithAuth: mock(),
