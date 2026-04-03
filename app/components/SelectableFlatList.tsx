@@ -104,7 +104,9 @@ const SelectableFlatList = <T extends { id: number }>({
 
 	return (
 		<FlatList
+			testID="selectable-flat-list"
 			data={data}
+
 			renderItem={renderSelectableItem}
 			keyExtractor={(item) => item.id.toString()}
 			refreshControl={
