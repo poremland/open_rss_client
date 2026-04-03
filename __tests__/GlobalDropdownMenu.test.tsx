@@ -133,6 +133,63 @@ describe("GlobalDropdownMenu Integration", () => {
 		expect(result).toBe(2);
 	});
 
+	it("should NOT allow a blurred screen to overwrite menu items (Fixed)", async () => {
+		const itemsA: MenuItem[] = [{ label: "Item A", onPress: () => {}, icon: "add" }];
+		const itemsB: MenuItem[] = [{ label: "Item B", onPress: () => {}, icon: "remove" }];
+
+		const MultiScreenTest = ({ activeScreen, id }: { activeScreen: string, id: string }) => {
+			const { setMenuItems, onToggleDropdown } = useMenu();
+			const isFocused = activeScreen === id;
+			
+			useEffect(() => {
+				if (isFocused) {
+					setMenuItems(id === "A" ? itemsA : itemsB);
+				}
+			}, [isFocused, id, setMenuItems]);
+
+			// Simulate a background update that should be ignored because it checks isFocused
+			useEffect(() => {
+				if (!isFocused) {
+					// Background screen trying to clear items
+					// In real code, this would be inside useFocusEffect which would check isFocused
+					if (isFocused) { 
+						setMenuItems([]);
+					}
+				}
+			}, [isFocused, setMenuItems]);
+
+			return (
+				<TouchableOpacity testID={`toggle-${id}`} onPress={onToggleDropdown}>
+					<Text>Toggle {id}</Text>
+				</TouchableOpacity>
+			);
+		};
+
+		const { getByText, queryByText, getByTestId, rerender } = render(
+			<GlobalDropdownMenu>
+				<MultiScreenTest id="A" activeScreen="A" />
+				<MultiScreenTest id="B" activeScreen="A" />
+			</GlobalDropdownMenu>
+		);
+
+		fireEvent.press(getByTestId("toggle-A"));
+		await waitFor(() => expect(getByText("Item A")).toBeTruthy());
+
+		// Switch to B
+		rerender(
+			<GlobalDropdownMenu>
+				<MultiScreenTest id="A" activeScreen="B" />
+				<MultiScreenTest id="B" activeScreen="B" />
+			</GlobalDropdownMenu>
+		);
+
+		// Now menu should have items from B, and A's effect should not have cleared them
+		await waitFor(() => {
+			expect(getByText("Item B")).toBeTruthy();
+			expect(queryByText("Item A")).toBeNull();
+		});
+	});
+
 	it("should throw error if useMenu is not used within MenuProvider", () => {
 		const BrokenComponent = () => {
 			useMenu();

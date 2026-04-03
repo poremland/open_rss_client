@@ -19,7 +19,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { decode } from "he";
 import useApi from "../components/useApi";
@@ -36,6 +36,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	const [webViewSource, setWebViewSource] = useState<string>("");
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const { feedItemId } = useLocalSearchParams<{ feedItemId: string }>();
 	const {
 		data: selectedFeedItem,
@@ -86,6 +87,8 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			if (!isFocused) return;
+
 			const menuItems: MenuItem[] = [
 				{
 					label: "Mark As Read",
@@ -111,7 +114,7 @@ const FeedItemDetailScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [handleMarkAsRead, handleShare, router, selectedFeedItem, setMenuItems]),
+		}, [isFocused, handleMarkAsRead, handleShare, router, selectedFeedItem, setMenuItems]),
 	);
 
 	useEffect(() => {

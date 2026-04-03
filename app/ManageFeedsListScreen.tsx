@@ -19,7 +19,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
@@ -39,6 +39,7 @@ const ManageFeedsListScreen: React.FC = () => {
 	const [isMultiSelectActive, setMultiSelectActive] = useState<boolean>(false);
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const { setMenuItems, onToggleDropdown } = useMenu();
 
 	const handleSelectionChange = useCallback((selectedIds: number[]) => {
@@ -103,6 +104,8 @@ const ManageFeedsListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			if (!isFocused) return;
+
 			listRef.current?.handleRefresh();
 			const menuItems: MenuItem[] = [
 				{
@@ -125,7 +128,7 @@ const ManageFeedsListScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [setMenuItems, router, handleExportOpml, handleImportOpml]),
+		}, [isFocused, setMenuItems, router, handleExportOpml, handleImportOpml]),
 	);
 
 	useEffect(() => {

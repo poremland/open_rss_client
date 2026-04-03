@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { View } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import useApi from "../components/useApi";
 import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
@@ -22,6 +22,7 @@ const FeedItemListScreen: React.FC = () => {
 	const [isMultiSelectActive, setMultiSelectActive] = useState<boolean>(false);
 	const router = useRouter();
 	const navigation = useNavigation();
+	const isFocused = useIsFocused();
 	const listRef = useRef<{
 		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
@@ -106,6 +107,8 @@ const FeedItemListScreen: React.FC = () => {
 
 	useFocusEffect(
 		useCallback(() => {
+			if (!isFocused) return;
+
 			const refreshAndCheck = async () => {
 				const refreshedData = await listRef.current?.handleRefresh();
 				if (refreshedData?.length === 0) {
@@ -140,6 +143,7 @@ const FeedItemListScreen: React.FC = () => {
 				),
 			});
 		}, [
+			isFocused,
 			selectedFeed,
 			navigation,
 			router,
