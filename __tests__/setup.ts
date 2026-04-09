@@ -485,6 +485,12 @@ mock.module("expo-font", () => ({
 
 mock.module("expo-modules-core", () => ({
 	requireNativeModule: mock(() => ({})),
+	UnavailabilityError: class extends Error {
+		constructor(moduleName: string, methodName: string) {
+			super(`The method or property ${moduleName}.${methodName} is not available on ${process.env.EXPO_OS}, are you sure you've linked all the native dependencies properly?`);
+			this.name = 'UnavailabilityError';
+		}
+	},
 }));
 
 mock.module("expo-clipboard", () => ({
