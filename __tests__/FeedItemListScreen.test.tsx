@@ -22,22 +22,38 @@ import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { act } from "react";
 import FeedItemListScreen from "../app/FeedItemListScreen";
+import { useConnectionStatusConfig } from "./setup";
 
 describe("FeedItemListScreen", () => {
-	const mockFeed = { id: 1, name: "Test Feed" };
-	const mockFeedItems = [
-		{ id: 1, feed_id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
-		{ id: 2, feed_id: 1, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
-	];
+        const mockFeed = { id: 1, name: "Test Feed" };
+        const mockFeedItems = [
+                { id: 1, feed_id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
+                { id: 2, feed_id: 1, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
+        ];
 
-	beforeEach(() => {
-		mocks.resetAll();
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
-		mocks.localSearchParams.mockReturnValue({ feed: JSON.stringify(mockFeed) });
-	});
+        beforeEach(() => {
+                mocks.resetAll();
+                mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
+                mocks.localSearchParams.mockReturnValue({ feed: JSON.stringify(mockFeed) });
+        });
 
-	it("should display a list of feed items", async () => {
-		const { getByText } = render(<FeedItemListScreen />);
+        it("disables feed deletion when disconnected", async () => {
+                useConnectionStatusConfig.isConnected = false;
+                render(<FeedItemListScreen />);
+
+                await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+                const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+                const deleteAction = menuItems.find((item: any) => item.label === "Delete Feed");
+
+                await act(async () => {
+                        await deleteAction.onPress();
+                });
+
+                expect(mocks.alert).toHaveBeenCalledWith("Offline", "Deleting feeds is disabled while offline.");
+                expect(mocks.api.getWithAuth).not.toHaveBeenCalledWith(expect.stringContaining("remove"));
+        });
+
+        it("should display a list of feed items", async () => {		const { getByText } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
 		expect(getByText("Item 2")).toBeTruthy();

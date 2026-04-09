@@ -22,22 +22,31 @@ import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { act } from "react";
 import AddFeedScreen from "../app/AddFeedScreen";
+import { useConnectionStatusConfig } from "./setup";
 
 describe("AddFeedScreen", () => {
-	beforeEach(() => {
-		mocks.resetAll();
-		mocks.auth.getUser.mockResolvedValue("test-user");
-	});
+        beforeEach(() => {
+                mocks.resetAll();
+                mocks.auth.getUser.mockResolvedValue("test-user");
+        });
 
-	it("renders correctly", async () => {
-		const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
-		expect(getByPlaceholderText("FeedName")).toBeTruthy();
-		expect(getByPlaceholderText("FeedUri")).toBeTruthy();
-		expect(getByText("Add Feed")).toBeTruthy();
-	});
+        it("renders correctly", async () => {
+                const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
+                expect(getByPlaceholderText("FeedName")).toBeTruthy();
+                expect(getByPlaceholderText("FeedUri")).toBeTruthy();
+                expect(getByText("Add Feed")).toBeTruthy();
+        });
 
-	it("calls addFeed with correct parameters on button press", async () => {
-		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+        it("disables the add button and shows offline message when disconnected", async () => {
+                useConnectionStatusConfig.isConnected = false;
+                const { getByTestId, getByText } = render(<AddFeedScreen />);
+                const addButton = getByTestId("addFeedButton");
+
+                expect(addButton.props.disabled).toBe(true);
+                expect(getByText("You are offline. Adding feeds is disabled.")).toBeTruthy();
+        });
+
+        it("calls addFeed with correct parameters on button press", async () => {		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
 		const nameInput = getByPlaceholderText("FeedName");
 		const uriInput = getByPlaceholderText("FeedUri");
 		const addButton = getByTestId("addFeedButton");

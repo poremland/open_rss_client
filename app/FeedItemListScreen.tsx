@@ -5,7 +5,7 @@ import React, {
 	useEffect,
 	useMemo,
 } from "react";
-import { View } from "react-native";
+import { View, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import useApi from "../components/useApi";
@@ -16,6 +16,7 @@ import { FeedItem } from "../models/FeedItem";
 import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import ListScreen from "../components/ListScreen";
 import FeedItemCard from "../components/FeedItemCard";
+import useConnectionStatus from "../components/useConnectionStatus";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -23,6 +24,7 @@ const FeedItemListScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
+	const { isConnected } = useConnectionStatus();
 	const listRef = useRef<{
 		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
@@ -84,9 +86,13 @@ const FeedItemListScreen: React.FC = () => {
 	}, [markItemsAsRead, navigation]);
 
 	const handleDeleteFeed = useCallback(async () => {
+		if (!isConnected) {
+			Alert.alert("Offline", "Deleting feeds is disabled while offline.");
+			return;
+		}
 		await deleteFeed();
 		navigation.goBack();
-	}, [deleteFeed, navigation]);
+	}, [deleteFeed, navigation, isConnected]);
 
 	const displayFeedItemDetails = useCallback(
 		(item: FeedItem) => {
@@ -100,19 +106,23 @@ const FeedItemListScreen: React.FC = () => {
 
 	useEffect(() => {
 		if (removedItemId) {
-			listRef.current?.handleRefresh();
+			if (isConnected) {
+				listRef.current?.handleRefresh();
+			}
 			router.setParams({ removedItemId: undefined }); // Clear the param after processing
 		}
-	}, [removedItemId, router]);
+	}, [removedItemId, router, isConnected]);
 
 	useFocusEffect(
 		useCallback(() => {
 			if (!isFocused) return;
 
 			const refreshAndCheck = async () => {
-				const refreshedData = await listRef.current?.handleRefresh();
-				if (refreshedData?.length === 0) {
-					navigation.goBack();
+				if (isConnected) {
+					const refreshedData = await listRef.current?.handleRefresh();
+					if (refreshedData?.length === 0) {
+						navigation.goBack();
+					}
 				}
 			};
 			refreshAndCheck();
@@ -151,6 +161,7 @@ const FeedItemListScreen: React.FC = () => {
 			handleDeleteFeed,
 			setMenuItems,
 			onToggleDropdown,
+			isConnected,
 		]),
 	);
 
