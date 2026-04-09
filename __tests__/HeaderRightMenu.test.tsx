@@ -21,19 +21,36 @@ import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import HeaderRightMenu from "../components/HeaderRightMenu";
+import { useConnectionStatusConfig } from "./setup";
 
 describe("HeaderRightMenu", () => {
-	beforeEach(() => {
-		mocks.resetAll();
-	});
+        beforeEach(() => {
+                mocks.resetAll();
+        });
 
-	it("renders correctly and calls onToggleDropdown when pressed", () => {
-		const onToggleDropdown = mock();
-		const { getByTestId } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
-		const button = getByTestId("menu");
-		expect(button).toBeTruthy();
+        it("renders correctly and calls onToggleDropdown when pressed", () => {
+                const onToggleDropdown = mock();
+                const { getByTestId } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
+                const button = getByTestId("menu");
+                expect(button).toBeTruthy();
 
-		fireEvent.press(button);
-		expect(onToggleDropdown).toHaveBeenCalled();
-	});
+                fireEvent.press(button);
+                expect(onToggleDropdown).toHaveBeenCalled();
+        });
+
+        it("renders the cloud-offline icon when disconnected", () => {
+                useConnectionStatusConfig.isConnected = false;
+                const onToggleDropdown = mock();
+                const { getByText } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
+
+                expect(getByText("cloud-offline")).toBeTruthy();
+        });
+
+        it("renders the ellipsis-vertical icon when connected", () => {
+                useConnectionStatusConfig.isConnected = true;
+                const onToggleDropdown = mock();
+                const { getByText } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
+
+                expect(getByText("ellipsis-vertical")).toBeTruthy();
+        });
 });

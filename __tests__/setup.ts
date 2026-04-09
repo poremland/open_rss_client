@@ -221,6 +221,21 @@ export const useApiMock = mock(() => {
 	};
 });
 
+export const useConnectionStatusConfig = {
+	isConnected: true,
+};
+
+export const useConnectionStatusMock = mock(() => {
+	return {
+		isConnected: useConnectionStatusConfig.isConnected,
+	};
+});
+
+mock.module(resolveModule("../components/useConnectionStatus"), () => ({
+	default: useConnectionStatusMock,
+	__esModule: true,
+}));
+
 const resetMockFn = (m: any) => {
 	if (m && typeof m === 'function' && 'mock' in m) {
 		m.mockClear();
@@ -263,6 +278,14 @@ export const resetAll = () => {
 			error: useApiConfig.error,
 			execute: useApiConfig.execute,
 			setData: mock(),
+		};
+	});
+
+	useConnectionStatusConfig.isConnected = true;
+	useConnectionStatusMock.mockClear();
+	useConnectionStatusMock.mockImplementation(() => {
+		return {
+			isConnected: useConnectionStatusConfig.isConnected,
 		};
 	});
 
