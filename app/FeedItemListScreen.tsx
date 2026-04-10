@@ -126,6 +126,11 @@ const FeedItemListScreen: React.FC = () => {
 		navigation.goBack();
 	}, [markItemsAsRead, navigation, setCache, selectedFeed]);
 
+	const markAllAsReadRef = useRef(handleMarkAllAsRead);
+	useEffect(() => {
+		markAllAsReadRef.current = handleMarkAllAsRead;
+	}, [handleMarkAllAsRead]);
+
 	const handleDeleteFeed = useCallback(async () => {
 		if (!isConnected) {
 			Alert.alert("Offline", "Deleting feeds is disabled while offline.");
@@ -134,6 +139,11 @@ const FeedItemListScreen: React.FC = () => {
 		await deleteFeed();
 		navigation.goBack();
 	}, [deleteFeed, navigation, isConnected]);
+
+	const deleteFeedRef = useRef(handleDeleteFeed);
+	useEffect(() => {
+		deleteFeedRef.current = handleDeleteFeed;
+	}, [handleDeleteFeed]);
 
 	const displayFeedItemDetails = useCallback(
 		(item: FeedItem) => {
@@ -168,12 +178,12 @@ const FeedItemListScreen: React.FC = () => {
 				{
 					label: "Mark All As Read",
 					icon: "checkmark-done",
-					onPress: handleMarkAllAsRead,
+					onPress: () => markAllAsReadRef.current(),
 				},
 				{
 					label: "Delete Feed",
 					icon: "trash-outline",
-					onPress: handleDeleteFeed,
+					onPress: () => deleteFeedRef.current(),
 				},
 				{
 					label: "Log-out",

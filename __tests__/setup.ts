@@ -668,9 +668,9 @@ export const resetAll = () => {
 	useApiConfig.data = null;
 	useApiConfig.loading = false;
 	useApiConfig.error = null;
-	useApiConfig.execute.mockClear().mockImplementation(() => Promise.resolve(null));
-
+	useApiConfig.execute = mock(() => Promise.resolve(null));
 	useApiMock.mockClear();
+
 	useApiMock.mockImplementation(() => {
 		return {
 			data: useApiConfig.data,
