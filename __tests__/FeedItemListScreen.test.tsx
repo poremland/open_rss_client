@@ -17,12 +17,11 @@
  */
 import "./setup";
 import { mocks } from "./setup";
-import { expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { act } from "react";
 import FeedItemListScreen from "../app/FeedItemListScreen";
-import { useConnectionStatusConfig } from "./setup";
 
 describe("FeedItemListScreen", () => {
         const mockFeed = { id: 1, name: "Test Feed" };
@@ -38,11 +37,17 @@ describe("FeedItemListScreen", () => {
         });
 
         it("disables feed deletion when disconnected", async () => {
-                useConnectionStatusConfig.isConnected = false;
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
                 render(<FeedItemListScreen />);
 
-                await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
-                const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+                // Wait for the hook to update and setMenuItems to be called with the new handler
+                await waitFor(() => {
+                        expect(mocks.useMenu.setMenuItems).toHaveBeenCalled();
+                        // If it's been called more than once, it's likely updated
+                        expect(mocks.useMenu.setMenuItems.mock.calls.length).toBeGreaterThan(1);
+                });
+
+                const menuItems = mocks.useMenu.setMenuItems.mock.calls[mocks.useMenu.setMenuItems.mock.calls.length - 1][0];
                 const deleteAction = menuItems.find((item: any) => item.label === "Delete Feed");
 
                 await act(async () => {

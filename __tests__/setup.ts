@@ -221,21 +221,6 @@ export const useApiMock = mock(() => {
 	};
 });
 
-export const useConnectionStatusConfig = {
-	isConnected: true,
-};
-
-export const useConnectionStatusMock = mock(() => {
-	return {
-		isConnected: useConnectionStatusConfig.isConnected,
-	};
-});
-
-mock.module(resolveModule("../components/useConnectionStatus"), () => ({
-	default: useConnectionStatusMock,
-	__esModule: true,
-}));
-
 const resetMockFn = (m: any) => {
 	if (m && typeof m === 'function' && 'mock' in m) {
 		m.mockClear();
@@ -261,6 +246,9 @@ export const resetAll = () => {
 	resetMocksInObj(documentPickerMock);
 	resetMocksInObj(hapticsMock);
 	resetMocksInObj(opmlMocks);
+	resetMocksInObj(networkMocks);
+	networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true, isInternetReachable: true });
+	networkMocks.addNetworkStateListenerAsync.mockResolvedValue({ remove: mock() });
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);
 	}
@@ -278,14 +266,6 @@ export const resetAll = () => {
 			error: useApiConfig.error,
 			execute: useApiConfig.execute,
 			setData: mock(),
-		};
-	});
-
-	useConnectionStatusConfig.isConnected = true;
-	useConnectionStatusMock.mockClear();
-	useConnectionStatusMock.mockImplementation(() => {
-		return {
-			isConnected: useConnectionStatusConfig.isConnected,
 		};
 	});
 
@@ -506,6 +486,17 @@ mock.module("expo-font", () => ({
 	loadAsync: mock(async () => {}),
 }));
 
+export const networkMocks = {
+	getNetworkStateAsync: mock(async () => ({ isConnected: true, isInternetReachable: true })),
+	addNetworkStateListenerAsync: mock(async (cb: any) => {
+		return { remove: mock() };
+	}),
+};
+
+mock.module("expo-network", () => ({
+	...networkMocks,
+}));
+
 mock.module("expo-modules-core", () => ({
 	requireNativeModule: mock(() => ({})),
 	UnavailabilityError: class extends Error {
@@ -634,6 +625,7 @@ export const mocks = {
 	hapticsMock,
 	opml: opmlMocks,
 	opmlMocks,
+	networkMocks,
 	localSearchParams: localSearchParamsMock,
 	resetAll
 };

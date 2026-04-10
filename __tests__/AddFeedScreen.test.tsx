@@ -22,7 +22,6 @@ import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { act } from "react";
 import AddFeedScreen from "../app/AddFeedScreen";
-import { useConnectionStatusConfig } from "./setup";
 
 describe("AddFeedScreen", () => {
         beforeEach(() => {
@@ -38,11 +37,11 @@ describe("AddFeedScreen", () => {
         });
 
         it("disables the add button and shows offline message when disconnected", async () => {
-                useConnectionStatusConfig.isConnected = false;
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
                 const { getByTestId, getByText } = render(<AddFeedScreen />);
                 const addButton = getByTestId("addFeedButton");
 
-                expect(addButton.props.disabled).toBe(true);
+                await waitFor(() => expect(addButton.props.disabled).toBe(true));
                 expect(getByText("You are offline. Adding feeds is disabled.")).toBeTruthy();
         });
 

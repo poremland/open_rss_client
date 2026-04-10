@@ -19,9 +19,8 @@ import "./setup";
 import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import HeaderRightMenu from "../components/HeaderRightMenu";
-import { useConnectionStatusConfig } from "./setup";
 
 describe("HeaderRightMenu", () => {
         beforeEach(() => {
@@ -38,19 +37,19 @@ describe("HeaderRightMenu", () => {
                 expect(onToggleDropdown).toHaveBeenCalled();
         });
 
-        it("renders the cloud-offline icon when disconnected", () => {
-                useConnectionStatusConfig.isConnected = false;
+        it("renders the cloud-offline icon when disconnected", async () => {
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
                 const onToggleDropdown = mock();
                 const { getByText } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
-
-                expect(getByText("cloud-offline")).toBeTruthy();
+                
+                await waitFor(() => expect(getByText("cloud-offline")).toBeTruthy());
         });
 
-        it("renders the ellipsis-vertical icon when connected", () => {
-                useConnectionStatusConfig.isConnected = true;
+        it("renders the ellipsis-vertical icon when connected", async () => {
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true });
                 const onToggleDropdown = mock();
                 const { getByText } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
-
-                expect(getByText("ellipsis-vertical")).toBeTruthy();
+                
+                await waitFor(() => expect(getByText("ellipsis-vertical")).toBeTruthy());
         });
 });

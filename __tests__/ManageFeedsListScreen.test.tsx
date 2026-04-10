@@ -19,7 +19,6 @@ import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, waitFor, act, fireEvent } from "@testing-library/react-native";
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
-import { useConnectionStatusConfig } from "./setup";
 
 const mocks = (globalThis as any).__mocks;
 
@@ -35,18 +34,18 @@ describe("ManageFeedsListScreen", () => {
         });
 
         it("disables OPML actions and deletion when disconnected", async () => {
-                useConnectionStatusConfig.isConnected = false;
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
                 const { getByText, queryByTestId } = render(<ManageFeedsListScreen />);
 
-                await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
-                const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+                // Wait for the hook to update and setMenuItems to be called with the new handler
+                await waitFor(() => {
+                        expect(mocks.useMenu.setMenuItems).toHaveBeenCalled();
+                        expect(mocks.useMenu.setMenuItems.mock.calls.length).toBeGreaterThan(1);
+                });
 
+                const menuItems = mocks.useMenu.setMenuItems.mock.calls[mocks.useMenu.setMenuItems.mock.calls.length - 1][0];
                 const importAction = menuItems.find((item: any) => item.label === "Import OPML");
                 const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
-
-                // In this implementation, I'll choose to show an alert or disable them.
-                // Let's say we show an alert if they are pressed, or we just don't add them to the menu.
-                // The requirements say "disable", so I'll check for an alert if pressed.
 
                 await act(async () => {
                         await importAction.onPress();

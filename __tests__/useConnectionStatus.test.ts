@@ -15,9 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import "./setup";
 import { expect, describe, it, mock, beforeEach } from "bun:test";
-import { renderHook, waitFor } from "@testing-library/react-native";
 
 const mockGetNetworkStateAsync = mock();
 const mockAddNetworkStateListenerAsync = mock();
@@ -28,8 +26,9 @@ mock.module('expo-network', () => ({
 	addNetworkStateListenerAsync: mockAddNetworkStateListenerAsync,
 }));
 
-// Use require to ensure it's loaded AFTER mock.module
-const useConnectionStatus = require("../components/useConnectionStatus").default;
+import "./setup";
+import { renderHook, waitFor } from "@testing-library/react-native";
+import useConnectionStatus from "../components/useConnectionStatus";
 
 describe("useConnectionStatus", () => {
 	beforeEach(() => {
