@@ -22,8 +22,11 @@ import { Stack } from "expo-router";
 import GlobalDropdownMenu from "../components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
+import useSync from "../components/useSync";
 
 const RootLayout = () => {
+	useSync();
+
 	useEffect(() => {
 		refreshTokenOnLoad();
 	}, []);
