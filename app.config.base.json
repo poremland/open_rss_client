@@ -9,7 +9,12 @@
 	"newArchEnabled": true,
 	"ios": {
 		"supportsTablet": true,
-		"bundleIdentifier": "open.rss.client"
+		"bundleIdentifier": "open.rss.client",
+		"infoPlist": {
+			"UIBackgroundModes": [
+				"fetch"
+			]
+		}
 	},
 	"web": {
 		"bundler": "metro",
@@ -19,6 +24,8 @@
 	"plugins": [
 		"expo-web-browser",
 		"expo-router",
+		"expo-background-fetch",
+		"expo-task-manager",
 		[
 			"expo-splash-screen",
 			{

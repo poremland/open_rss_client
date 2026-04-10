@@ -590,6 +590,23 @@ mock.module("expo-haptics", () => ({
 	...hapticsMock,
 }));
 
+mock.module("expo-task-manager", () => ({
+	defineTask: mock(),
+	isTaskDefined: mock(() => false),
+	unregisterTaskAsync: mock(async () => {}),
+	isTaskRegisteredAsync: mock(async () => true),
+}));
+
+mock.module("expo-background-fetch", () => ({
+	registerTaskAsync: mock(async () => {}),
+	unregisterTaskAsync: mock(async () => {}),
+	BackgroundFetchResult: {
+		NoData: 1,
+		NewData: 2,
+		Failed: 3,
+	},
+}));
+
 // --- Environment Setup ---
 import { plugin } from "bun";
 import * as React from "react";

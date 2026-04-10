@@ -23,12 +23,14 @@ import GlobalDropdownMenu from "../components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
 import useSync from "../components/useSync";
+import { registerBackgroundSync } from "../helpers/background_sync";
 
 const RootLayout = () => {
 	useSync();
 
 	useEffect(() => {
 		refreshTokenOnLoad();
+		registerBackgroundSync();
 	}, []);
 
 	return (
