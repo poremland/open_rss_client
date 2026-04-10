@@ -23,6 +23,7 @@ import * as path from "path";
 const originalWarn = console.warn;
 const originalError = console.error;
 const originalLog = console.log;
+(globalThis as any).originalLog = originalLog;
 
 const filterWarning = (args: any[], originalFn: (...args: any[]) => void) => {
 	if (typeof args[0] === "string" && (args[0].includes("react-test-renderer is deprecated") || args[0].includes("current testing environment is not configured to support act"))) {
@@ -54,7 +55,33 @@ process.env.RNTL_SKIP_DEPS_CHECK = "true";
 export const resolveModule = (p: string) => path.resolve(__dirname, p);
 
 // --- GLOBAL MOCK STATE ---
-export const storageMap = new Map();
+if (!(process as any).storageMap) {
+	(process as any).storageMap = new Map();
+}
+export const storageMap = (process as any).storageMap;
+
+export const asyncStorageMock = {
+	setItem: mock(async (k: string, v: any) => { 
+		storageMap.set(k, String(v)); 
+	}),
+	getItem: mock(async (k: string) => { 
+		const val = storageMap.get(k);
+		return val === undefined ? null : val;
+	}),
+	removeItem: mock(async (k: string) => { 
+		storageMap.delete(k); 
+	}),
+	clear: mock(async () => { 
+		storageMap.clear(); 
+	}),
+	getAllKeys: mock(async () => Array.from(storageMap.keys())),
+	multiGet: mock(async (keys: string[]) => keys.map(k => [k, storageMap.get(k) || null])),
+	multiSet: mock(async (pairs: [string, string][]) => pairs.forEach(([k, v]) => storageMap.set(k, v))),
+	multiRemove: mock(async (keys: string[]) => keys.forEach(k => storageMap.delete(k))),
+};
+
+(globalThis as any).AsyncStorage = asyncStorageMock;
+(global as any).AsyncStorage = asyncStorageMock;
 
 export const routerMocks = {
 	push: mock(),
@@ -69,8 +96,7 @@ export const navigationMocks = {
 	goBack: mock(),
 };
 
-export const alertMock = mock();
-export const fetchMock = mock();
+export const alertMock = mock(), fetchMock = mock();
 export const clipboardMocks = {
 	setStringAsync: mock(),
 	getStringAsync: mock(),
@@ -157,18 +183,6 @@ export const opmlMocks = {
 	validateOpmlFile: mock(async () => true),
 };
 
-export const asyncStorageMock = {
-	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
-	getItem: mock(async (k: string) => { 
-		const val = storageMap.get(k);
-		return val === undefined ? null : val;
-	}),
-	removeItem: mock(async (k: string) => { storageMap.delete(k); }),
-	clear: mock(async () => { storageMap.clear(); }),
-	getAllKeys: mock(async () => Array.from(storageMap.keys())),
-	multiGet: mock(async (keys: string[]) => keys.map(k => [k, storageMap.get(k) || null])),
-};
-
 export const apiMocks = {
 	get: mock(),
 	post: mock(),
@@ -221,66 +235,51 @@ export const useApiMock = mock(() => {
 	};
 });
 
-const resetMockFn = (m: any) => {
-	if (m && typeof m === 'function' && 'mock' in m) {
-		m.mockClear();
-		m.mockImplementation(() => Promise.resolve(null));
-	}
+export const networkMocks = {
+	getNetworkStateAsync: mock(async () => ({ isConnected: true, isInternetReachable: true })),
+	addNetworkStateListenerAsync: mock(async (cb: any) => {
+		return { remove: mock() };
+	}),
 };
 
-const resetMocksInObj = (obj: any) => {
-	Object.values(obj).forEach(m => resetMockFn(m));
+export const mocks = {
+	storageMap,
+	router: routerMocks,
+	routerMocks,
+	navigation: navigationMocks,
+	navigationMocks,
+	alert: alertMock,
+	alertMock,
+	fetch: fetchMock,
+	fetchMock,
+	clipboard: clipboardMocks,
+	clipboardMocks,
+	asyncStorage: asyncStorageMock,
+	asyncStorageMock,
+	api: apiMocks,
+	apiMocks,
+	auth: authMocks,
+	authMocks,
+	useApi: useApiMock,
+	useApiMock,
+	useMenu: useMenuMock,
+	useMenuMock,
+	fileSystem: fileSystemMock,
+	fileSystemMock,
+	sharing: sharingMock,
+	sharingMock,
+	documentPicker: documentPickerMock,
+	documentPickerMock,
+	haptics: hapticsMock,
+	hapticsMock,
+	opml: opmlMocks,
+	opmlMocks,
+	networkMocks,
+	localSearchParams: localSearchParamsMock,
+	resetAll: () => {} // Placeholder
 };
 
-export const resetAll = () => {
-	storageMap.clear();
-	resetMocksInObj(routerMocks);
-	resetMocksInObj(navigationMocks);
-	resetMocksInObj(asyncStorageMock);
-	resetMocksInObj(clipboardMocks);
-	resetMocksInObj(apiMocks);
-	resetMocksInObj(authMocks);
-	resetMocksInObj(useMenuMock);
-	resetMocksInObj(fileSystemMock);
-	resetMocksInObj(sharingMock);
-	resetMocksInObj(documentPickerMock);
-	resetMocksInObj(hapticsMock);
-	resetMocksInObj(opmlMocks);
-	resetMocksInObj(networkMocks);
-	networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true, isInternetReachable: true });
-	networkMocks.addNetworkStateListenerAsync.mockResolvedValue({ remove: mock() });
-	if (fileSystemMock.StorageAccessFramework) {
-		resetMocksInObj(fileSystemMock.StorageAccessFramework);
-	}
-
-	useApiConfig.data = null;
-	useApiConfig.loading = false;
-	useApiConfig.error = null;
-	useApiConfig.execute.mockClear().mockImplementation(() => Promise.resolve(null));
-
-	useApiMock.mockClear();
-	useApiMock.mockImplementation(() => {
-		return {
-			data: useApiConfig.data,
-			loading: useApiConfig.loading,
-			error: useApiConfig.error,
-			execute: useApiConfig.execute,
-			setData: mock(),
-		};
-	});
-
-	localSearchParamsMock.params = {};
-
-	alertMock.mockClear().mockImplementation(() => {});
-	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ 
-		ok: true, 
-		headers: {
-			get: (name: string) => name.toLowerCase() === "content-type" ? "application/json" : null
-		},
-		json: async () => ({}),
-		text: async () => ""
-	}));
-};
+(globalThis as any).__mocks = mocks;
 
 // --- Bun Module Mocks ---
 
@@ -344,6 +343,8 @@ mock.module("react-native", () => {
 		},
 		Platform: {
 			OS: "ios",
+			Version: 1,
+			isTesting: true,
 			select: (obj: any) => obj.ios || obj.default,
 		},
 		Alert: {
@@ -364,8 +365,44 @@ mock.module("react-native", () => {
 			addEventListener: mock(() => ({ remove: mock() })),
 			currentState: "active",
 		},
+		NativeModules: {},
+		processColor: (color: any) => color,
+		PixelRatio: {
+			get: () => 1,
+			getFontScale: () => 1,
+			getPixelSizeForLayoutSize: (layoutSize: number) => layoutSize,
+			roundToNearestPixel: (layoutSize: number) => layoutSize,
+		},
+		AsyncStorage: asyncStorageMock,
 	};
 });
+
+mock.module("@expo/vector-icons", () => {
+	const React = require("react");
+	const { Text } = require("react-native");
+	const mockIcon = (name: string) => {
+		const Comp = (props: any) => React.createElement(Text, props, props.name || name);
+		Comp.displayName = name;
+		Comp.isLoaded = mock(() => true);
+		Comp.loadFont = mock(async () => {});
+		Comp.hasIcon = mock(() => true);
+		return Comp;
+	};
+	return {
+		Ionicons: mockIcon("Ionicons"),
+		FontAwesome: mockIcon("FontAwesome"),
+		MaterialIcons: mockIcon("MaterialIcons"),
+		MaterialCommunityIcons: mockIcon("MaterialCommunityIcons"),
+		Entypo: mockIcon("Entypo"),
+		AntDesign: mockIcon("AntDesign"),
+	};
+});
+
+mock.module("expo-font", () => ({
+	useFonts: () => [true, null],
+	loadAsync: mock(async () => {}),
+	isLoaded: mock(() => true),
+}));
 
 mock.module(resolveModule("../helpers/api_helper"), () => ({
 	api: apiMocks,
@@ -469,72 +506,6 @@ mock.module("react-native-reanimated", () => {
 	};
 });
 
-mock.module("@react-native-async-storage/async-storage", () => ({
-	default: asyncStorageMock,
-}));
-
-mock.module("expo-router", () => ({
-	useRouter: () => routerMocks,
-	useLocalSearchParams: () => localSearchParamsMock.params,
-	useNavigation: () => navigationMocks,
-	Stack: ({ children }: any) => children,
-	Link: ({ children }: any) => children,
-}));
-
-mock.module("expo-font", () => ({
-	useFonts: () => [true, null],
-	loadAsync: mock(async () => {}),
-}));
-
-export const networkMocks = {
-	getNetworkStateAsync: mock(async () => ({ isConnected: true, isInternetReachable: true })),
-	addNetworkStateListenerAsync: mock(async (cb: any) => {
-		return { remove: mock() };
-	}),
-};
-
-mock.module("expo-network", () => ({
-	...networkMocks,
-}));
-
-mock.module("expo-modules-core", () => ({
-	requireNativeModule: mock(() => ({})),
-	UnavailabilityError: class extends Error {
-		constructor(moduleName: string, methodName: string) {
-			super(`The method or property ${moduleName}.${methodName} is not available on ${process.env.EXPO_OS}, are you sure you've linked all the native dependencies properly?`);
-			this.name = 'UnavailabilityError';
-		}
-	},
-}));
-
-mock.module("expo-clipboard", () => ({
-	...clipboardMocks,
-}));
-
-mock.module("expo-file-system", () => ({
-	...fileSystemMock,
-}));
-
-mock.module("expo-sharing", () => ({
-	...sharingMock,
-}));
-
-mock.module("expo-document-picker", () => ({
-	...documentPickerMock,
-}));
-
-mock.module("expo-haptics", () => ({
-	...hapticsMock,
-}));
-
-mock.module("@expo/vector-icons", () => {
-	const React = require("react");
-	const { Text } = require("react-native");
-	return {
-		Ionicons: (props: any) => React.createElement(Text, {}, props.name),
-	};
-});
-
 mock.module("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 	SafeAreaProvider: ({ children }: any) => children,
@@ -574,6 +545,51 @@ mock.module(resolveModule("../components/Screen"), () => {
 	};
 });
 
+mock.module("expo-router", () => ({
+	useRouter: () => routerMocks,
+	useNavigation: () => navigationMocks,
+	useLocalSearchParams: () => localSearchParamsMock.params,
+}));
+
+mock.module("@react-native-async-storage/async-storage", () => ({
+	default: asyncStorageMock,
+	__esModule: true,
+}));
+
+mock.module("expo-network", () => ({
+	...networkMocks,
+}));
+
+mock.module("expo-modules-core", () => ({
+	requireNativeModule: mock(() => ({})),
+	UnavailabilityError: class extends Error {
+		constructor(moduleName: string, methodName: string) {
+			super(`The method or property ${moduleName}.${methodName} is not available on ${process.env.EXPO_OS}, are you sure you've linked all the native dependencies properly?`);
+			this.name = 'UnavailabilityError';
+		}
+	},
+}));
+
+mock.module("expo-clipboard", () => ({
+	...clipboardMocks,
+}));
+
+mock.module("expo-file-system", () => ({
+	...fileSystemMock,
+}));
+
+mock.module("expo-sharing", () => ({
+	...sharingMock,
+}));
+
+mock.module("expo-document-picker", () => ({
+	...documentPickerMock,
+}));
+
+mock.module("expo-haptics", () => ({
+	...hapticsMock,
+}));
+
 // --- Environment Setup ---
 import { plugin } from "bun";
 import * as React from "react";
@@ -581,7 +597,6 @@ import * as React from "react";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 process.env.EXPO_OS = "ios";
 (globalThis as any).fetch = fetchMock;
-(globalThis as any).AsyncStorage = asyncStorageMock;
 
 (globalThis as any).expo = {
 	EventEmitter: class {
@@ -591,46 +606,73 @@ process.env.EXPO_OS = "ios";
 	}
 };
 
-
-
-export const mocks = {
-	storageMap,
-	router: routerMocks,
-	routerMocks,
-	navigation: navigationMocks,
-	navigationMocks,
-	alert: alertMock,
-	alertMock,
-	fetch: fetchMock,
-	fetchMock,
-	clipboard: clipboardMocks,
-	clipboardMocks,
-	asyncStorage: asyncStorageMock,
-	asyncStorageMock,
-	api: apiMocks,
-	apiMocks,
-	auth: authMocks,
-	authMocks,
-	useApi: useApiMock,
-	useApiMock,
-	useMenu: useMenuMock,
-	useMenuMock,
-	fileSystem: fileSystemMock,
-	fileSystemMock,
-	sharing: sharingMock,
-	sharingMock,
-	documentPicker: documentPickerMock,
-	documentPickerMock,
-	haptics: hapticsMock,
-	hapticsMock,
-	opml: opmlMocks,
-	opmlMocks,
-	networkMocks,
-	localSearchParams: localSearchParamsMock,
-	resetAll
+const resetMockFn = (m: any) => {
+	if (m && typeof m === 'function' && 'mock' in m) {
+		m.mockClear();
+		m.mockImplementation(() => Promise.resolve(null));
+	}
 };
 
-(globalThis as any).__mocks = mocks;
+const resetMocksInObj = (obj: any) => {
+	Object.values(obj).forEach(m => resetMockFn(m));
+};
+
+export const resetAll = () => {
+	storageMap.clear();
+	const g = (globalThis as any);
+	if (g.localCacheMap) {
+		g.localCacheMap.clear();
+	}
+	if ((process as any).localCacheMap) {
+		(process as any).localCacheMap.clear();
+	}
+	resetMocksInObj(routerMocks);
+	resetMocksInObj(navigationMocks);
+	resetMocksInObj(asyncStorageMock);
+	resetMocksInObj(clipboardMocks);
+	resetMocksInObj(apiMocks);
+	resetMocksInObj(authMocks);
+	resetMocksInObj(useMenuMock);
+	resetMocksInObj(fileSystemMock);
+	resetMocksInObj(sharingMock);
+	resetMocksInObj(documentPickerMock);
+	resetMocksInObj(hapticsMock);
+	resetMocksInObj(opmlMocks);
+	resetMocksInObj(networkMocks);
+	networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true, isInternetReachable: true });
+	networkMocks.addNetworkStateListenerAsync.mockResolvedValue({ remove: mock() });
+	if (fileSystemMock.StorageAccessFramework) {
+		resetMocksInObj(fileSystemMock.StorageAccessFramework);
+	}
+
+	useApiConfig.data = null;
+	useApiConfig.loading = false;
+	useApiConfig.error = null;
+	useApiConfig.execute.mockClear().mockImplementation(() => Promise.resolve(null));
+
+	useApiMock.mockClear();
+	useApiMock.mockImplementation(() => {
+		return {
+			data: useApiConfig.data,
+			loading: useApiConfig.loading,
+			error: useApiConfig.error,
+			execute: useApiConfig.execute,
+			setData: mock(),
+		};
+	});
+
+	localSearchParamsMock.params = {};
+
+	alertMock.mockClear().mockImplementation(() => {});
+	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ 
+		ok: true, 
+		json: () => Promise.resolve({}),
+		text: () => Promise.resolve(""),
+		blob: () => Promise.resolve(new Blob())
+	}));
+};
+
+mocks.resetAll = resetAll;
 
 plugin({
 	name: "asset-interceptor",

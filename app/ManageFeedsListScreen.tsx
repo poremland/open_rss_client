@@ -127,9 +127,7 @@ const ManageFeedsListScreen: React.FC = () => {
                 useCallback(() => {
                         if (!isFocused) return;
 
-                        if (isConnected) {
-                                listRef.current?.handleRefresh();
-                        }
+                        listRef.current?.handleRefresh();
                         const menuItems: MenuItem[] = [
                                 {
                                         label: "Import OPML",

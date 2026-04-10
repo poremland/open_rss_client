@@ -16,37 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as cacheHelper from '../helpers/cache_helper';
 
 export default function useCache() {
-	const getCacheKey = (url: string) => `cache:${url}`;
-
-	const getCache = useCallback(async <T>(url: string): Promise<T | null> => {
-		try {
-			const jsonValue = await AsyncStorage.getItem(getCacheKey(url));
-			return jsonValue != null ? JSON.parse(jsonValue) : null;
-		} catch (e) {
-			console.error('Error reading cache:', e);
-			return null;
-		}
-	}, []);
-
-	const setCache = useCallback(async (url: string, value: any): Promise<void> => {
-		try {
-			const jsonValue = JSON.stringify(value);
-			await AsyncStorage.setItem(getCacheKey(url), jsonValue);
-		} catch (e) {
-			console.error('Error saving cache:', e);
-		}
-	}, []);
-
-	const clearCache = useCallback(async (url: string): Promise<void> => {
-		try {
-			await AsyncStorage.removeItem(getCacheKey(url));
-		} catch (e) {
-			console.error('Error clearing cache:', e);
-		}
-	}, []);
+	const getCache = useCallback(cacheHelper.getCache, []);
+	const setCache = useCallback(cacheHelper.setCache, []);
+	const clearCache = useCallback(cacheHelper.clearCache, []);
 
 	return {
 		getCache,

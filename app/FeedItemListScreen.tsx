@@ -106,23 +106,19 @@ const FeedItemListScreen: React.FC = () => {
 
 	useEffect(() => {
 		if (removedItemId) {
-			if (isConnected) {
-				listRef.current?.handleRefresh();
-			}
+			listRef.current?.handleRefresh();
 			router.setParams({ removedItemId: undefined }); // Clear the param after processing
 		}
-	}, [removedItemId, router, isConnected]);
+	}, [removedItemId, router]);
 
 	useFocusEffect(
 		useCallback(() => {
 			if (!isFocused) return;
 
 			const refreshAndCheck = async () => {
-				if (isConnected) {
-					const refreshedData = await listRef.current?.handleRefresh();
-					if (refreshedData?.length === 0) {
-						navigation.goBack();
-					}
+				const refreshedData = await listRef.current?.handleRefresh();
+				if (refreshedData?.length === 0) {
+					navigation.goBack();
 				}
 			};
 			refreshAndCheck();

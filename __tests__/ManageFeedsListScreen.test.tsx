@@ -94,10 +94,17 @@ describe("ManageFeedsListScreen", () => {
 	});
 
 	it("should display error message when api call fails", async () => {
-		mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
+		const errorMessage = `API Error ${Math.random()}`;
+		mocks.api.getWithAuth.mockRejectedValue(new Error(errorMessage));
+		
+		// Force clear cache for this URL to avoid serving stale cache from other tests
+		mocks.storageMap.delete("cache:/feeds/all.json");
+		if ((process as any).localCacheMap) {
+			(process as any).localCacheMap.delete("cache:/feeds/all.json");
+		}
 
 		const { getByText } = render(<ManageFeedsListScreen />);
-		await waitFor(() => expect(getByText("API Error")).toBeTruthy());
+		await waitFor(() => expect(getByText(errorMessage)).toBeTruthy());
 	});
 
 	it("should display no feeds message when there are no feeds", async () => {
