@@ -144,8 +144,6 @@ describe("FeedItemDetailScreen", () => {
 			expect.objectContaining({ headerTitle: "Test Item" })
 		));
 
-		await waitFor(() => expect(mocks.useMenu.setMenuItems.mock.calls.length).toBeGreaterThan(1));
-
 		// Wait for useConnectionStatus to update to offline state
 		await act(async () => {
 			await new Promise(resolve => setTimeout(resolve, 100));

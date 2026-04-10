@@ -15,18 +15,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach, afterEach, spyOn } from "bun:test";
+
 import "./setup";
 import { mocks } from "./setup";
 import * as syncHelper from "../helpers/sync_helper";
 import { syncService } from "../helpers/sync_service";
 
 describe("syncService", () => {
+	let consoleSpy: any;
+
 	beforeEach(() => {
 		mocks.resetAll();
 		if ((process as any).localSyncQueue) {
 			(process as any).localSyncQueue.length = 0;
 		}
+		consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		consoleSpy.mockRestore();
 	});
 
 	it("should process the queue when synchronize is called", async () => {

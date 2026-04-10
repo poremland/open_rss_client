@@ -27,7 +27,7 @@ mock.module('expo-network', () => ({
 }));
 
 import "./setup";
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { renderHook, waitFor, act } from "@testing-library/react-native";
 import useConnectionStatus from "../components/useConnectionStatus";
 
 describe("useConnectionStatus", () => {
@@ -79,9 +79,11 @@ describe("useConnectionStatus", () => {
 		// Simulate network change to offline
 		await waitFor(() => expect(listenerCallback).toBeDefined());
 		if (listenerCallback!) {
-			listenerCallback!({
-				isConnected: false,
-				isInternetReachable: false,
+			await act(async () => {
+				listenerCallback!({
+					isConnected: false,
+					isInternetReachable: false,
+				});
 			});
 		}
 
