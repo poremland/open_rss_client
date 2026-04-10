@@ -100,6 +100,7 @@ const FeedListScreen: React.FC = () => {
 	);
 
 	const transformData = (data: FeedItemFromAPI[]) => {
+		if (!data || !Array.isArray(data)) return [];
 		return data.map((item) => item.feed).filter(Boolean) as Feed[];
 	};
 

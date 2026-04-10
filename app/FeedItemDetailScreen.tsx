@@ -32,12 +32,15 @@ import * as Clipboard from "expo-clipboard";
 import Screen from "../components/Screen";
 import { styles } from "../styles/FeedItemDetailScreen.styles";
 
+import useCache from "../components/useCache";
+
 const FeedItemDetailScreen: React.FC = () => {
 	const [webViewSource, setWebViewSource] = useState<string>("");
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
 	const { feedItemId } = useLocalSearchParams<{ feedItemId: string }>();
+	const { getCache, setCache } = useCache();
 	const {
 		data: selectedFeedItem,
 		loading,
@@ -57,15 +60,44 @@ const FeedItemDetailScreen: React.FC = () => {
 		selectedFeedItem
 			? `/feed_items/mark_as_read/${selectedFeedItem.id}.json`
 			: "",
+		{ shouldQueue: true },
 	);
 
 	const handleMarkAsRead = useCallback(async () => {
-		if (selectedFeedItem) {
-			await markItemAsRead();
-			router.back();
-			router.setParams({ removedItemId: selectedFeedItem.id.toString() });
+		const item = selectedFeedItem;
+		if (!item) return;
+		const response = await markItemAsRead();
+		if (response && (response as any).queued) {
+			const cachePath = `/feeds/${item.feed_id}.json`;
+			const cachedItems = await getCache<FeedItem[]>(cachePath);
+			if (cachedItems) {
+				const newData = cachedItems.filter(i => i.id !== item.id);
+				await setCache(cachePath, newData);
+			}
 		}
-	}, [selectedFeedItem, markItemAsRead, router]);
+		router.back();
+		if (item?.id) {
+			router.setParams({ removedItemId: item.id.toString() });
+		}
+	}, [selectedFeedItem, markItemAsRead, router, getCache, setCache]);
+
+	useEffect(() => {
+		const item = selectedFeedItem;
+		if (item && isFocused) {
+			const autoMarkAsRead = async () => {
+				const response = await markItemAsRead();
+				if (response && (response as any).queued) {
+					const cachePath = `/feeds/${item.feed_id}.json`;
+					const cachedItems = await getCache<FeedItem[]>(cachePath);
+					if (cachedItems) {
+						const newData = cachedItems.filter(i => i.id !== item.id);
+						await setCache(cachePath, newData);
+					}
+				}
+			};
+			autoMarkAsRead();
+		}
+	}, [selectedFeedItem, isFocused, markItemAsRead, getCache, setCache]);
 
 	const handleShare = useCallback(async () => {
 		if (selectedFeedItem) {

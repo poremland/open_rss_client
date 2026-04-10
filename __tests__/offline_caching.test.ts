@@ -20,19 +20,23 @@ import { renderHook, waitFor } from "@testing-library/react-native";
 import { act } from "react";
 import "./setup";
 import { mocks, networkMocks } from "./setup";
-
 import * as cacheHelper from "../helpers/cache_helper";
+import * as syncHelper from "../helpers/sync_helper";
 import useApi from "../components/useApi";
 import useConnectionStatus from "../components/useConnectionStatus";
 
-describe("Offline Caching", () => {
+describe("Offline Caching and Sync", () => {
 	beforeEach(() => {
 		mocks.resetAll();
+		// Also clear sync queue
+		if ((process as any).localSyncQueue) {
+			(process as any).localSyncQueue.length = 0;
+		}
 	});
 
 	describe("cache_helper", () => {
 		it("should store and retrieve cached items", async () => {
-			const url = "/test-cache-helper";
+			const url = `/test-cache-helper-${Math.random()}`;
 			const data = [{ id: 1, title: "Test Item" }];
 			
 			await cacheHelper.setCache(url, data);
@@ -41,7 +45,7 @@ describe("Offline Caching", () => {
 		});
 
 		it("should clear cache", async () => {
-			const url = "/test-clear";
+			const url = `/test-clear-${Math.random()}`;
 			await cacheHelper.setCache(url, { some: "data" });
 			await cacheHelper.clearCache(url);
 			const cachedData = await cacheHelper.getCache(url);
@@ -49,9 +53,30 @@ describe("Offline Caching", () => {
 		});
 	});
 
+	describe("sync_helper", () => {
+		it("should add actions to the queue", async () => {
+			const action = {
+				type: "MARK_READ",
+				path: `/test-sync-${Math.random()}`,
+				body: { items: "[1,2]" },
+			};
+
+			await syncHelper.queueAction(action);
+			const queue = await syncHelper.getQueue();
+			expect(queue).toContainEqual(expect.objectContaining(action));
+		});
+
+		it("should clear the queue", async () => {
+			await syncHelper.queueAction({ type: "TEST", path: "/test", body: {} });
+			await syncHelper.clearQueue();
+			const queue = await syncHelper.getQueue();
+			expect(queue).toHaveLength(0);
+		});
+	});
+
 	describe("useApi with Cache", () => {
 		it("should cache GET requests automatically", async () => {
-			const path = "/test-auto-cache";
+			const path = `/test-auto-cache-${Math.random()}`;
 			const mockData = { id: 1, name: "Test" };
 			mocks.api.getWithAuth.mockResolvedValue(mockData);
 
@@ -69,7 +94,7 @@ describe("Offline Caching", () => {
 		});
 
 		it("should serve cached data when offline", async () => {
-			const path = "/test-offline-cache";
+			const path = `/test-offline-cache-${Math.random()}`;
 			const mockCachedData = { id: 1, name: "Cached" };
 			await cacheHelper.setCache(path, mockCachedData);
 			
@@ -95,7 +120,7 @@ describe("Offline Caching", () => {
 		});
 
 		it("should serve cached data when API fails", async () => {
-			const path = "/test-fail-cache";
+			const path = `/test-fail-cache-${Math.random()}`;
 			const mockCachedData = { id: 1, name: "Cached" };
 			await cacheHelper.setCache(path, mockCachedData);
 			
@@ -109,7 +134,65 @@ describe("Offline Caching", () => {
 			});
 
 			expect(result.current.data).toEqual(mockCachedData);
-			expect(result.current.error).toBeNull(); // Error should be cleared if cache is served
+			expect(result.current.error).toBeNull();
+		});
+	});
+
+	describe("Sync Queue Integration", () => {
+		it("should queue POST requests when offline", async () => {
+			const path = `/feeds/mark_items_as_read/${Math.random()}`;
+			const body = { items: "[1,2]" };
+			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+
+			const { result: connResult } = renderHook(() => useConnectionStatus());
+			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
+
+			const { result } = renderHook(() => useApi("post", path));
+
+			// Wait for useApi to update its internal state
+			await act(async () => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+			});
+
+			await act(async () => {
+				const response = await result.current.execute(body);
+				expect(response).toEqual({ queued: true });
+			});
+
+			const queue = await syncHelper.getQueue();
+			expect(queue).toContainEqual(expect.objectContaining({
+				type: "POST",
+				path,
+				body,
+			}));
+			expect(mocks.api.postWithAuth).not.toHaveBeenCalled();
+		});
+
+		it("should queue GET requests when offline and shouldQueue is true", async () => {
+			const path = `/feed_items/mark_as_read/${Math.random()}.json`;
+			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+
+			const { result: connResult } = renderHook(() => useConnectionStatus());
+			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
+
+			const { result } = renderHook(() => useApi("get", path, { shouldQueue: true }));
+
+			// Wait for useApi to update its internal state
+			await act(async () => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+			});
+
+			await act(async () => {
+				const response = await result.current.execute();
+				expect(response).toEqual({ queued: true });
+			});
+
+			const queue = await syncHelper.getQueue();
+			expect(queue).toContainEqual(expect.objectContaining({
+				type: "GET",
+				path,
+			}));
+			expect(mocks.api.getWithAuth).not.toHaveBeenCalled();
 		});
 	});
 });

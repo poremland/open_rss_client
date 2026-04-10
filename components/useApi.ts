@@ -22,6 +22,7 @@ import { auth } from "../helpers/auth_helper";
 import { useRouter } from "expo-router";
 import useCache from "./useCache";
 import useConnectionStatus from "./useConnectionStatus";
+import * as syncHelper from "../helpers/sync_helper";
 
 export interface ApiResponse<T> {
 	data: T | null;
@@ -34,6 +35,7 @@ export interface ApiResponse<T> {
 interface UseApiOptions<T> {
 	initialData?: T;
 	useCache?: boolean;
+	shouldQueue?: boolean;
 }
 
 const useApi = <T,>(
@@ -53,12 +55,23 @@ const useApi = <T,>(
 		async (body?: any): Promise<T | null> => {
 			const lowerMethod = method.toLowerCase();
 			const shouldCache = options.useCache !== false && lowerMethod === "get";
+			const shouldQueue = options.shouldQueue || lowerMethod === "post" || lowerMethod === "put";
 
-			if (!isConnected && shouldCache) {
-				const cachedData = await getCache<T>(path);
-				if (cachedData) {
-					setData(cachedData);
-					return cachedData;
+			if (!isConnected) {
+				if (shouldCache && !options.shouldQueue) {
+					const cachedData = await getCache<T>(path);
+					if (cachedData) {
+						setData(cachedData);
+						return cachedData;
+					}
+				} else if (shouldQueue) {
+					await syncHelper.queueAction({
+						type: method.toUpperCase(),
+						path,
+						body,
+						contentType,
+					});
+					return { queued: true } as any;
 				}
 			}
 

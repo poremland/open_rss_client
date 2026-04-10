@@ -22,6 +22,8 @@ import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, waitFor, act } from "@testing-library/react-native";
 import FeedItemDetailScreen from "../app/FeedItemDetailScreen";
+import * as syncHelper from "../helpers/sync_helper";
+import * as cacheHelper from "../helpers/cache_helper";
 
 describe("FeedItemDetailScreen", () => {
 	const mockFeedItem = {
@@ -122,6 +124,51 @@ describe("FeedItemDetailScreen", () => {
 		);
 		expect(mocks.router.back).toHaveBeenCalled();
 		expect(mocks.router.setParams).toHaveBeenCalledWith({ removedItemId: "1" });
+	});
+
+	it("should queue markItemAsRead and update local cache when offline", async () => {
+		const item = { ...mockFeedItem, feed_id: 10 };
+		mocks.api.getWithAuth.mockResolvedValue(item);
+		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+
+		const cachedItems = [item, { id: 2, title: "Other Item", feed_id: 10 }];
+		await cacheHelper.setCache("/feeds/10.json", cachedItems);
+
+		render(<FeedItemDetailScreen />);
+
+		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
+			expect.objectContaining({ headerTitle: "Test Item" })
+		));
+
+		await waitFor(() => expect(mocks.useMenu.setMenuItems.mock.calls.length).toBeGreaterThan(1));
+
+		// Wait for useConnectionStatus to update to offline state
+		await act(async () => {
+			await new Promise(resolve => setTimeout(resolve, 100));
+		});
+
+		// Retrieve action after connection status update to get updated handler
+		const lastCallIndex = mocks.useMenu.setMenuItems.mock.calls.length - 1;
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[lastCallIndex][0];
+		const markAsReadAction = menuItems.find((i: any) => i.label === "Mark As Read");
+
+		await act(async () => {
+			await markAsReadAction.onPress();
+		});
+
+		// Verify it was queued
+		const queue = await syncHelper.getQueue();
+		expect(queue).toContainEqual(expect.objectContaining({
+			type: "GET",
+			path: expect.stringContaining("mark_as_read/1"),
+		}));
+
+		// Verify local cache was updated
+		const newCachedItems = await cacheHelper.getCache<any[]>("/feeds/10.json");
+		expect(newCachedItems).toHaveLength(1);
+		expect(newCachedItems![0].id).toBe(2);
+
+		expect(mocks.router.back).toHaveBeenCalled();
 	});
 
 	it("should call goBack on mount when feedItemId is missing", async () => {

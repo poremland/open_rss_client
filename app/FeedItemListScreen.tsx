@@ -17,6 +17,7 @@ import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import ListScreen from "../components/ListScreen";
 import FeedItemCard from "../components/FeedItemCard";
 import useConnectionStatus from "../components/useConnectionStatus";
+import useCache from "../components/useCache";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -55,35 +56,75 @@ const FeedItemListScreen: React.FC = () => {
 		selectedFeed ? `/feeds/remove/${selectedFeed.id}` : "",
 	);
 
+	const { setCache } = useCache();
+
 	const handleMarkSelectedAsRead = useCallback(
 		async (ids: number[]) => {
-			await markItemsAsRead({ items: JSON.stringify(ids) });
+			const response = await markItemsAsRead({ items: JSON.stringify(ids) });
 			setMultiSelectActive(false);
 			setSelectedItems([]);
+
+			if (response && (response as any).queued) {
+				const currentData = listRef.current?.getData() || [];
+				const newData = currentData.filter((item) => !ids.includes(item.id));
+				listRef.current?.setData(newData);
+				if (selectedFeed) {
+					await setCache(`/feeds/${selectedFeed.id}.json`, newData);
+				}
+				if (newData.length === 0) {
+					navigation.goBack();
+				}
+				return;
+			}
+
 			const refreshedData = await listRef.current?.handleRefresh();
 			if (refreshedData?.length === 0) {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation],
+		[markItemsAsRead, navigation, setCache, selectedFeed],
 	);
 
 	const handleSwipeMarkAsRead = useCallback(
 		async (item: FeedItem) => {
-			await markItemsAsRead({ items: JSON.stringify([item.id]) });
+			const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
+
+			if (response && (response as any).queued) {
+				const currentData = listRef.current?.getData() || [];
+				const newData = currentData.filter((i) => i.id !== item.id);
+				listRef.current?.setData(newData);
+				if (selectedFeed) {
+					await setCache(`/feeds/${selectedFeed.id}.json`, newData);
+				}
+				if (newData.length === 0) {
+					navigation.goBack();
+				}
+				return;
+			}
+
 			const refreshedData = await listRef.current?.handleRefresh();
 			if (refreshedData?.length === 0) {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation],
+		[markItemsAsRead, navigation, setCache, selectedFeed],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
 		const allItemIds = listRef.current?.getData()?.map((item) => item.id) || [];
-		await markItemsAsRead({ items: JSON.stringify(allItemIds) });
+		const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
+
+		if (response && (response as any).queued) {
+			listRef.current?.setData([]);
+			if (selectedFeed) {
+				await setCache(`/feeds/${selectedFeed.id}.json`, []);
+			}
+			navigation.goBack();
+			return;
+		}
+
 		navigation.goBack();
-	}, [markItemsAsRead, navigation]);
+	}, [markItemsAsRead, navigation, setCache, selectedFeed]);
 
 	const handleDeleteFeed = useCallback(async () => {
 		if (!isConnected) {
