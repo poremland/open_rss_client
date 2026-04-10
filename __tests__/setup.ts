@@ -668,7 +668,14 @@ export const resetAll = () => {
 	useApiConfig.data = null;
 	useApiConfig.loading = false;
 	useApiConfig.error = null;
-	useApiConfig.execute = mock(() => Promise.resolve(null));
+	useApiConfig.execute = mock(async () => {
+		const { act } = require("@testing-library/react-native");
+		let result: any = null;
+		await act(async () => {
+			result = await Promise.resolve(null);
+		});
+		return result;
+	});
 	useApiMock.mockClear();
 
 	useApiMock.mockImplementation(() => {
