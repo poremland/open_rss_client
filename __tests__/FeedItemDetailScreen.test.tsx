@@ -91,9 +91,11 @@ describe("FeedItemDetailScreen", () => {
 	});
 
 	it("should call markItemAsRead and navigate back when Mark As Read is pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
-		mocks.api.getWithAuth.mockResolvedValueOnce(mockFeedItem); // for fetchFeedItem
-		mocks.api.getWithAuth.mockResolvedValueOnce({ success: true }); // for markItemAsRead
+		mocks.api.getWithAuth.mockImplementation((path: string) => {
+			if (path.includes("feed_items/1.json")) return Promise.resolve(mockFeedItem);
+			if (path.includes("mark_as_read/1")) return Promise.resolve({ success: true });
+			return Promise.resolve(null);
+		});
 
 		render(<FeedItemDetailScreen />);
 
@@ -102,26 +104,28 @@ describe("FeedItemDetailScreen", () => {
 			expect.objectContaining({ headerTitle: "Test Item" })
 		));
 
-		// Wait for the menu to be updated with the loaded item's handlers
-		// It should be called at least twice (initial render + after load)
-		await waitFor(() => expect(mocks.useMenu.setMenuItems.mock.calls.length).toBeGreaterThan(1));
-		
-		const lastCallIndex = mocks.useMenu.setMenuItems.mock.calls.length - 1;
-		const menuItems = mocks.useMenu.setMenuItems.mock.calls[lastCallIndex][0];
-		const markAsReadAction = menuItems.find((item: any) => item.label === "Mark As Read");
+		// Wait for any pending effects/renders
+		await act(async () => {
+			await new Promise(resolve => setTimeout(resolve, 100));
+		});
 
-		expect(markAsReadAction).toBeTruthy();
+		// Retrieve action after header title update to get updated handler
+		const lastCallIndexFinal = mocks.useMenu.setMenuItems.mock.calls.length - 1;
+		const menuItemsFinal = mocks.useMenu.setMenuItems.mock.calls[lastCallIndexFinal][0];
+		const markAsReadActionFinal = menuItemsFinal.find((item: any) => item.label === "Mark As Read");
+
+		expect(markAsReadActionFinal).toBeTruthy();
 
 		// Reset mock to track the next call (the actual mark as read operation)
 		mocks.api.getWithAuth.mockClear();
 
 		await act(async () => {
-			await markAsReadAction.onPress();
+			await markAsReadActionFinal.onPress();
 		});
 
-		expect(mocks.api.getWithAuth).toHaveBeenCalledWith(
+		await waitFor(() => expect(mocks.api.getWithAuth).toHaveBeenCalledWith(
 			expect.stringContaining("mark_as_read/1"),
-		);
+		));
 		expect(mocks.router.back).toHaveBeenCalled();
 		expect(mocks.router.setParams).toHaveBeenCalledWith({ removedItemId: "1" });
 	});

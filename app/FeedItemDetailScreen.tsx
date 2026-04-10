@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
@@ -49,6 +49,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	} = useApi<FeedItem>(
 		"get",
 		feedItemId ? `/feed_items/${feedItemId}.json` : "",
+		{ useCache: true },
 	);
 
 	useEffect(() => {
@@ -57,7 +58,7 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	const { execute: markItemAsRead } = useApi(
 		"get",
-		selectedFeedItem
+		selectedFeedItem?.id
 			? `/feed_items/mark_as_read/${selectedFeedItem.id}.json`
 			: "",
 		{ shouldQueue: true },
@@ -65,7 +66,7 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	const handleMarkAsRead = useCallback(async () => {
 		const item = selectedFeedItem;
-		if (!item) return;
+		if (!item?.id) return;
 		const response = await markItemAsRead();
 		if (response && (response as any).queued) {
 			const cachePath = `/feeds/${item.feed_id}.json`;
@@ -81,9 +82,14 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [selectedFeedItem, markItemAsRead, router, getCache, setCache]);
 
+	const markAsReadHandlerRef = useRef(handleMarkAsRead);
+	useEffect(() => {
+		markAsReadHandlerRef.current = handleMarkAsRead;
+	}, [handleMarkAsRead]);
+
 	useEffect(() => {
 		const item = selectedFeedItem;
-		if (item && isFocused) {
+		if (item?.id && isFocused) {
 			const autoMarkAsRead = async () => {
 				const response = await markItemAsRead();
 				if (response && (response as any).queued) {
@@ -115,39 +121,42 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [selectedFeedItem]);
 
+	const shareHandlerRef = useRef(handleShare);
+	useEffect(() => {
+		shareHandlerRef.current = handleShare;
+	}, [handleShare]);
+
 	const { setMenuItems, onToggleDropdown } = useMenu();
 
-	useFocusEffect(
-		useCallback(() => {
-			if (!isFocused) return;
+	useEffect(() => {
+		if (!isFocused) return;
 
-			const menuItems: MenuItem[] = [
-				{
-					label: "Mark As Read",
-					icon: "checkmark-sharp",
-					onPress: handleMarkAsRead,
-					testID: "mark-as-read-button",
-				},
-				{
-					label: "Open Full Site",
-					icon: "open-outline",
-					onPress: () =>
-						selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
-				},
-				{
-					label: "Share",
-					icon: "share-social-outline",
-					onPress: handleShare,
-				},
-				{
-					label: "Log-out",
-					icon: "log-out-outline",
-					onPress: () => authHelper.clearAuthData(router),
-				},
-			];
-			setMenuItems(menuItems);
-		}, [isFocused, handleMarkAsRead, handleShare, router, selectedFeedItem, setMenuItems]),
-	);
+		const menuItems: MenuItem[] = [
+			{
+				label: "Mark As Read",
+				icon: "checkmark-sharp",
+				onPress: () => markAsReadHandlerRef.current(),
+				testID: "mark-as-read-button",
+			},
+			{
+				label: "Open Full Site",
+				icon: "open-outline",
+				onPress: () =>
+					selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
+			},
+			{
+				label: "Share",
+				icon: "share-social-outline",
+				onPress: () => shareHandlerRef.current(),
+			},
+			{
+				label: "Log-out",
+				icon: "log-out-outline",
+				onPress: () => authHelper.clearAuthData(router),
+			},
+		];
+		setMenuItems(menuItems);
+	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 
 	useEffect(() => {
 		if (selectedFeedItem) {

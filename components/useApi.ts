@@ -51,8 +51,10 @@ const useApi = <T,>(
 	const { getCache, setCache } = useCache();
 	const { isConnected } = useConnectionStatus();
 
+
 	const execute = useCallback(
 		async (body?: any): Promise<T | null> => {
+			if (!path) return null;
 			const lowerMethod = method.toLowerCase();
 			const shouldCache = options.useCache !== false && lowerMethod === "get";
 			const shouldQueue = options.shouldQueue || lowerMethod === "post" || lowerMethod === "put";
@@ -96,16 +98,17 @@ const useApi = <T,>(
 			} catch (err: any) {
 				const errorMessage = err.message || "An unknown error occurred";
 				
+				setError(errorMessage);
+
 				if (shouldCache) {
 					const cachedData = await getCache<T>(path);
 					if (cachedData) {
 						setData(cachedData);
-						setError(null); // Clear error if we have cache
+						// We don't clear the error here so the UI can still show it
 						return cachedData;
 					}
 				}
 
-				setError(errorMessage);
 				if (errorMessage === "Session expired") {
 					await auth.handleSessionExpired(router);
 				}

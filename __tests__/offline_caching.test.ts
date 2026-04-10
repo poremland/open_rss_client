@@ -134,7 +134,7 @@ describe("Offline Caching and Sync", () => {
 			});
 
 			expect(result.current.data).toEqual(mockCachedData);
-			expect(result.current.error).toBeNull();
+			expect(result.current.error).toBe("API Error");
 		});
 	});
 

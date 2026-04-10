@@ -643,6 +643,9 @@ export const resetAll = () => {
 	if ((process as any).localCacheMap) {
 		(process as any).localCacheMap.clear();
 	}
+	if ((process as any).localSyncQueue) {
+		(process as any).localSyncQueue.length = 0;
+	}
 	resetMocksInObj(routerMocks);
 	resetMocksInObj(navigationMocks);
 	resetMocksInObj(asyncStorageMock);

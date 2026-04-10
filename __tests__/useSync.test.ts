@@ -16,63 +16,57 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { mock, expect, describe, it, beforeEach } from "bun:test";
+
+const syncServiceMock = {
+	synchronize: mock(async () => {}),
+};
+
+const useConnectionStatusMock = {
+	isConnected: true,
+};
+
+mock.module("../helpers/sync_service", () => ({
+	syncService: syncServiceMock,
+}));
+
+mock.module("../components/useConnectionStatus", () => ({
+	__esModule: true,
+	default: () => ({ isConnected: useConnectionStatusMock.isConnected }),
+}));
+
 import "./setup";
 import { mocks } from "./setup";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
 import useSync from "../components/useSync";
-import { syncService } from "../helpers/sync_service";
-
-mock.module("../helpers/sync_service", () => ({
-	syncService: {
-		synchronize: mock(async () => {}),
-	},
-}));
 
 describe("useSync", () => {
 	beforeEach(() => {
 		mocks.resetAll();
-		(syncService.synchronize as any).mockClear();
+		syncServiceMock.synchronize.mockClear();
 	});
 
 	it("should call syncService.synchronize when connection is restored", async () => {
 		// Start online
-		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true });
+		useConnectionStatusMock.isConnected = true;
 		const { rerender } = renderHook(() => useSync());
 
 		// Should call initially
 		await waitFor(() => {
-			expect(syncService.synchronize).toHaveBeenCalled();
+			expect(syncServiceMock.synchronize).toHaveBeenCalled();
 		});
-		(syncService.synchronize as any).mockClear();
+		syncServiceMock.synchronize.mockClear();
 
 		// Go offline
-		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
-		
-		// Trigger the listener callback if we can get it
-		const listenerCall = mocks.networkMocks.addNetworkStateListenerAsync.mock.calls[0];
-		if (listenerCall) {
-			const callback = listenerCall[0];
-			await act(async () => {
-				callback({ isConnected: false });
-			});
-		}
-
+		useConnectionStatusMock.isConnected = false;
 		rerender({});
-		expect(syncService.synchronize).not.toHaveBeenCalled();
+		expect(syncServiceMock.synchronize).not.toHaveBeenCalled();
 
 		// Go online
-		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true });
-		if (listenerCall) {
-			const callback = listenerCall[0];
-			await act(async () => {
-				callback({ isConnected: true });
-			});
-		}
-
+		useConnectionStatusMock.isConnected = true;
 		rerender({});
 
 		await waitFor(() => {
-			expect(syncService.synchronize).toHaveBeenCalled();
+			expect(syncServiceMock.synchronize).toHaveBeenCalled();
 		});
 	});
 });
