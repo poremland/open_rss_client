@@ -20,6 +20,8 @@ import { useState, useCallback } from "react";
 import { api } from "../helpers/api_helper";
 import { auth } from "../helpers/auth_helper";
 import { useRouter } from "expo-router";
+import useCache from "./useCache";
+import useConnectionStatus from "./useConnectionStatus";
 
 export interface ApiResponse<T> {
 	data: T | null;
@@ -31,6 +33,7 @@ export interface ApiResponse<T> {
 
 interface UseApiOptions<T> {
 	initialData?: T;
+	useCache?: boolean;
 }
 
 const useApi = <T,>(
@@ -43,16 +46,31 @@ const useApi = <T,>(
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
+	const { getCache, setCache } = useCache();
+	const { isConnected } = useConnectionStatus();
 
 	const execute = useCallback(
 		async (body?: any): Promise<T | null> => {
+			const lowerMethod = method.toLowerCase();
+			const shouldCache = options.useCache !== false && lowerMethod === "get";
+
+			if (!isConnected && shouldCache) {
+				const cachedData = await getCache<T>(path);
+				if (cachedData) {
+					setData(cachedData);
+					return cachedData;
+				}
+			}
+
 			setLoading(true);
 			setError(null);
 			try {
 				let result: T;
-				const lowerMethod = method.toLowerCase();
 				if (lowerMethod === "get") {
 					result = await api.getWithAuth<T>(path);
+					if (shouldCache) {
+						await setCache(path, result);
+					}
 				} else if (lowerMethod === "post") {
 					result = await api.postWithAuth<T>(path, body, contentType);
 				} else if (lowerMethod === "put") {
@@ -64,6 +82,16 @@ const useApi = <T,>(
 				return result;
 			} catch (err: any) {
 				const errorMessage = err.message || "An unknown error occurred";
+				
+				if (shouldCache) {
+					const cachedData = await getCache<T>(path);
+					if (cachedData) {
+						setData(cachedData);
+						setError(null); // Clear error if we have cache
+						return cachedData;
+					}
+				}
+
 				setError(errorMessage);
 				if (errorMessage === "Session expired") {
 					await auth.handleSessionExpired(router);
@@ -73,7 +101,7 @@ const useApi = <T,>(
 				setLoading(false);
 			}
 		},
-		[method, path, contentType, router],
+		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache],
 	);
 
 	return {

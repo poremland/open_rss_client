@@ -17,14 +17,76 @@
  */
 import "./setup";
 import { mocks } from "./setup";
-import { expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { act } from "react";
+import { networkMocks } from "./setup";
+
+const mockGetCache = mock();
+const mockSetCache = mock();
+const mockClearCache = mock();
+
+mock.module("../components/useCache", () => ({
+	default: () => ({
+		getCache: mockGetCache,
+		setCache: mockSetCache,
+		clearCache: mockClearCache,
+	}),
+}));
+
 import useApi from "../components/useApi";
 
 describe("useApi", () => {
 	beforeEach(() => {
 		mocks.resetAll();
+		mockGetCache.mockClear().mockResolvedValue(null);
+		mockSetCache.mockClear();
+		mockClearCache.mockClear();
+	});
+
+	it("should handle GET request successfully and cache the result", async () => {
+		const mockData = { id: 1, name: "Test" };
+		mocks.api.getWithAuth.mockResolvedValue(mockData);
+
+		const { result } = renderHook(() => useApi("get", "/test"));
+
+		await act(async () => {
+			await result.current.execute();
+		});
+
+		expect(result.current.data).toEqual(mockData);
+		expect(mockSetCache).toHaveBeenCalledWith("/test", mockData);
+	});
+
+	it("should return cached data when offline", async () => {
+		const mockCachedData = { id: 1, name: "Cached" };
+		mockGetCache.mockResolvedValue(mockCachedData);
+		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+
+		const { result } = renderHook(() => useApi("get", "/test"));
+
+		// Wait for the hook to update state to offline
+		// We can check this by waiting for something that indicates it's ready, 
+		// but since we can't see isConnected directly from ApiResponse, 
+		// we'll just wait for a bit or use renderHook for useConnectionStatus
+		await waitFor(() => {
+			// Actually, let's just wait for the execute to eventually return the cached data
+			// if we call it repeatedly? No.
+		});
+
+		// Better way: wait for useConnectionStatus mock to have been called
+		await waitFor(() => expect(mocks.networkMocks.getNetworkStateAsync).toHaveBeenCalled());
+
+		await act(async () => {
+			// We might still be online for a split second. 
+			// Let's use a small delay to ensure useEffect has run.
+			await new Promise(resolve => setTimeout(resolve, 100));
+			const data = await result.current.execute();
+			expect(data).toEqual(mockCachedData);
+		});
+
+		expect(result.current.data).toEqual(mockCachedData);
+		expect(mocks.api.getWithAuth).not.toHaveBeenCalled();
 	});
 
 	it("should handle GET request successfully", async () => {
