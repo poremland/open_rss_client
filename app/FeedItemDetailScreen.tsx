@@ -35,7 +35,6 @@ import { styles } from "../styles/FeedItemDetailScreen.styles";
 import useCache from "../components/useCache";
 
 const FeedItemDetailScreen: React.FC = () => {
-	const [webViewSource, setWebViewSource] = useState<string>("");
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
@@ -158,31 +157,30 @@ const FeedItemDetailScreen: React.FC = () => {
 		setMenuItems(menuItems);
 	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 
+	const webViewSource = useMemo(() => {
+		if (!selectedFeedItem) return "";
+		const decodedItem = { ...selectedFeedItem };
+		decodedItem.title = decode(decodedItem.title || "");
+		const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
+		if (Platform.OS === "web") {
+			return `data:text/html;charset=utf-8,${encodeURIComponent(staticHtml)}`;
+		}
+		return staticHtml;
+	}, [selectedFeedItem?.id]); // Use id to avoid re-calculating on every object change
+
 	useEffect(() => {
-		if (selectedFeedItem) {
-			const decodedItem = { ...selectedFeedItem };
-			decodedItem.title = decode(decodedItem.title || "");
-			// The following styles are for the HTML content displayed in the WebView and cannot be moved to a React Native stylesheet.
-			const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
-			if (Platform.OS === "web") {
-				setWebViewSource(
-					`data:text/html;charset=utf-8,${encodeURIComponent(staticHtml)}`,
-				);
-			} else {
-				setWebViewSource(staticHtml);
-			}
-		} else if (!loading && !selectedFeedItem && !feedItemId) {
+		if (!selectedFeedItem && !loading && !feedItemId) {
 			navigation.goBack();
 		}
 
 		navigation.setOptions({
-			headerTitle: selectedFeedItem?.title || "Feed Item",
+			headerTitle: selectedFeedItem?.title ? decode(selectedFeedItem.title) : "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
 			),
 		});
 	}, [
-		selectedFeedItem,
+		selectedFeedItem?.id, // Use id here too
 		loading,
 		feedItemId,
 		navigation,

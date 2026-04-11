@@ -223,17 +223,25 @@ export const useApiConfig = {
 	loading: false,
 	error: null as string | null,
 	execute: mock().mockImplementation(() => Promise.resolve(null)),
+	setData: mock(),
 };
 
-export const useApiMock = mock(() => {
+const useApi = <T,>(
+	method: string,
+	path: string,
+	options: any = {},
+	contentType: string = "application/x-www-form-urlencoded",
+): any => {
 	return {
 		data: useApiConfig.data,
 		loading: useApiConfig.loading,
 		error: useApiConfig.error,
 		execute: useApiConfig.execute,
-		setData: mock(),
+		setData: useApiConfig.setData,
 	};
-});
+};
+
+export const useApiMock = mock(useApi);
 
 export const networkMocks = {
 	getNetworkStateAsync: mock(async () => ({ isConnected: true, isInternetReachable: true })),
@@ -668,25 +676,8 @@ export const resetAll = () => {
 	useApiConfig.data = null;
 	useApiConfig.loading = false;
 	useApiConfig.error = null;
-	useApiConfig.execute = mock(async () => {
-		const { act } = require("@testing-library/react-native");
-		let result: any = null;
-		await act(async () => {
-			result = await Promise.resolve(null);
-		});
-		return result;
-	});
-	useApiMock.mockClear();
-
-	useApiMock.mockImplementation(() => {
-		return {
-			data: useApiConfig.data,
-			loading: useApiConfig.loading,
-			error: useApiConfig.error,
-			execute: useApiConfig.execute,
-			setData: mock(),
-		};
-	});
+	useApiConfig.execute = mock(() => Promise.resolve(null));
+	useApiMock.mockClear().mockImplementation(useApi);
 
 	localSearchParamsMock.params = {};
 

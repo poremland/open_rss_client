@@ -19,7 +19,7 @@ import { useState, useEffect } from 'react';
 import * as Network from 'expo-network';
 
 export default function useConnectionStatus() {
-	const [isConnected, setIsConnected] = useState<boolean | null>(true);
+	const [isConnected, setIsConnected] = useState<boolean>(true);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -28,13 +28,13 @@ export default function useConnectionStatus() {
 		async function setup() {
 			try {
 				const state = await Network.getNetworkStateAsync();
-				if (isMounted) {
-					setIsConnected(state.isConnected ?? false);
+				if (isMounted && state.isConnected !== undefined && state.isConnected !== isConnected) {
+					setIsConnected(state.isConnected);
 				}
 
 				const l = await Network.addNetworkStateListenerAsync((state) => {
-					if (isMounted) {
-						setIsConnected(state.isConnected ?? false);
+					if (isMounted && state.isConnected !== undefined) {
+						setIsConnected(state.isConnected);
 					}
 				});
 
@@ -59,6 +59,6 @@ export default function useConnectionStatus() {
 	}, []);
 
 	return {
-		isConnected: isConnected ?? true,
+		isConnected,
 	};
 }

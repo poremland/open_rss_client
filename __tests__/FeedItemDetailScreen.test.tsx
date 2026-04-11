@@ -18,7 +18,7 @@
 import "./setup";
 import { mocks, useApiConfig } from "./setup";
 
-import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach, afterEach } from "bun:test";
 import React from "react";
 import { render, waitFor, act } from "@testing-library/react-native";
 import FeedItemDetailScreen from "../app/FeedItemDetailScreen";
@@ -38,7 +38,15 @@ describe("FeedItemDetailScreen", () => {
 		mocks.localSearchParams.params = { feedItemId: "1" };
 	});
 
+	afterEach(async () => {
+		await act(async () => {
+			await new Promise(resolve => setTimeout(resolve, 10));
+		});
+	});
+
 	it("should display feed item details (via header title)", async () => {
+		// Set initial data to avoid immediate state update warning
+		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
 		render(<FeedItemDetailScreen />);
@@ -53,6 +61,7 @@ describe("FeedItemDetailScreen", () => {
 	});
 
 	it("should apply webViewContainer style", async () => {
+		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
 		const { getByTestId } = render(<FeedItemDetailScreen />);
@@ -74,6 +83,7 @@ describe("FeedItemDetailScreen", () => {
 	});
 
 	it("should set the correct menu items", async () => {
+		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
 		render(<FeedItemDetailScreen />);
