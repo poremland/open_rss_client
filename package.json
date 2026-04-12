@@ -1,5 +1,5 @@
 {
-  "name": "open-rss-client-expo",
+  "name": "open-rss-client",
   "main": "expo-router/entry",
   "version": "1.6.0",
   "scripts": {

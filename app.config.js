@@ -16,12 +16,49 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fs from "fs";
-import path from "path";
+const fs = require("fs");
+const path = require("path");
+const { withAppBuildGradle, withMainActivity, withMainApplication } = require("@expo/config-plugins");
+
+// Plugin to inject the ABI splits into build.gradle
+const withAndroidSplits = (config) => {
+	return withAppBuildGradle(config, (config) => {
+		if (config.modResults.language === "groovy") {
+			const splitsBlock = `
+	splits {
+		abi {
+			enable true
+			reset() // Clears all default ABIs
+			include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' // Specify the ABIs you want to include
+			universalApk false // Set to true if you want a universal APK as well
+		}
+	}`;
+			// Insert the block inside the android { ... } section if it's not already there
+			if (!config.modResults.contents.includes("splits {")) {
+				config.modResults.contents = config.modResults.contents.replace(
+					/android\s*\{/,
+					`android {${splitsBlock}`
+				);
+			}
+		}
+		return config;
+	});
+};
+
+// Plugin to fix the package name header in Kotlin files if it gets generated incorrectly
+const withPackageFix = (config) => {
+	const fixPackage = (modConfig) => {
+		modConfig.modResults.contents = modConfig.modResults.contents.replace(
+			/package open\.rss\.clientexpo/,
+			"package open.rss.client"
+		);
+		return modConfig;
+	};
+	// Apply the fix to both MainActivity and MainApplication
+	return withMainActivity(withMainApplication(config, fixPackage), fixPackage);
+};
 
 module.exports = ({ config }) => {
-	// This function will be executed after the "publish" step but before the build.
-
 	const keystorePassword = process.env.ANDROID_KEYSTORE_PASSWORD;
 	const keystoreAlias = process.env.ANDROID_KEYSTORE_ALIAS;
 	const keyPassword = process.env.ANDROID_KEYSTORE_PASSWORD;
@@ -35,41 +72,47 @@ module.exports = ({ config }) => {
 	// Load the base app.json template
 	const baseConfig = require("./app.config.base.json");
 
-	// Inject the Reanimated Babel plugin into the configuration
-	const babelPlugins = (baseConfig.packagerOpts?.babel?.plugins || []).concat([
-		"react-native-reanimated/plugin"
-	]);
-
-	// Update the baseConfig to include the modified Babel plugins
-	baseConfig.packagerOpts = {
-		...baseConfig.packagerOpts,
-		babel: {
-			plugins: babelPlugins,
+	// Structure the final configuration object idiomatic to Expo.
+	// Non-standard properties like keystore info are moved to 'extra'.
+	let finalConfig = {
+		...baseConfig,
+		...config,
+		packagerOpts: {
+			...baseConfig.packagerOpts,
+			...config.packagerOpts,
+			babel: {
+				plugins: [
+					...(baseConfig.packagerOpts?.babel?.plugins || []),
+					"react-native-reanimated/plugin"
+				]
+			}
 		},
-	};
-
-	// Inject the Android keystore configuration
-	baseConfig.android = {
-		useProguard: true,
-		package: "open.rss.client",
-		build: {
-			gradleCommand: ":app:assembleRelease",
+		android: {
+			...baseConfig.android,
+			...config.android,
+			useProguard: true,
+			package: "open.rss.client",
 			adaptiveIcon: {
 				foregroundImage: "./assets/images/adaptive-icon.png",
 				backgroundColor: "#ffffff",
 			},
+		},
+		extra: {
+			...baseConfig.extra,
+			...config.extra,
 			keystore: {
 				path: keystorePath,
 				alias: keystoreAlias,
 				password: keystorePassword,
 				keyPassword: keyPassword,
 			},
+			gradleCommand: ":app:assembleRelease",
 		},
 	};
 
-	// Write the modified configuration to app.json
-	fs.writeFileSync(path.join(__dirname, "app.json"), JSON.stringify(baseConfig, null, 2));
+	// Apply the automation plugins
+	finalConfig = withAndroidSplits(finalConfig);
+	finalConfig = withPackageFix(finalConfig);
 
-	// Return the config that was loaded and modified
-	return baseConfig;
+	return finalConfig;
 };

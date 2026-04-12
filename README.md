@@ -27,7 +27,7 @@ These instructions will get you a copy of the project up and running on your loc
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (LTS version recommended)
-- [npm](https://www.npmjs.com/) (comes with Node.js) or [Yarn](https://yarnpkg.com/)
+- [Bun](https://bun.sh/) (Primary package manager and test runner)
 - [Android Studio](https://developer.android.com/studio) for Android development (with a configured emulator or device)
 - [Xcode](https://developer.apple.com/xcode/) for iOS development (macOS only)
 
@@ -42,7 +42,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 2.  **Install dependencies:**
     ```bash
-    npm install
+    bun install
     ```
 
 ### Running the App
@@ -50,7 +50,7 @@ These instructions will get you a copy of the project up and running on your loc
 Start the Expo development server:
 
 ```bash
-npx expo start
+bun start
 ```
 
 This will open the Expo developer tools in your browser. From there, you can:
@@ -89,7 +89,7 @@ npx expo start --clear
 
 ## Testing
 
-This project is currently migrating from Jest to [Bun](https://bun.sh/) as its sole testing framework for improved performance.
+This project uses [Bun](https://bun.sh/) as its sole testing framework for improved performance.
 
 ### Running Tests
 To run the full test suite using Bun:
@@ -97,8 +97,6 @@ To run the full test suite using Bun:
 ```bash
 bun test
 ```
-
-*Note: During the migration phase, some component tests may still require the legacy Jest runner via `npm run test:jest`.*
 
 ## Production Builds
 
@@ -129,26 +127,9 @@ bun test
 
 2.  **Build the APK/AAB:**
 
-    Update `./android/app/build.gradle` to include the following in the `android { ... }` section:
+    The project is configured to automatically handle ABI splits and package name corrections via Expo Config Plugins in `app.config.js`. You do not need to manually modify `android/app/build.gradle`.
 
-    ```groovy
-    splits {
-            abi {
-                    enable true
-                    reset() // Clears all default ABIs
-                    include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' // Specify the ABIs you want to include
-                    universalApk false // Set to true if you want a universal APK as well
-            }
-    }
-    ```
-
-    **Note:** if you don't have the ./android directory you need to run prebuild
-
-    ```bash
-    npx expo prebuild
-    ```
-
-    now you should be able to make the above update to `./android/app/build.gradle`
+    **Note:** If the `./android` directory does not exist, it will be generated automatically during the build process.
 
     Set the required keystone password variables:
 
@@ -160,7 +141,7 @@ bun test
     Then run the build command:
 
     ```bash
-    npm run build:android:local
+    bun build:android:local
     ```
 
     The release APKs can be found under: `./android/app/build/outputs/apk/release/`. For modern ARM based phones `app-arm64-v8a-release.apk` is most likely the release you want.
