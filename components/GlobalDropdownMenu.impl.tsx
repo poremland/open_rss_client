@@ -32,12 +32,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { commonStyles } from "../styles/commonStyles";
 import { styles } from "../styles/GlobalDropdownMenu.styles";
+import useConnectionStatus from "./useConnectionStatus";
 
 export interface MenuItem {
 	label: string;
 	onPress: () => void;
 	icon: keyof typeof Ionicons.glyphMap;
 	testID?: string;
+	disabled?: boolean;
 }
 
 interface MenuContextType {
@@ -64,6 +66,7 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 }) => {
 	const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 	const [menuItems, setMenuItemsState] = useState<MenuItem[]>([]);
+	const { isConnected } = useConnectionStatus();
 
 	const setMenuItems = useCallback((items: MenuItem[]) => {
 		setMenuItemsState(items);
@@ -101,25 +104,40 @@ const GlobalDropdownMenu: React.FC<GlobalDropdownMenuProps> = ({
 									style={styles.icon}
 								/>
 							</TouchableOpacity>
-							{menuItems.map((item, index) => (
-								<TouchableOpacity
-									key={index}
-									testID={item.testID}
-									style={commonStyles.dropdownItem}
-									onPress={() => {
-										onCloseDropdown();
-										item.onPress();
-									}}
-								>
-									<Ionicons
-										name={item.icon}
-										size={styles.icon.fontSize}
-										color={styles.icon.color}
-										style={styles.icon}
-									/>
-									<Text style={styles.text}>{item.label}</Text>
-								</TouchableOpacity>
-							))}
+							{menuItems.map((item, index) => {
+								const isOnlineOnly = ["Add Feed", "Manage Feeds", "Import OPML", "Export OPML"].includes(item.label);
+								const isDisabled = item.disabled || (isOnlineOnly && !isConnected);
+								return (
+									<TouchableOpacity
+										key={index}
+										testID={item.testID}
+										style={[
+											commonStyles.dropdownItem,
+											isDisabled && { opacity: 0.5 },
+										]}
+										disabled={isDisabled}
+										onPress={() => {
+											onCloseDropdown();
+											item.onPress();
+										}}
+									>
+										<Ionicons
+											name={item.icon}
+											size={styles.icon.fontSize}
+											color={isDisabled ? "#999" : styles.icon.color}
+											style={styles.icon}
+										/>
+										<Text
+											style={[
+												styles.text,
+												isDisabled && { color: "#999" },
+											]}
+										>
+											{item.label}
+										</Text>
+									</TouchableOpacity>
+								);
+							})}
 						</View>
 					</View>
 				</TouchableWithoutFeedback>

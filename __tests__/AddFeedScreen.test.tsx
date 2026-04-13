@@ -38,6 +38,7 @@ describe("AddFeedScreen", () => {
 
         it("disables the add button and shows offline message when disconnected", async () => {
                 mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+                mocks.useConnectionStatusMock.isConnected = false;
                 const { getByTestId, getByText } = render(<AddFeedScreen />);
                 const addButton = getByTestId("addFeedButton");
 

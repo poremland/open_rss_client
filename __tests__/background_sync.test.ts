@@ -28,12 +28,14 @@ describe("backgroundSyncTask", () => {
 	});
 
 	it("should fetch and cache all unread items for all feeds", async () => {
-		const feeds = [{ id: 1, name: "Feed 1" }, { id: 2, name: "Feed 2" }];
+		const tree = [{ feed: { id: 1, name: "Feed 1" } }, { feed: { id: 2, name: "Feed 2" } }];
+		const allFeeds = [{ id: 1, name: "Feed 1" }, { id: 2, name: "Feed 2" }];
 		const items1 = [{ id: 101, title: "Item 1.1", feed_id: 1 }];
 		const items2 = [{ id: 201, title: "Item 2.1", feed_id: 2 }];
 
 		mocks.api.getWithAuth.mockImplementation((path: string) => {
-			if (path === "/feeds.json") return Promise.resolve(feeds);
+			if (path === "/feeds/tree.json") return Promise.resolve(tree);
+			if (path === "/feeds/all.json") return Promise.resolve(allFeeds);
 			if (path === "/feeds/1.json") return Promise.resolve(items1);
 			if (path === "/feeds/2.json") return Promise.resolve(items2);
 			return Promise.resolve([]);
@@ -41,8 +43,11 @@ describe("backgroundSyncTask", () => {
 
 		await backgroundSyncTask();
 
-		const cachedFeeds = await cacheHelper.getCache("/feeds.json");
-		expect(cachedFeeds).toEqual(feeds);
+		const cachedTree = await cacheHelper.getCache("/feeds/tree.json");
+		expect(cachedTree).toEqual(tree);
+
+		const cachedAllFeeds = await cacheHelper.getCache("/feeds/all.json");
+		expect(cachedAllFeeds).toEqual(allFeeds);
 
 		const cachedItems1 = await cacheHelper.getCache("/feeds/1.json");
 		expect(cachedItems1).toEqual(items1);

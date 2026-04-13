@@ -23,17 +23,16 @@ import { Feed } from '../models/Feed';
 
 const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
 
-export const backgroundSyncTask = async () => {
-	try {
-		console.log('Background sync task started');
-		
-		// 1. Fetch feeds
-		const feeds = await api.getWithAuth<Feed[]>('/feeds.json');
-		if (feeds) {
-			await cacheHelper.setCache('/feeds.json', feeds);
+export const performProactiveFetch = async () => {
+	// 1. Fetch feeds with unread counts
+	const tree = await api.getWithAuth<any[]>('/feeds/tree.json');
+	if (tree) {
+		await cacheHelper.setCache('/feeds/tree.json', tree);
 
-			// 2. Fetch items for each feed
-			for (const feed of feeds) {
+		// 2. Fetch unread items for each feed in the tree
+		for (const entry of tree) {
+			const feed = entry.feed;
+			if (feed && feed.id) {
 				const path = `/feeds/${feed.id}.json`;
 				const items = await api.getWithAuth(path);
 				if (items) {
@@ -41,6 +40,20 @@ export const backgroundSyncTask = async () => {
 				}
 			}
 		}
+	}
+
+	// Also sync all feeds list for manage feeds screen
+	const allFeeds = await api.getWithAuth('/feeds/all.json');
+	if (allFeeds) {
+		await cacheHelper.setCache('/feeds/all.json', allFeeds);
+	}
+};
+
+export const backgroundSyncTask = async () => {
+	try {
+		console.log('Background sync task started');
+		
+		await performProactiveFetch();
 
 		console.log('Background sync task finished successfully');
 		return BackgroundFetch.BackgroundFetchResult.NewData;

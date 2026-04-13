@@ -134,12 +134,14 @@ const ManageFeedsListScreen: React.FC = () => {
                                         icon: "upload-outline",
                                         onPress: handleImportOpml,
                                         testID: "import-opml-button",
+                                        disabled: !isConnected,
                                 },
                                 {
                                         label: "Export OPML",
                                         icon: "download-outline",
                                         onPress: handleExportOpml,
                                         testID: "export-opml-button",
+                                        disabled: !isConnected,
                                 },
                                 {
                                         label: "Log-out",

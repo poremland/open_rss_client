@@ -10,6 +10,7 @@ import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import { styles } from "../styles/FeedListScreen.styles";
 import ListScreen from "../components/ListScreen";
 import FeedCard from "../components/FeedCard";
+import useConnectionStatus from "../components/useConnectionStatus";
 
 interface ListScreenHandle {
 	handleRefresh: () => void;
@@ -21,6 +22,7 @@ const FeedListScreen: React.FC = () => {
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
 	const { setMenuItems, onToggleDropdown } = useMenu();
+	const { isConnected } = useConnectionStatus();
 	const listRef = React.useRef<ListScreenHandle>(null);
 
 	useEffect(() => {
@@ -41,11 +43,13 @@ const FeedListScreen: React.FC = () => {
 					label: "Add Feed",
 					icon: "duplicate-outline",
 					onPress: () => router.push("/AddFeedScreen"),
+					disabled: !isConnected,
 				},
 				{
 					label: "Manage Feeds",
 					icon: "settings-outline",
 					onPress: () => router.push("/ManageFeedsListScreen"),
+					disabled: !isConnected,
 				},
 				{
 					label: "Log-out",
@@ -54,7 +58,7 @@ const FeedListScreen: React.FC = () => {
 				},
 			];
 			setMenuItems(menuItems);
-		}, [isFocused, router, setMenuItems]),
+		}, [isFocused, router, setMenuItems, isConnected]),
 	);
 
 	useEffect(() => {

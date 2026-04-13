@@ -186,7 +186,10 @@ export const opmlMocks = {
 export const apiMocks = {
 	get: mock(),
 	post: mock(),
-	getWithAuth: mock(),
+	getWithAuth: mock((path: string) => {
+		if (path === "/feeds/tree.json" || path === "/feeds/all.json") return Promise.resolve([]);
+		return Promise.resolve({});
+	}),
 	getBlobWithAuth: mock(),
 	exportOpml: mock(),
 	importOpml: mock(),
@@ -245,10 +248,23 @@ export const useApiMock = mock(useApi);
 
 export const networkMocks = {
 	getNetworkStateAsync: mock(async () => ({ isConnected: true, isInternetReachable: true })),
-	addNetworkStateListenerAsync: mock(async (cb: any) => {
+	addNetworkStateListener: mock((cb: any) => {
 		return { remove: mock() };
 	}),
 };
+
+const connectionMock = {
+	_isConnected: true,
+	listeners: [] as Array<(s: { isConnected: boolean }) => void>,
+	get isConnected() { return this._isConnected; },
+	set isConnected(v: boolean) {
+		this._isConnected = v;
+		this.listeners.forEach(l => l({ isConnected: v }));
+	},
+};
+(globalThis as any).__useConnectionStatusMock = connectionMock;
+
+export const useConnectionStatusMock = connectionMock;
 
 export const mocks = {
 	storageMap,
@@ -283,6 +299,7 @@ export const mocks = {
 	opml: opmlMocks,
 	opmlMocks,
 	networkMocks,
+	useConnectionStatusMock,
 	localSearchParams: localSearchParamsMock,
 	resetAll: () => {} // Placeholder
 };
@@ -654,11 +671,17 @@ export const resetAll = () => {
 	if ((process as any).localSyncQueue) {
 		(process as any).localSyncQueue.length = 0;
 	}
+	connectionMock.listeners = [];
+	connectionMock._isConnected = true;
 	resetMocksInObj(routerMocks);
 	resetMocksInObj(navigationMocks);
 	resetMocksInObj(asyncStorageMock);
 	resetMocksInObj(clipboardMocks);
 	resetMocksInObj(apiMocks);
+	apiMocks.getWithAuth.mockImplementation(async (path: string) => {
+		if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
+		return {};
+	});
 	resetMocksInObj(authMocks);
 	resetMocksInObj(useMenuMock);
 	resetMocksInObj(fileSystemMock);
@@ -668,7 +691,7 @@ export const resetAll = () => {
 	resetMocksInObj(opmlMocks);
 	resetMocksInObj(networkMocks);
 	networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true, isInternetReachable: true });
-	networkMocks.addNetworkStateListenerAsync.mockResolvedValue({ remove: mock() });
+	networkMocks.addNetworkStateListener.mockReturnValue({ remove: mock() });
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);
 	}

@@ -40,6 +40,7 @@ describe("FeedItemListScreen", () => {
 
         it("disables feed deletion when disconnected", async () => {
                 mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+                mocks.useConnectionStatusMock.isConnected = false;
                 render(<FeedItemListScreen />);
 
                 // Wait for the hook to update and setMenuItems to be called with the new handler
@@ -178,6 +179,7 @@ describe("FeedItemListScreen", () => {
 	describe("Offline Mode", () => {
 		beforeEach(async () => {
 			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+			mocks.useConnectionStatusMock.isConnected = false;
 			if ((process as any).localSyncQueue) {
 				(process as any).localSyncQueue.length = 0;
 			}

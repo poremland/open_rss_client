@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { expect, describe, it, beforeEach, spyOn } from "bun:test";
+import { expect, describe, it, beforeEach, spyOn, mock } from "bun:test";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { View, Text, TouchableOpacity } from "react-native";
 import { resetAll } from "./setup";
@@ -201,5 +201,30 @@ describe("GlobalDropdownMenu Integration", () => {
 		} finally {
 			consoleError.mockRestore();
 		}
+	});
+
+	it("should disable online-only items when offline", async () => {
+		const items: MenuItem[] = [
+			{ label: "Add Feed", onPress: mock(), icon: "add", testID: "add-feed" },
+			{ label: "Normal Item", onPress: mock(), icon: "star", testID: "normal-item" },
+		];
+
+		// Mock offline state
+		(globalThis as any).__useConnectionStatusMock.isConnected = false;
+		(globalThis as any).__useConnectionStatusMock.listeners.forEach((l: any) => l({ isConnected: false }));
+
+		const { getByTestId } = render(
+			<GlobalDropdownMenu>
+				<TestScreen id="A" items={items} />
+			</GlobalDropdownMenu>
+		);
+
+		fireEvent.press(getByTestId("toggleButton"));
+
+		const addFeedItem = getByTestId("add-feed");
+		expect(addFeedItem.props.disabled).toBe(true);
+
+		const normalItem = getByTestId("normal-item");
+		expect(normalItem.props.disabled).toBe(false);
 	});
 });

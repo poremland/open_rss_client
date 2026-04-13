@@ -99,6 +99,7 @@ describe("Offline Caching and Sync", () => {
 			await cacheHelper.setCache(path, mockCachedData);
 			
 			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+			mocks.useConnectionStatusMock.isConnected = false;
 
 			const { result: connResult } = renderHook(() => useConnectionStatus());
 			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
@@ -143,6 +144,7 @@ describe("Offline Caching and Sync", () => {
 			const path = `/feeds/mark_items_as_read/${Math.random()}`;
 			const body = { items: "[1,2]" };
 			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+			mocks.useConnectionStatusMock.isConnected = false;
 
 			const { result: connResult } = renderHook(() => useConnectionStatus());
 			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
@@ -171,6 +173,7 @@ describe("Offline Caching and Sync", () => {
 		it("should queue GET requests when offline and shouldQueue is true", async () => {
 			const path = `/feed_items/mark_as_read/${Math.random()}.json`;
 			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+			mocks.useConnectionStatusMock.isConnected = false;
 
 			const { result: connResult } = renderHook(() => useConnectionStatus());
 			await waitFor(() => expect(connResult.current.isConnected).toBe(false));

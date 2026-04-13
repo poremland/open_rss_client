@@ -35,6 +35,7 @@ describe("ManageFeedsListScreen", () => {
 
         it("disables OPML actions and deletion when disconnected", async () => {
                 mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+                mocks.useConnectionStatusMock.isConnected = false;
                 const { getByText, queryByTestId } = render(<ManageFeedsListScreen />);
 
                 // Wait for the hook to update and setMenuItems to be called with the new handler

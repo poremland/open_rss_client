@@ -184,6 +184,7 @@ const FeedItemListScreen: React.FC = () => {
 					label: "Delete Feed",
 					icon: "trash-outline",
 					onPress: () => deleteFeedRef.current(),
+					disabled: !isConnected,
 				},
 				{
 					label: "Log-out",

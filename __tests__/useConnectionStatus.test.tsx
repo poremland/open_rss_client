@@ -18,25 +18,33 @@
 import { expect, describe, it, mock, beforeEach } from "bun:test";
 
 const mockGetNetworkStateAsync = mock();
-const mockAddNetworkStateListenerAsync = mock();
+const mockAddNetworkStateListener = mock();
 const mockRemove = mock();
 
 mock.module('expo-network', () => ({
 	getNetworkStateAsync: mockGetNetworkStateAsync,
-	addNetworkStateListenerAsync: mockAddNetworkStateListenerAsync,
+	addNetworkStateListener: mockAddNetworkStateListener,
 }));
 
+import React from "react";
 import "./setup";
+import { mocks } from "./setup";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
-import useConnectionStatus from "../components/useConnectionStatus";
+import useConnectionStatus, { ConnectionProvider } from "../components/useConnectionStatus";
 
 describe("useConnectionStatus", () => {
 	beforeEach(() => {
+		mocks.resetAll();
+		(globalThis as any).__useConnectionStatusMock = undefined;
 		mockGetNetworkStateAsync.mockClear();
-		mockAddNetworkStateListenerAsync.mockClear();
+		mockAddNetworkStateListener.mockClear();
 		mockRemove.mockClear();
-		mockAddNetworkStateListenerAsync.mockResolvedValue({ remove: mockRemove });
+		mockAddNetworkStateListener.mockReturnValue({ remove: mockRemove });
 	});
+
+	const wrapper = ({ children }: { children: React.ReactNode }) => (
+		<ConnectionProvider>{children}</ConnectionProvider>
+	);
 
 	it("should return isConnected as true when online", async () => {
 		mockGetNetworkStateAsync.mockResolvedValue({
@@ -44,7 +52,7 @@ describe("useConnectionStatus", () => {
 			isInternetReachable: true,
 		});
 
-		const { result } = renderHook(() => useConnectionStatus());
+		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
 
 		await waitFor(() => expect(result.current.isConnected).toBe(true));
 	});
@@ -55,7 +63,7 @@ describe("useConnectionStatus", () => {
 			isInternetReachable: false,
 		});
 
-		const { result } = renderHook(() => useConnectionStatus());
+		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
 
 		await waitFor(() => expect(result.current.isConnected).toBe(false));
 	});
@@ -67,12 +75,12 @@ describe("useConnectionStatus", () => {
 		});
 
 		let listenerCallback: (state: any) => void;
-		mockAddNetworkStateListenerAsync.mockImplementation((callback: any) => {
+		mockAddNetworkStateListener.mockImplementation((callback: any) => {
 			listenerCallback = callback;
-			return Promise.resolve({ remove: mockRemove });
+			return { remove: mockRemove };
 		});
 
-		const { result } = renderHook(() => useConnectionStatus());
+		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
 
 		await waitFor(() => expect(result.current.isConnected).toBe(true));
 
@@ -96,7 +104,7 @@ describe("useConnectionStatus", () => {
 			isInternetReachable: true,
 		});
 
-		const { unmount } = renderHook(() => useConnectionStatus());
+		const { unmount } = renderHook(() => useConnectionStatus(), { wrapper });
 		
 		unmount();
 

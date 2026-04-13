@@ -44,7 +44,11 @@ describe("syncService", () => {
 		await syncHelper.queueAction(action1);
 		await syncHelper.queueAction(action2);
 
-		mocks.api.getWithAuth.mockResolvedValue({ success: true });
+		mocks.api.getWithAuth.mockImplementation(async (path: string) => {
+			if (path === "/test1") return { success: true };
+			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
+			return {};
+		});
 		mocks.api.postWithAuth.mockResolvedValue({ success: true });
 
 		await syncService.synchronize();
@@ -60,7 +64,11 @@ describe("syncService", () => {
 		const action = { type: "GET", path: "/fail", body: null };
 		await syncHelper.queueAction(action);
 
-		mocks.api.getWithAuth.mockRejectedValue(new Error("Network Error"));
+		mocks.api.getWithAuth.mockImplementation(async (path: string) => {
+			if (path === "/fail") throw new Error("Network Error");
+			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
+			return {};
+		});
 
 		await syncService.synchronize();
 
@@ -73,8 +81,12 @@ describe("syncService", () => {
 		await syncHelper.queueAction({ type: "GET", path: "/success", body: null });
 		await syncHelper.queueAction({ type: "GET", path: "/fail", body: null });
 
-		mocks.api.getWithAuth.mockResolvedValueOnce({ success: true });
-		mocks.api.getWithAuth.mockRejectedValueOnce(new Error("Fail"));
+		mocks.api.getWithAuth.mockImplementation(async (path: string) => {
+			if (path === "/success") return { success: true };
+			if (path === "/fail") throw new Error("Fail");
+			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
+			return {};
+		});
 
 		await syncService.synchronize();
 

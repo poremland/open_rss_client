@@ -39,6 +39,7 @@ describe("HeaderRightMenu", () => {
 
         it("renders the cloud-offline icon when disconnected", async () => {
                 mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+                mocks.useConnectionStatusMock.isConnected = false;
                 const onToggleDropdown = mock();
                 const { getByText } = render(<HeaderRightMenu onToggleDropdown={onToggleDropdown} />);
                 

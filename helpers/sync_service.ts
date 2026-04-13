@@ -17,6 +17,7 @@
  */
 import * as syncHelper from './sync_helper';
 import { api } from './api_helper';
+import { performProactiveFetch } from './background_sync';
 
 export const syncService = {
 	isSynchronizing: false,
@@ -26,32 +27,34 @@ export const syncService = {
 		syncService.isSynchronizing = true;
 
 		try {
+			// 1. Process sync queue (actions taken while offline)
 			const queue = await syncHelper.getQueue();
-			if (queue.length === 0) return;
+			if (queue.length > 0) {
+				const remainingQueue: syncHelper.SyncAction[] = [];
 
-			const remainingQueue: syncHelper.SyncAction[] = [];
-
-			for (const action of queue) {
-				try {
-					if (action.type === 'GET') {
-						await api.getWithAuth(action.path);
-					} else if (action.type === 'POST') {
-						await api.postWithAuth(action.path, action.body, action.contentType);
-					} else if (action.type === 'PUT') {
-						await api.putWithAuth(action.path, action.body, action.contentType);
+				for (const action of queue) {
+					try {
+						if (action.type === 'GET') {
+							await api.getWithAuth(action.path);
+						} else if (action.type === 'POST') {
+							await api.postWithAuth(action.path, action.body, action.contentType);
+						} else if (action.type === 'PUT') {
+							await api.putWithAuth(action.path, action.body, action.contentType);
+						}
+					} catch (e) {
+						console.error(`Error synchronizing action ${action.type} ${action.path}:`, e);
+						remainingQueue.push(action);
 					}
-					// If success, we don't add to remainingQueue
-				} catch (e) {
-					console.error(`Error synchronizing action ${action.type} ${action.path}:`, e);
-					remainingQueue.push(action);
+				}
+
+				await syncHelper.clearQueue();
+				for (const action of remainingQueue) {
+					await syncHelper.queueAction(action);
 				}
 			}
 
-			// Clear the old queue and add remaining
-			await syncHelper.clearQueue();
-			for (const action of remainingQueue) {
-				await syncHelper.queueAction(action);
-			}
+			// 2. Perform proactive fetch to warm the cache
+			await performProactiveFetch();
 		} finally {
 			syncService.isSynchronizing = false;
 		}
