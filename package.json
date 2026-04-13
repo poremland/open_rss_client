@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "test": "bun test",
     "lint": "expo lint",
-    "build:android:local": "npx expo prebuild --platform android && cd android/ && ./gradlew app:assembleRelease && rm ../app.json"
+    "build:android:local": "npx expo prebuild --platform android && cd android/ && ./gradlew app:assembleRelease"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
