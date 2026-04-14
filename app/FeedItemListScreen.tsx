@@ -149,7 +149,10 @@ const FeedItemListScreen: React.FC = () => {
 		(item: FeedItem) => {
 			router.push({
 				pathname: "/FeedItemDetailScreen",
-				params: { feedItemId: item.id.toString() },
+				params: { 
+					feedItemId: item.id.toString(),
+					feedItem: JSON.stringify(item),
+				},
 			});
 		},
 		[router],

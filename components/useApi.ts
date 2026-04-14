@@ -49,7 +49,7 @@ const useApi = <T,>(
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 	const { getCache, setCache } = useCache();
-	const { isConnected } = useConnectionStatus();
+	const { isConnected, updateConnectionStatus } = useConnectionStatus();
 
 
 	const execute = useCallback(
@@ -66,6 +66,8 @@ const useApi = <T,>(
 						setData(cachedData);
 						return cachedData;
 					}
+					setError("No cached data available offline");
+					return null;
 				} else if (shouldQueue) {
 					await syncHelper.queueAction({
 						type: method.toUpperCase(),
@@ -74,6 +76,9 @@ const useApi = <T,>(
 						contentType,
 					});
 					return { queued: true } as any;
+				} else {
+					setError("App is offline");
+					return null;
 				}
 			}
 
@@ -99,6 +104,11 @@ const useApi = <T,>(
 				const errorMessage = err.message || "An unknown error occurred";
 				
 				setError(errorMessage);
+
+				// If we get a network error, force an update of the connection status
+				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
+					await updateConnectionStatus();
+				}
 
 				if (shouldCache) {
 					const cachedData = await getCache<T>(path);

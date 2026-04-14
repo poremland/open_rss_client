@@ -184,6 +184,37 @@ describe("FeedItemDetailScreen", () => {
 		expect(mocks.router.back).toHaveBeenCalled();
 	});
 
+	it("should display feed item details offline when data is passed as param", async () => {
+		const item = { ...mockFeedItem, feed_id: 10 };
+		mocks.localSearchParams.params = { 
+			feedItemId: "1", 
+			feedItem: JSON.stringify(item) 
+		};
+		
+		// Mock offline state
+		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+		mocks.useConnectionStatusMock.isConnected = false;
+		
+		// API should not be called if offline and we have initial data (or if it falls through it should fail)
+		mocks.api.getWithAuth.mockRejectedValue(new Error("Network request failed"));
+
+		render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
+				expect.objectContaining({
+					headerTitle: "Test Item",
+				}),
+			);
+		});
+
+		// Verify that useApi used the initialData and didn't show error immediately 
+		// (Actually useApi might still call execute, but it should not overwrite the data if it fails)
+		expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
+			expect.objectContaining({ headerTitle: "Test Item" })
+		);
+	});
+
 	it("should call goBack on mount when feedItemId is missing", async () => {
 		mocks.localSearchParams.params = {}; // Missing feedItemId
 

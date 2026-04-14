@@ -38,7 +38,19 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const { feedItemId } = useLocalSearchParams<{ feedItemId: string }>();
+	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{ 
+		feedItemId: string;
+		feedItem?: string;
+	}>();
+	const initialData = useMemo(() => {
+		try {
+			return feedItemParam ? JSON.parse(feedItemParam) as FeedItem : undefined;
+		} catch (e) {
+			console.error("Error parsing feedItem param:", e);
+			return undefined;
+		}
+	}, [feedItemParam]);
+
 	const { getCache, setCache } = useCache();
 	const {
 		data: selectedFeedItem,
@@ -48,7 +60,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	} = useApi<FeedItem>(
 		"get",
 		feedItemId ? `/feed_items/${feedItemId}.json` : "",
-		{ useCache: true },
+		{ useCache: true, initialData },
 	);
 
 	useEffect(() => {

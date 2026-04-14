@@ -17,13 +17,13 @@
  */
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor } from "@testing-library/react-native";
-import { act } from "react";
+import React, { act } from "react";
 import "./setup";
 import { mocks, networkMocks } from "./setup";
 import * as cacheHelper from "../helpers/cache_helper";
 import * as syncHelper from "../helpers/sync_helper";
 import useApi from "../components/useApi";
-import useConnectionStatus from "../components/useConnectionStatus";
+import useConnectionStatus, { ConnectionProvider } from "../components/useConnectionStatus";
 
 describe("Offline Caching and Sync", () => {
 	beforeEach(() => {
@@ -33,6 +33,10 @@ describe("Offline Caching and Sync", () => {
 			(process as any).localSyncQueue.length = 0;
 		}
 	});
+
+	const wrapper = ({ children }: { children: React.ReactNode }) => (
+		<ConnectionProvider>{children}</ConnectionProvider>
+	);
 
 	describe("cache_helper", () => {
 		it("should store and retrieve cached items", async () => {
@@ -80,7 +84,7 @@ describe("Offline Caching and Sync", () => {
 			const mockData = { id: 1, name: "Test" };
 			mocks.api.getWithAuth.mockResolvedValue(mockData);
 
-			const { result } = renderHook(() => useApi("get", path));
+			const { result } = renderHook(() => useApi("get", path), { wrapper });
 
 			await act(async () => {
 				await result.current.execute();
@@ -104,7 +108,7 @@ describe("Offline Caching and Sync", () => {
 			const { result: connResult } = renderHook(() => useConnectionStatus());
 			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
 
-			const { result } = renderHook(() => useApi("get", path));
+			const { result } = renderHook(() => useApi("get", path), { wrapper });
 
 			// Wait for useApi to update its internal state
 			await act(async () => {
@@ -127,7 +131,7 @@ describe("Offline Caching and Sync", () => {
 			
 			mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
-			const { result } = renderHook(() => useApi("get", path));
+			const { result } = renderHook(() => useApi("get", path), { wrapper });
 
 			await act(async () => {
 				const data = await result.current.execute();
@@ -136,6 +140,22 @@ describe("Offline Caching and Sync", () => {
 
 			expect(result.current.data).toEqual(mockCachedData);
 			expect(result.current.error).toBe("API Error");
+		});
+
+		it("should trigger updateConnectionStatus on network request failure", async () => {
+			const path = "/test-network-failure";
+			mocks.api.getWithAuth.mockRejectedValue(new Error("Network request failed"));
+
+			const { result } = renderHook(() => useApi("get", path), { wrapper });
+
+			// Clear mount-time call
+			networkMocks.getNetworkStateAsync.mockClear();
+
+			await act(async () => {
+				await result.current.execute();
+			});
+
+			expect(networkMocks.getNetworkStateAsync).toHaveBeenCalled();
 		});
 	});
 
@@ -149,7 +169,7 @@ describe("Offline Caching and Sync", () => {
 			const { result: connResult } = renderHook(() => useConnectionStatus());
 			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
 
-			const { result } = renderHook(() => useApi("post", path));
+			const { result } = renderHook(() => useApi("post", path), { wrapper });
 
 			// Wait for useApi to update its internal state
 			await act(async () => {
@@ -178,7 +198,7 @@ describe("Offline Caching and Sync", () => {
 			const { result: connResult } = renderHook(() => useConnectionStatus());
 			await waitFor(() => expect(connResult.current.isConnected).toBe(false));
 
-			const { result } = renderHook(() => useApi("get", path, { shouldQueue: true }));
+			const { result } = renderHook(() => useApi("get", path, { shouldQueue: true }), { wrapper });
 
 			// Wait for useApi to update its internal state
 			await act(async () => {

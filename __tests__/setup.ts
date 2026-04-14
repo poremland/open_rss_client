@@ -261,6 +261,7 @@ const connectionMock = {
 		this._isConnected = v;
 		this.listeners.forEach(l => l({ isConnected: v }));
 	},
+	updateConnectionStatus: mock(async () => {}),
 };
 (globalThis as any).__useConnectionStatusMock = connectionMock;
 
@@ -692,6 +693,10 @@ export const resetAll = () => {
 	resetMocksInObj(networkMocks);
 	networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true, isInternetReachable: true });
 	networkMocks.addNetworkStateListener.mockReturnValue({ remove: mock() });
+	
+	useConnectionStatusMock.isConnected = true;
+	useConnectionStatusMock.listeners = [];
+	useConnectionStatusMock.updateConnectionStatus.mockClear();
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);
 	}

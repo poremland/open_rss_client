@@ -15,11 +15,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as Network from 'expo-network';
 
 interface ConnectionContextType {
 	isConnected: boolean;
+	updateConnectionStatus: () => Promise<void>;
 }
 
 const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
@@ -27,19 +28,23 @@ const ConnectionContext = createContext<ConnectionContextType | undefined>(undef
 export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [isConnected, setIsConnected] = useState<boolean>(true);
 
+	const updateConnectionStatus = useCallback(async () => {
+		try {
+			const state = await Network.getNetworkStateAsync();
+			if (state.isConnected !== undefined) {
+				setIsConnected(state.isConnected);
+			}
+		} catch (error) {
+			console.error('Error updating connection status:', error);
+		}
+	}, []);
+
 	useEffect(() => {
 		let isMounted = true;
 		let subscription: { remove: () => void } | undefined;
 
 		async function setup() {
-			try {
-				const state = await Network.getNetworkStateAsync();
-				if (isMounted && state.isConnected !== undefined) {
-					setIsConnected(state.isConnected);
-				}
-			} catch (error) {
-				console.error('Error setting up initial connection status:', error);
-			}
+			await updateConnectionStatus();
 		}
 
 		setup();
@@ -60,10 +65,10 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 				subscription.remove();
 			}
 		};
-	}, []);
+	}, [updateConnectionStatus]);
 
 	return (
-		<ConnectionContext.Provider value={{ isConnected }}>
+		<ConnectionContext.Provider value={{ isConnected, updateConnectionStatus }}>
 			{children}
 		</ConnectionContext.Provider>
 	);
@@ -71,15 +76,21 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
 export default function useConnectionStatus() {
 	const context = useContext(ConnectionContext);
-	const [mockState, setMockState] = useState({ isConnected: true });
+	const [mockState, setMockState] = useState({ 
+		isConnected: true,
+		updateConnectionStatus: async () => {},
+	});
 
 	useEffect(() => {
 		if (context !== undefined) return;
 		const g = (globalThis as any);
 		if (g.__useConnectionStatusMock) {
-			const listener = (s: any) => setMockState(s);
+			const listener = (s: any) => setMockState(prev => ({ ...prev, ...s }));
 			g.__useConnectionStatusMock.listeners.push(listener);
-			setMockState({ isConnected: g.__useConnectionStatusMock.isConnected });
+			setMockState({ 
+				isConnected: g.__useConnectionStatusMock.isConnected,
+				updateConnectionStatus: g.__useConnectionStatusMock.updateConnectionStatus,
+			});
 			return () => {
 				g.__useConnectionStatusMock.listeners = g.__useConnectionStatusMock.listeners.filter((l: any) => l !== listener);
 			};
@@ -94,5 +105,8 @@ export default function useConnectionStatus() {
 	if (g.__useConnectionStatusMock) {
 		return mockState;
 	}
-	return { isConnected: true };
+	return { 
+		isConnected: true,
+		updateConnectionStatus: async () => {},
+	};
 }

@@ -163,7 +163,7 @@ describe("FeedItemListScreen", () => {
 	});
 
 	it("should navigate to FeedItemDetailScreen when an item is pressed", async () => {
-		const { getAllByTestId, getAllByTestId: getAllByTestIdOriginal } = render(<FeedItemListScreen />);
+		const { getAllByTestId } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(mocks.api.getWithAuth).toHaveBeenCalled());
 		
@@ -172,7 +172,10 @@ describe("FeedItemListScreen", () => {
 
 		expect(mocks.router.push).toHaveBeenCalledWith(expect.objectContaining({
 			pathname: "/FeedItemDetailScreen",
-			params: { feedItemId: "1" }
+			params: expect.objectContaining({ 
+				feedItemId: "1",
+				feedItem: JSON.stringify(mockFeedItems[0])
+			})
 		}));
 	});
 

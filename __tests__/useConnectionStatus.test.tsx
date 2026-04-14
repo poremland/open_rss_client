@@ -98,6 +98,29 @@ describe("useConnectionStatus", () => {
 		await waitFor(() => expect(result.current.isConnected).toBe(false));
 	});
 
+	it("should update isConnected when updateConnectionStatus is called", async () => {
+		mockGetNetworkStateAsync.mockResolvedValue({
+			isConnected: true,
+			isInternetReachable: true,
+		});
+
+		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
+
+		await waitFor(() => expect(result.current.isConnected).toBe(true));
+
+		// Change mock to offline
+		mockGetNetworkStateAsync.mockResolvedValue({
+			isConnected: false,
+			isInternetReachable: false,
+		});
+
+		await act(async () => {
+			await result.current.updateConnectionStatus();
+		});
+
+		await waitFor(() => expect(result.current.isConnected).toBe(false));
+	});
+
 	it("should remove listener on unmount", async () => {
 		mockGetNetworkStateAsync.mockResolvedValue({
 			isConnected: true,
