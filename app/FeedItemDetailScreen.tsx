@@ -98,24 +98,6 @@ const FeedItemDetailScreen: React.FC = () => {
 		markAsReadHandlerRef.current = handleMarkAsRead;
 	}, [handleMarkAsRead]);
 
-	useEffect(() => {
-		const item = selectedFeedItem;
-		if (item?.id && isFocused) {
-			const autoMarkAsRead = async () => {
-				const response = await markItemAsRead();
-				if (response && (response as any).queued) {
-					const cachePath = `/feeds/${item.feed_id}.json`;
-					const cachedItems = await getCache<FeedItem[]>(cachePath);
-					if (cachedItems) {
-						const newData = cachedItems.filter(i => i.id !== item.id);
-						await setCache(cachePath, newData);
-					}
-				}
-			};
-			autoMarkAsRead();
-		}
-	}, [selectedFeedItem, isFocused, markItemAsRead, getCache, setCache]);
-
 	const handleShare = useCallback(async () => {
 		if (selectedFeedItem) {
 			try {

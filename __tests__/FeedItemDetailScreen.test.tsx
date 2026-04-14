@@ -215,6 +215,27 @@ describe("FeedItemDetailScreen", () => {
 		);
 	});
 
+	it("should NOT automatically mark item as read on mount", async () => {
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		render(<FeedItemDetailScreen />);
+
+		// Wait for the screen to load and the header to update
+		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
+			expect.objectContaining({ headerTitle: "Test Item" })
+		));
+
+		// Wait a bit more to ensure no automatic call happens
+		await act(async () => {
+			await new Promise(resolve => setTimeout(resolve, 100));
+		});
+
+		// Verify that mark_as_read was NOT called
+		expect(mocks.api.getWithAuth).not.toHaveBeenCalledWith(
+			expect.stringContaining("mark_as_read"),
+		);
+	});
+
 	it("should call goBack on mount when feedItemId is missing", async () => {
 		mocks.localSearchParams.params = {}; // Missing feedItemId
 
