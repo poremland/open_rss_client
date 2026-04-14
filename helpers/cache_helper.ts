@@ -68,3 +68,20 @@ export const clearCache = async (url: string): Promise<void> => {
 		console.error('Error clearing cache:', e);
 	}
 };
+
+export const decrementUnreadCount = async (feedId: number, count: number = 1): Promise<void> => {
+	try {
+		const tree = await getCache<any[]>('/feeds/tree.json');
+		if (tree) {
+			const updatedTree = tree.map(entry => {
+				if (entry.feed.id === feedId) {
+					return { ...entry, unread_count: Math.max(0, entry.unread_count - count) };
+				}
+				return entry;
+			}).filter(entry => entry.unread_count > 0);
+			await setCache('/feeds/tree.json', updatedTree);
+		}
+	} catch (e) {
+		console.error('Error decrementing unread count in cache:', e);
+	}
+};

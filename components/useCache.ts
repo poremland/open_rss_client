@@ -22,10 +22,12 @@ export default function useCache() {
 	const getCache = useCallback(cacheHelper.getCache, []);
 	const setCache = useCallback(cacheHelper.setCache, []);
 	const clearCache = useCallback(cacheHelper.clearCache, []);
+	const decrementUnreadCount = useCallback(cacheHelper.decrementUnreadCount, []);
 
 	return {
 		getCache,
 		setCache,
 		clearCache,
+		decrementUnreadCount,
 	};
 }

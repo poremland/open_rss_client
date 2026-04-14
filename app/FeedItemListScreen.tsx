@@ -56,7 +56,7 @@ const FeedItemListScreen: React.FC = () => {
 		selectedFeed ? `/feeds/remove/${selectedFeed.id}` : "",
 	);
 
-	const { setCache } = useCache();
+	const { setCache, decrementUnreadCount } = useCache();
 
 	const handleMarkSelectedAsRead = useCallback(
 		async (ids: number[]) => {
@@ -70,6 +70,7 @@ const FeedItemListScreen: React.FC = () => {
 				listRef.current?.setData(newData);
 				if (selectedFeed) {
 					await setCache(`/feeds/${selectedFeed.id}.json`, newData);
+					await decrementUnreadCount(selectedFeed.id, ids.length);
 				}
 				if (newData.length === 0) {
 					navigation.goBack();
@@ -82,7 +83,7 @@ const FeedItemListScreen: React.FC = () => {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation, setCache, selectedFeed],
+		[markItemsAsRead, navigation, setCache, selectedFeed, decrementUnreadCount],
 	);
 
 	const handleSwipeMarkAsRead = useCallback(
@@ -95,6 +96,7 @@ const FeedItemListScreen: React.FC = () => {
 				listRef.current?.setData(newData);
 				if (selectedFeed) {
 					await setCache(`/feeds/${selectedFeed.id}.json`, newData);
+					await decrementUnreadCount(selectedFeed.id, 1);
 				}
 				if (newData.length === 0) {
 					navigation.goBack();
@@ -107,7 +109,7 @@ const FeedItemListScreen: React.FC = () => {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation, setCache, selectedFeed],
+		[markItemsAsRead, navigation, setCache, selectedFeed, decrementUnreadCount],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
@@ -118,13 +120,14 @@ const FeedItemListScreen: React.FC = () => {
 			listRef.current?.setData([]);
 			if (selectedFeed) {
 				await setCache(`/feeds/${selectedFeed.id}.json`, []);
+				await decrementUnreadCount(selectedFeed.id, allItemIds.length);
 			}
 			navigation.goBack();
 			return;
 		}
 
 		navigation.goBack();
-	}, [markItemsAsRead, navigation, setCache, selectedFeed]);
+	}, [markItemsAsRead, navigation, setCache, selectedFeed, decrementUnreadCount]);
 
 	const markAllAsReadRef = useRef(handleMarkAllAsRead);
 	useEffect(() => {

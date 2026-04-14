@@ -51,7 +51,7 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [feedItemParam]);
 
-	const { getCache, setCache } = useCache();
+	const { getCache, setCache, decrementUnreadCount } = useCache();
 	const {
 		data: selectedFeedItem,
 		loading,
@@ -86,12 +86,13 @@ const FeedItemDetailScreen: React.FC = () => {
 				const newData = cachedItems.filter(i => i.id !== item.id);
 				await setCache(cachePath, newData);
 			}
+			await decrementUnreadCount(item.feed_id, 1);
 		}
 		router.back();
 		if (item?.id) {
 			router.setParams({ removedItemId: item.id.toString() });
 		}
-	}, [selectedFeedItem, markItemAsRead, router, getCache, setCache]);
+	}, [selectedFeedItem, markItemAsRead, router, getCache, setCache, decrementUnreadCount]);
 
 	const markAsReadHandlerRef = useRef(handleMarkAsRead);
 	useEffect(() => {
