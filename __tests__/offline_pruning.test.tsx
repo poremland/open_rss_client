@@ -16,9 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import "./setup";
-import { mocks } from "./setup";
+import { mocks, storageMap } from "./setup";
 import { expect, describe, it, beforeEach, spyOn } from "bun:test";
 import * as cacheHelper from "../helpers/cache_helper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 describe("Offline Feed List Pruning Unit Tests", () => {
 	const mockTree = [
@@ -32,7 +33,7 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 	});
 
 	it("should decrement unread count in tree cache", async () => {
-		await (cacheHelper as any).decrementUnreadCount(1, 1);
+		await cacheHelper.decrementUnreadCount(1, 1);
 		
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(2);
@@ -48,9 +49,9 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 	});
 
 	it("should handle missing tree cache gracefully", async () => {
+		await cacheHelper.clearCache("/feeds/tree.json");
 		await cacheHelper.clearLocalCache();
-		// Use direct AsyncStorage mock manipulation to ensure it's empty
-		mocks.asyncStorage.getItem.mockResolvedValue(null);
+		storageMap.clear();
 		
 		await cacheHelper.decrementUnreadCount(1, 1);
 		
@@ -65,31 +66,37 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		await cacheHelper.decrementUnreadCount(3, 1);
 		
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
-		// Since filter(entry => entry.unread_count > 0) is used, it should be empty
 		expect(newTree).toHaveLength(0);
 	});
 
 	it("should handle errors in getCache", async () => {
 		const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
-		mocks.asyncStorage.getItem.mockRejectedValue(new Error("AsyncStorage error"));
 		await cacheHelper.clearLocalCache();
 		
-		const result = await cacheHelper.getCache("/any");
+		const getItemSpy = spyOn(AsyncStorage, "getItem").mockImplementationOnce(() => {
+			return Promise.reject(new Error("AsyncStorage error"));
+		});
+		
+		const result = await cacheHelper.getCache("/any-error");
 		expect(result).toBeNull();
 		expect(consoleSpy).toHaveBeenCalled();
+		
 		consoleSpy.mockRestore();
+		getItemSpy.mockRestore();
 	});
 
 	it("should handle errors in setCache", async () => {
 		const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
-		mocks.asyncStorage.setItem.mockRejectedValue(new Error("AsyncStorage error"));
 		
-		await cacheHelper.setCache("/any", { data: 1 });
-		// setCache doesn't return anything, but we check if console.error was called indirectly
-		// wait for background setItem to fail
-		await new Promise(resolve => setTimeout(resolve, 10));
+		const setItemSpy = spyOn(AsyncStorage, "setItem").mockImplementationOnce(() => {
+			return Promise.reject(new Error("AsyncStorage error"));
+		});
+		
+		await cacheHelper.setCache("/any-set-error", { data: 1 });
 		
 		expect(consoleSpy).toHaveBeenCalled();
+		
 		consoleSpy.mockRestore();
+		setItemSpy.mockRestore();
 	});
 });

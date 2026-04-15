@@ -21,23 +21,25 @@ export const getCacheKey = (url: string) => `cache:${url}`;
 
 // Use a local Map for the actual storage to avoid AsyncStorage issues in tests
 // In production, we'll synchronize this with AsyncStorage
-if (!(process as any).localCacheMap) {
-	(process as any).localCacheMap = new Map<string, string>();
-}
-const localMap = (process as any).localCacheMap;
+const getLocalMap = (): Map<string, string> => {
+	if (!(process as any).localCacheMap) {
+		(process as any).localCacheMap = new Map<string, string>();
+	}
+	return (process as any).localCacheMap;
+};
 
 export const clearLocalCache = () => {
-	localMap.clear();
+	getLocalMap().clear();
 };
 
 export const getCache = async <T>(url: string): Promise<T | null> => {
 	try {
 		const key = getCacheKey(url);
-		let jsonValue = localMap.get(key);
+		let jsonValue = getLocalMap().get(key);
 		if (jsonValue === undefined) {
 			jsonValue = await AsyncStorage.getItem(key) || undefined;
 			if (jsonValue !== undefined) {
-				localMap.set(key, jsonValue);
+				getLocalMap().set(key, jsonValue);
 			}
 		}
 		return jsonValue != null ? JSON.parse(jsonValue) : null;
@@ -51,9 +53,9 @@ export const setCache = async (url: string, value: any): Promise<void> => {
 	try {
 		const key = getCacheKey(url);
 		const jsonValue = JSON.stringify(value);
-		localMap.set(key, jsonValue);
-		// Persist to AsyncStorage in background
-		AsyncStorage.setItem(key, jsonValue).catch(e => console.error('Error persisting cache:', e));
+		getLocalMap().set(key, jsonValue);
+		// Persist to AsyncStorage
+		await AsyncStorage.setItem(key, jsonValue);
 	} catch (e) {
 		console.error('Error saving cache:', e);
 	}
@@ -62,7 +64,7 @@ export const setCache = async (url: string, value: any): Promise<void> => {
 export const clearCache = async (url: string): Promise<void> => {
 	try {
 		const key = getCacheKey(url);
-		localMap.delete(key);
+		getLocalMap().delete(key);
 		await AsyncStorage.removeItem(key);
 	} catch (e) {
 		console.error('Error clearing cache:', e);
