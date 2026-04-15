@@ -17,8 +17,10 @@
  */
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
-import { render, waitFor, act, fireEvent } from "@testing-library/react-native";
+import { render, waitFor, act, fireEvent, renderHook } from "@testing-library/react-native";
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
+import * as cacheHelper from "../helpers/cache_helper";
+import useConnectionStatus from "../components/useConnectionStatus";
 
 const mocks = (globalThis as any).__mocks;
 
@@ -59,7 +61,8 @@ describe("ManageFeedsListScreen", () => {
                 expect(mocks.alert).toHaveBeenCalledWith("Offline", "Exporting feeds is disabled while offline.");
         });
 
-        it("should fetch feeds when the screen is focused", async () => {		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
+        it("should fetch feeds when the screen is focused", async () => {
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 
 		render(<ManageFeedsListScreen />);
 
@@ -98,11 +101,15 @@ describe("ManageFeedsListScreen", () => {
 		const errorMessage = `API Error ${Math.random()}`;
 		mocks.api.getWithAuth.mockRejectedValue(new Error(errorMessage));
 		
+		await act(async () => {
+			mocks.useConnectionStatusMock.isConnected = true;
+		});
+		const { result: connResult } = renderHook(() => useConnectionStatus());
+		await waitFor(() => expect(connResult.current.isConnected).toBe(true));
+		
 		// Force clear cache for this URL to avoid serving stale cache from other tests
-		mocks.storageMap.delete("cache:/feeds/all.json");
-		if ((process as any).localCacheMap) {
-			(process as any).localCacheMap.delete("cache:/feeds/all.json");
-		}
+		await cacheHelper.clearCache("/feeds/all.json");
+		await cacheHelper.clearLocalCache();
 
 		const { getByText } = render(<ManageFeedsListScreen />);
 		await waitFor(() => expect(getByText(errorMessage)).toBeTruthy());

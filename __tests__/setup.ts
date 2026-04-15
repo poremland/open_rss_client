@@ -660,14 +660,14 @@ const resetMocksInObj = (obj: any) => {
 	Object.values(obj).forEach(m => resetMockFn(m));
 };
 
+import * as cacheHelper from "../helpers/cache_helper";
+
 export const resetAll = () => {
 	storageMap.clear();
+	cacheHelper.clearLocalCache();
 	const g = (globalThis as any);
 	if (g.localCacheMap) {
 		g.localCacheMap.clear();
-	}
-	if ((process as any).localCacheMap) {
-		(process as any).localCacheMap.clear();
 	}
 	if ((process as any).localSyncQueue) {
 		(process as any).localSyncQueue.length = 0;

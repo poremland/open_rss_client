@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { api } from "../helpers/api_helper";
 import { auth } from "../helpers/auth_helper";
 import { useRouter } from "expo-router";
@@ -30,6 +30,7 @@ export interface ApiResponse<T> {
 	error: string | null;
 	execute: (body?: any) => Promise<T | null>;
 	setData: (data: T | null) => void;
+	isConnected: boolean;
 }
 
 interface UseApiOptions<T> {
@@ -45,6 +46,11 @@ const useApi = <T,>(
 	contentType: string = "application/x-www-form-urlencoded",
 ): ApiResponse<T> => {
 	const [data, setData] = useState<T | null>(options.initialData || null);
+	const dataRef = useRef<T | null>(data);
+	useEffect(() => {
+		dataRef.current = data;
+	}, [data]);
+
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
@@ -63,8 +69,13 @@ const useApi = <T,>(
 				if (shouldCache && !options.shouldQueue) {
 					const cachedData = await getCache<T>(path);
 					if (cachedData) {
+						setError(null);
 						setData(cachedData);
 						return cachedData;
+					}
+					if (dataRef.current) {
+						setError(null);
+						return dataRef.current;
 					}
 					setError("No cached data available offline");
 					return null;
@@ -77,6 +88,10 @@ const useApi = <T,>(
 					});
 					return { queued: true } as any;
 				} else {
+					if (dataRef.current) {
+						setError(null);
+						return dataRef.current;
+					}
 					setError("App is offline");
 					return null;
 				}
@@ -113,8 +128,8 @@ const useApi = <T,>(
 				if (shouldCache) {
 					const cachedData = await getCache<T>(path);
 					if (cachedData) {
+						setError(null);
 						setData(cachedData);
-						// We don't clear the error here so the UI can still show it
 						return cachedData;
 					}
 				}
@@ -127,7 +142,7 @@ const useApi = <T,>(
 				setLoading(false);
 			}
 		},
-		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache],
+		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache, updateConnectionStatus],
 	);
 
 	return {
@@ -136,6 +151,7 @@ const useApi = <T,>(
 		error,
 		execute,
 		setData,
+		isConnected,
 	};
 };
 

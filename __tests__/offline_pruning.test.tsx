@@ -99,4 +99,43 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		consoleSpy.mockRestore();
 		setItemSpy.mockRestore();
 	});
+
+	it("should NOT remove other feeds when one feed is pruned", async () => {
+		const multiTree = [
+			{ feed: { id: 1, name: "Feed 1" }, unread_count: 1 },
+			{ feed: { id: 2, name: "Feed 2" }, unread_count: 5 },
+			{ feed: { id: 3, name: "Feed 3" }, unread_count: 10 },
+		];
+		await cacheHelper.setCache("/feeds/tree.json", multiTree);
+
+		// Prune Feed 1
+		await cacheHelper.decrementUnreadCount(1, 1);
+
+		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
+		expect(newTree).toHaveLength(2);
+		expect(newTree!.find(f => f.feed.id === 2)).toBeDefined();
+		expect(newTree!.find(f => f.feed.id === 3)).toBeDefined();
+		expect(newTree!.find(f => f.feed.id === 1)).toBeUndefined();
+	});
+
+	it("should accurately prune only the specific feed even with multiple updates", async () => {
+		const initialTree = [
+			{ feed: { id: 1, name: "Feed 1" }, unread_count: 5 },
+			{ feed: { id: 2, name: "Feed 2" }, unread_count: 5 },
+		];
+		await cacheHelper.setCache("/feeds/tree.json", initialTree);
+
+		// Mark 2 items as read in Feed 1
+		await cacheHelper.decrementUnreadCount(1, 2);
+		let tree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
+		expect(tree).toHaveLength(2);
+		expect(tree!.find(f => f.feed.id === 1).unread_count).toBe(3);
+
+		// Mark 3 more items as read in Feed 1 (total 5)
+		await cacheHelper.decrementUnreadCount(1, 3);
+		tree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
+		expect(tree).toHaveLength(1);
+		expect(tree![0].feed.id).toBe(2);
+		expect(tree![0].unread_count).toBe(5);
+	});
 });

@@ -38,6 +38,10 @@ describe("Offline Caching and Sync", () => {
 		<ConnectionProvider>{children}</ConnectionProvider>
 	);
 
+	const isConnectedInHook = (result: { current: ApiResponse<any> }) => {
+		return result.current.isConnected;
+	};
+
 	describe("cache_helper", () => {
 		it("should store and retrieve cached items", async () => {
 			const url = `/test-cache-helper-${Math.random()}`;
@@ -124,7 +128,7 @@ describe("Offline Caching and Sync", () => {
 			expect(mocks.api.getWithAuth).not.toHaveBeenCalled();
 		});
 
-		it("should serve cached data when API fails", async () => {
+		it("should serve cached data and clear error when API fails", async () => {
 			const path = `/test-fail-cache-${Math.random()}`;
 			const mockCachedData = { id: 1, name: "Cached" };
 			await cacheHelper.setCache(path, mockCachedData);
@@ -139,7 +143,27 @@ describe("Offline Caching and Sync", () => {
 			});
 
 			expect(result.current.data).toEqual(mockCachedData);
-			expect(result.current.error).toBe("API Error");
+			expect(result.current.error).toBeNull();
+		});
+
+		it("should NOT show error when offline and using initialData", async () => {
+			const path = "/offline-initial-data";
+			const mockInitialData = { id: 1, name: "Initial" };
+			
+			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+			mocks.useConnectionStatusMock.isConnected = false;
+
+			const { result } = renderHook(() => useApi("get", path, { initialData: mockInitialData }), { wrapper });
+
+			// Wait for connection status to update to false
+			await waitFor(() => expect(isConnectedInHook(result)).toBe(false));
+
+			await act(async () => {
+				await result.current.execute();
+			});
+
+			expect(result.current.data).toEqual(mockInitialData);
+			expect(result.current.error).toBeNull();
 		});
 
 		it("should trigger updateConnectionStatus on network request failure", async () => {

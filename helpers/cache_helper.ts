@@ -19,27 +19,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const getCacheKey = (url: string) => `cache:${url}`;
 
-// Use a local Map for the actual storage to avoid AsyncStorage issues in tests
-// In production, we'll synchronize this with AsyncStorage
-const getLocalMap = (): Map<string, string> => {
-	if (!(process as any).localCacheMap) {
-		(process as any).localCacheMap = new Map<string, string>();
-	}
-	return (process as any).localCacheMap;
-};
+// Module-level variable is shared among all importers in the same JS environment
+const localCacheMap = new Map<string, string>();
 
 export const clearLocalCache = () => {
-	getLocalMap().clear();
+	localCacheMap.clear();
 };
 
 export const getCache = async <T>(url: string): Promise<T | null> => {
 	try {
 		const key = getCacheKey(url);
-		let jsonValue = getLocalMap().get(key);
+		let jsonValue = localCacheMap.get(key);
 		if (jsonValue === undefined) {
 			jsonValue = await AsyncStorage.getItem(key) || undefined;
 			if (jsonValue !== undefined) {
-				getLocalMap().set(key, jsonValue);
+				localCacheMap.set(key, jsonValue);
 			}
 		}
 		return jsonValue != null ? JSON.parse(jsonValue) : null;
@@ -53,7 +47,7 @@ export const setCache = async (url: string, value: any): Promise<void> => {
 	try {
 		const key = getCacheKey(url);
 		const jsonValue = JSON.stringify(value);
-		getLocalMap().set(key, jsonValue);
+		localCacheMap.set(key, jsonValue);
 		// Persist to AsyncStorage
 		await AsyncStorage.setItem(key, jsonValue);
 	} catch (e) {
@@ -64,7 +58,7 @@ export const setCache = async (url: string, value: any): Promise<void> => {
 export const clearCache = async (url: string): Promise<void> => {
 	try {
 		const key = getCacheKey(url);
-		getLocalMap().delete(key);
+		localCacheMap.delete(key);
 		await AsyncStorage.removeItem(key);
 	} catch (e) {
 		console.error('Error clearing cache:', e);
@@ -74,13 +68,16 @@ export const clearCache = async (url: string): Promise<void> => {
 export const decrementUnreadCount = async (feedId: number, count: number = 1): Promise<void> => {
 	try {
 		const tree = await getCache<any[]>('/feeds/tree.json');
-		if (tree) {
+		if (Array.isArray(tree)) {
 			const updatedTree = tree.map(entry => {
-				if (entry.feed.id === feedId) {
-					return { ...entry, unread_count: Math.max(0, entry.unread_count - count) };
+				if (entry && entry.feed && entry.feed.id === feedId) {
+					const currentCount = typeof entry.unread_count === 'number' ? entry.unread_count : 0;
+					const newCount = Math.max(0, currentCount - count);
+					return { ...entry, unread_count: newCount };
 				}
 				return entry;
-			}).filter(entry => entry.unread_count > 0);
+			}).filter(entry => entry && typeof entry.unread_count === 'number' && entry.unread_count > 0);
+			
 			await setCache('/feeds/tree.json', updatedTree);
 		}
 	} catch (e) {
