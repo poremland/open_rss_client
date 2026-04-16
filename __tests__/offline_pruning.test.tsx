@@ -23,25 +23,34 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 describe("Offline Feed List Pruning Unit Tests", () => {
 	const mockTree = [
-		{ feed: { id: 1, name: "Test Feed" }, unread_count: 2 },
-		{ feed: { id: 2, name: "Other Feed" }, unread_count: 5 },
+		{ feed: { id: 1, name: "Test Feed", count: 2 } },
+		{ feed: { id: 2, name: "Other Feed", count: 5 } },
+	];
+	const mockItems1 = [
+		{ id: 101, feed_id: 1, title: "Item 1" },
+		{ id: 102, feed_id: 1, title: "Item 2" },
 	];
 
 	beforeEach(async () => {
 		mocks.resetAll();
 		await cacheHelper.setCache("/feeds/tree.json", mockTree);
+		await cacheHelper.setCache("/feeds/1.json", mockItems1);
 	});
 
-	it("should decrement unread count in tree cache", async () => {
-		await cacheHelper.decrementUnreadCount(1, 1);
+	it("should decrement unread count in tree cache when an item is marked read", async () => {
+		await cacheHelper.markItemsReadInCache(1, [101]);
 		
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(2);
-		expect(newTree!.find(f => f.feed.id === 1).unread_count).toBe(1);
+		expect(newTree!.find(f => f.feed.id === 1).feed.count).toBe(1);
+
+		const newItems = await cacheHelper.getCache<any[]>("/feeds/1.json");
+		expect(newItems).toHaveLength(1);
+		expect(newItems![0].id).toBe(102);
 	});
 
-	it("should remove feed from tree cache when unread count reaches zero", async () => {
-		await cacheHelper.decrementUnreadCount(1, 2);
+	it("should remove feed from tree cache when all items are marked read", async () => {
+		await cacheHelper.markItemsReadInCache(1, [101, 102]);
 		
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(1);
@@ -53,20 +62,21 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		await cacheHelper.clearLocalCache();
 		storageMap.clear();
 		
-		await cacheHelper.decrementUnreadCount(1, 1);
+		await cacheHelper.markItemsReadInCache(1, [101]);
 		
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toBeNull();
 	});
 
-	it("should handle unread count already at zero", async () => {
-		const treeWithZero = [{ feed: { id: 3, name: "Zero Feed" }, unread_count: 0 }];
-		await cacheHelper.setCache("/feeds/tree.json", treeWithZero);
-		
-		await cacheHelper.decrementUnreadCount(3, 1);
+	it("should handle marking all items read", async () => {
+		await cacheHelper.markAllItemsReadInCache(1);
 		
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
-		expect(newTree).toHaveLength(0);
+		expect(newTree).toHaveLength(1);
+		expect(newTree!.find(f => f.feed.id === 1)).toBeUndefined();
+
+		const newItems = await cacheHelper.getCache<any[]>("/feeds/1.json");
+		expect(newItems).toHaveLength(0);
 	});
 
 	it("should handle errors in getCache", async () => {
@@ -102,40 +112,49 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 
 	it("should NOT remove other feeds when one feed is pruned", async () => {
 		const multiTree = [
-			{ feed: { id: 1, name: "Feed 1" }, unread_count: 1 },
-			{ feed: { id: 2, name: "Feed 2" }, unread_count: 5 },
-			{ feed: { id: 3, name: "Feed 3" }, unread_count: 10 },
+			{ feed: { id: 1, name: "Feed 1", count: 1 } },
+			{ feed: { id: 2, name: "Feed 2", count: 5 } },
+			{ feed: { id: 3, name: "Feed 3", count: 10 } },
 		];
+		const multiItems1 = [{ id: 101, feed_id: 1, title: "Item 101" }];
 		await cacheHelper.setCache("/feeds/tree.json", multiTree);
+		await cacheHelper.setCache("/feeds/1.json", multiItems1);
 
 		// Prune Feed 1
-		await cacheHelper.decrementUnreadCount(1, 1);
+		await cacheHelper.markItemsReadInCache(1, [101]);
 
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(2);
 		expect(newTree!.find(f => f.feed.id === 2)).toBeDefined();
 		expect(newTree!.find(f => f.feed.id === 3)).toBeDefined();
 		expect(newTree!.find(f => f.feed.id === 1)).toBeUndefined();
-	});
+		});
 
-	it("should accurately prune only the specific feed even with multiple updates", async () => {
-		const initialTree = [
-			{ feed: { id: 1, name: "Feed 1" }, unread_count: 5 },
-			{ feed: { id: 2, name: "Feed 2" }, unread_count: 5 },
+		it("should NOT remove feed from tree when count is undefined", async () => {
+		const tree = [
+		        { feed: { id: 1, name: "Feed 1" } }, // count is undefined
+		        { feed: { id: 2, name: "Feed 2", count: 5 } },
 		];
-		await cacheHelper.setCache("/feeds/tree.json", initialTree);
+		await cacheHelper.setCache("/feeds/tree.json", tree);
 
-		// Mark 2 items as read in Feed 1
-		await cacheHelper.decrementUnreadCount(1, 2);
-		let tree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
-		expect(tree).toHaveLength(2);
-		expect(tree!.find(f => f.feed.id === 1).unread_count).toBe(3);
+		await cacheHelper.markItemsReadInCache(1, [101]);
 
-		// Mark 3 more items as read in Feed 1 (total 5)
-		await cacheHelper.decrementUnreadCount(1, 3);
-		tree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
-		expect(tree).toHaveLength(1);
-		expect(tree![0].feed.id).toBe(2);
-		expect(tree![0].unread_count).toBe(5);
-	});
-});
+		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
+		expect(newTree).toHaveLength(2);
+		expect(newTree!.find(f => f.feed.id === 1)).toBeDefined();
+		});
+
+		it("should handle unread_count at top level (backward compatibility/bug fix)", async () => {
+		        const tree = [
+		                { feed: { id: 1, name: "Feed 1" }, unread_count: 5 },
+		                { feed: { id: 2, name: "Feed 2" }, unread_count: 10 },
+		        ];
+		        await cacheHelper.setCache("/feeds/tree.json", tree);
+		        await cacheHelper.clearCache("/feeds/1.json");
+
+		        await cacheHelper.markItemsReadInCache(1, [101]);
+		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
+		expect(newTree).toHaveLength(2);
+		expect(newTree!.find(f => f.feed.id === 1).feed.count).toBe(4);
+		});
+		});

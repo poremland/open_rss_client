@@ -56,7 +56,7 @@ const FeedItemListScreen: React.FC = () => {
 		selectedFeed ? `/feeds/remove/${selectedFeed.id}` : "",
 	);
 
-	const { setCache, decrementUnreadCount } = useCache();
+	const { markItemsReadInCache, markAllItemsReadInCache } = useCache();
 
 	const handleMarkSelectedAsRead = useCallback(
 		async (ids: number[]) => {
@@ -69,8 +69,7 @@ const FeedItemListScreen: React.FC = () => {
 				const newData = currentData.filter((item) => !ids.includes(item.id));
 				listRef.current?.setData(newData);
 				if (selectedFeed) {
-					await setCache(`/feeds/${selectedFeed.id}.json`, newData);
-					await decrementUnreadCount(selectedFeed.id, ids.length);
+					await markItemsReadInCache(selectedFeed.id, ids);
 				}
 				if (newData.length === 0) {
 					navigation.goBack();
@@ -83,7 +82,7 @@ const FeedItemListScreen: React.FC = () => {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation, setCache, selectedFeed, decrementUnreadCount],
+		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleSwipeMarkAsRead = useCallback(
@@ -95,8 +94,7 @@ const FeedItemListScreen: React.FC = () => {
 				const newData = currentData.filter((i) => i.id !== item.id);
 				listRef.current?.setData(newData);
 				if (selectedFeed) {
-					await setCache(`/feeds/${selectedFeed.id}.json`, newData);
-					await decrementUnreadCount(selectedFeed.id, 1);
+					await markItemsReadInCache(selectedFeed.id, [item.id]);
 				}
 				if (newData.length === 0) {
 					navigation.goBack();
@@ -109,25 +107,25 @@ const FeedItemListScreen: React.FC = () => {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation, setCache, selectedFeed, decrementUnreadCount],
+		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
-		const allItemIds = listRef.current?.getData()?.map((item) => item.id) || [];
+		const currentData = listRef.current?.getData() || [];
+		const allItemIds = currentData.map((item) => item.id) || [];
 		const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
 
 		if (response && (response as any).queued) {
 			listRef.current?.setData([]);
 			if (selectedFeed) {
-				await setCache(`/feeds/${selectedFeed.id}.json`, []);
-				await decrementUnreadCount(selectedFeed.id, allItemIds.length);
+				await markAllItemsReadInCache(selectedFeed.id);
 			}
 			navigation.goBack();
 			return;
 		}
 
 		navigation.goBack();
-	}, [markItemsAsRead, navigation, setCache, selectedFeed, decrementUnreadCount]);
+	}, [markItemsAsRead, navigation, selectedFeed, markAllItemsReadInCache]);
 
 	const markAllAsReadRef = useRef(handleMarkAllAsRead);
 	useEffect(() => {

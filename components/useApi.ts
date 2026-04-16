@@ -45,11 +45,20 @@ const useApi = <T,>(
 	options: UseApiOptions<T> = {},
 	contentType: string = "application/x-www-form-urlencoded",
 ): ApiResponse<T> => {
-	const [data, setData] = useState<T | null>(options.initialData || null);
-	const dataRef = useRef<T | null>(data);
+	const [data, setDataState] = useState<T | null>(options.initialData || null);
+	const dataRef = useRef<T | null>(options.initialData || null);
+	
+	const setData = useCallback((newData: T | null) => {
+		dataRef.current = newData;
+		setDataState(newData);
+	}, []);
+
+	// Sync initialData if it changes and we don't have data yet
 	useEffect(() => {
-		dataRef.current = data;
-	}, [data]);
+		if (options.initialData && !dataRef.current) {
+			setData(options.initialData);
+		}
+	}, [options.initialData, setData]);
 
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
@@ -118,8 +127,6 @@ const useApi = <T,>(
 			} catch (err: any) {
 				const errorMessage = err.message || "An unknown error occurred";
 				
-				setError(errorMessage);
-
 				// If we get a network error, force an update of the connection status
 				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
 					await updateConnectionStatus();
@@ -134,6 +141,14 @@ const useApi = <T,>(
 					}
 				}
 
+				// If we already have data (from initialData or previous fetch), don't show error
+				if (dataRef.current) {
+					setError(null);
+					return dataRef.current;
+				}
+
+				setError(errorMessage);
+
 				if (errorMessage === "Session expired") {
 					await auth.handleSessionExpired(router);
 				}
@@ -142,7 +157,7 @@ const useApi = <T,>(
 				setLoading(false);
 			}
 		},
-		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache, updateConnectionStatus],
+		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache, updateConnectionStatus, setData],
 	);
 
 	return {

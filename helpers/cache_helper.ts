@@ -65,22 +65,93 @@ export const clearCache = async (url: string): Promise<void> => {
 	}
 };
 
-export const decrementUnreadCount = async (feedId: number, count: number = 1): Promise<void> => {
+/**
+ * Decrements the unread count for a specific feed in the tree cache.
+ * 
+ * @param feedId - The ID of the feed to update.
+ * @param count - The number of items to decrement.
+ */
+export const decrementUnreadCount = async (feedId: number, count: number): Promise<void> => {
 	try {
 		const tree = await getCache<any[]>('/feeds/tree.json');
 		if (Array.isArray(tree)) {
 			const updatedTree = tree.map(entry => {
 				if (entry && entry.feed && entry.feed.id === feedId) {
-					const currentCount = typeof entry.unread_count === 'number' ? entry.unread_count : 0;
-					const newCount = Math.max(0, currentCount - count);
-					return { ...entry, unread_count: newCount };
+					const currentCount = entry.feed.count !== undefined ? entry.feed.count : entry.unread_count;
+					const newCount = currentCount !== undefined ? Math.max(0, currentCount - count) : undefined;
+					return { ...entry, feed: { ...entry.feed, count: newCount } };
 				}
 				return entry;
-			}).filter(entry => entry && typeof entry.unread_count === 'number' && entry.unread_count > 0);
-			
+			}).filter(entry => {
+				if (!entry || !entry.feed) return true;
+				if (entry.feed.id === feedId) {
+					return entry.feed.count === undefined || entry.feed.count > 0;
+				}
+				return true;
+			});
 			await setCache('/feeds/tree.json', updatedTree);
 		}
 	} catch (e) {
 		console.error('Error decrementing unread count in cache:', e);
+	}
+};
+
+/**
+ * Marks items as read in the local cache and updates the unread count in the tree cache.
+ * 
+ * @param feedId - The ID of the feed the items belong to.
+ * @param itemIds - The IDs of the items to mark as read.
+ */
+export const markItemsReadInCache = async (feedId: number, itemIds: number[]): Promise<void> => {
+	try {
+		const itemCachePath = `/feeds/${feedId}.json`;
+		const cachedItems = await getCache<any[]>(itemCachePath);
+		let preciseCount: number | undefined;
+
+		if (cachedItems) {
+			const newData = cachedItems.filter(item => item && item.id && !itemIds.includes(item.id));
+			await setCache(itemCachePath, newData);
+			preciseCount = newData.length;
+		}
+
+		const tree = await getCache<any[]>('/feeds/tree.json');
+		if (Array.isArray(tree)) {
+			const updatedTree = tree.map(entry => {
+				if (entry && entry.feed && entry.feed.id === feedId) {
+					const currentCount = entry.feed.count !== undefined ? entry.feed.count : entry.unread_count;
+					const newCount = preciseCount !== undefined ? preciseCount : (currentCount !== undefined ? Math.max(0, currentCount - itemIds.length) : undefined);
+					return { ...entry, feed: { ...entry.feed, count: newCount } };
+				}
+				return entry;
+			}).filter(entry => {
+				if (!entry || !entry.feed) return true;
+				if (entry.feed.id === feedId) {
+					return entry.feed.count === undefined || entry.feed.count > 0;
+				}
+				return true;
+			});
+			await setCache('/feeds/tree.json', updatedTree);
+		}
+	} catch (e) {
+		console.error('Error marking items read in cache:', e);
+	}
+};
+export const markAllItemsReadInCache = async (feedId: number): Promise<void> => {
+	try {
+		const itemCachePath = `/feeds/${feedId}.json`;
+		await setCache(itemCachePath, []);
+		
+		const tree = await getCache<any[]>('/feeds/tree.json');
+		if (Array.isArray(tree)) {
+			const updatedTree = tree.filter(entry => {
+				if (entry && entry.feed && entry.feed.id === feedId) {
+					return false;
+				}
+				return true;
+			});
+			await setCache('/feeds/tree.json', updatedTree);
+		}
+	} catch (e) {
+		console.error('Error marking all items read in cache:', e);
 	}
 };

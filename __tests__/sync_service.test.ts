@@ -80,6 +80,7 @@ describe("syncService", () => {
 	it("should handle mixed success and failure", async () => {
 		await syncHelper.queueAction({ type: "GET", path: "/success", body: null });
 		await syncHelper.queueAction({ type: "GET", path: "/fail", body: null });
+		await syncHelper.queueAction({ type: "POST", path: "/post-success", body: { foo: "bar" } });
 
 		mocks.api.getWithAuth.mockImplementation(async (path: string) => {
 			if (path === "/success") return { success: true };
@@ -87,11 +88,13 @@ describe("syncService", () => {
 			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
 			return {};
 		});
+		mocks.api.postWithAuth.mockResolvedValue({ success: true });
 
 		await syncService.synchronize();
 
 		const queue = await syncHelper.getQueue();
 		expect(queue).toHaveLength(1);
 		expect(queue[0].path).toBe("/fail");
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/post-success", { foo: "bar" }, undefined);
 	});
 });
