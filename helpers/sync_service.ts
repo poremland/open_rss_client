@@ -25,15 +25,18 @@ export const syncService = {
 	synchronize: async () => {
 		if (syncService.isSynchronizing) return;
 		syncService.isSynchronizing = true;
+		console.log('Sync service: synchronization started');
 
 		try {
 			// 1. Process sync queue (actions taken while offline)
 			const queue = await syncHelper.getQueue();
 			if (queue.length > 0) {
+				console.log(`Sync service: processing ${queue.length} actions`);
 				const remainingQueue: syncHelper.SyncAction[] = [];
 
 				for (const action of queue) {
 					try {
+						console.log(`Sync service: executing ${action.type} ${action.path}`);
 						if (action.type === 'GET') {
 							await api.getWithAuth(action.path);
 						} else if (action.type === 'POST') {
@@ -41,8 +44,9 @@ export const syncService = {
 						} else if (action.type === 'PUT') {
 							await api.putWithAuth(action.path, action.body, action.contentType);
 						}
+						console.log(`Sync service: success ${action.type} ${action.path}`);
 					} catch (e) {
-						console.error(`Error synchronizing action ${action.type} ${action.path}:`, e);
+						console.error(`Sync service: error synchronizing action ${action.type} ${action.path}:`, e);
 						remainingQueue.push(action);
 					}
 				}
@@ -51,11 +55,13 @@ export const syncService = {
 				for (const action of remainingQueue) {
 					await syncHelper.queueAction(action);
 				}
+				console.log(`Sync service: queue processed, ${remainingQueue.length} items remaining`);
 			}
 
 			// 2. Perform proactive fetch to warm the cache
 			await performProactiveFetch();
 		} finally {
+			console.log('Sync service: synchronization finished');
 			syncService.isSynchronizing = false;
 		}
 	}

@@ -22,7 +22,6 @@ export default function useCache() {
 	const getCache = useCallback(cacheHelper.getCache, []);
 	const setCache = useCallback(cacheHelper.setCache, []);
 	const clearCache = useCallback(cacheHelper.clearCache, []);
-	const decrementUnreadCount = useCallback(cacheHelper.decrementUnreadCount, []);
 	const markItemsReadInCache = useCallback(cacheHelper.markItemsReadInCache, []);
 	const markAllItemsReadInCache = useCallback(cacheHelper.markAllItemsReadInCache, []);
 
@@ -30,7 +29,7 @@ export default function useCache() {
 	        getCache,
 	        setCache,
 	        clearCache,
-	        decrementUnreadCount,
 	        markItemsReadInCache,
 	        markAllItemsReadInCache,
-	};}
+	};
+}

@@ -66,37 +66,6 @@ export const clearCache = async (url: string): Promise<void> => {
 };
 
 /**
- * Decrements the unread count for a specific feed in the tree cache.
- * 
- * @param feedId - The ID of the feed to update.
- * @param count - The number of items to decrement.
- */
-export const decrementUnreadCount = async (feedId: number, count: number): Promise<void> => {
-	try {
-		const tree = await getCache<any[]>('/feeds/tree.json');
-		if (Array.isArray(tree)) {
-			const updatedTree = tree.map(entry => {
-				if (entry && entry.feed && entry.feed.id === feedId) {
-					const currentCount = entry.feed.count !== undefined ? entry.feed.count : entry.unread_count;
-					const newCount = currentCount !== undefined ? Math.max(0, currentCount - count) : undefined;
-					return { ...entry, feed: { ...entry.feed, count: newCount } };
-				}
-				return entry;
-			}).filter(entry => {
-				if (!entry || !entry.feed) return true;
-				if (entry.feed.id === feedId) {
-					return entry.feed.count === undefined || entry.feed.count > 0;
-				}
-				return true;
-			});
-			await setCache('/feeds/tree.json', updatedTree);
-		}
-	} catch (e) {
-		console.error('Error decrementing unread count in cache:', e);
-	}
-};
-
-/**
  * Marks items as read in the local cache and updates the unread count in the tree cache.
  * 
  * @param feedId - The ID of the feed the items belong to.
