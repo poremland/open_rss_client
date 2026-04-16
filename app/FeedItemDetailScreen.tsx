@@ -25,7 +25,6 @@ import { decode } from "he";
 import useApi from "../components/useApi";
 import HeaderRightMenu from "../components/HeaderRightMenu";
 import * as authHelper from "../helpers/auth_helper";
-import * as syncHelper from "../helpers/sync_helper";
 import { FeedItem } from "../models/FeedItem";
 import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import * as Clipboard from "expo-clipboard";
@@ -34,13 +33,11 @@ import Screen from "../components/Screen";
 import { styles } from "../styles/FeedItemDetailScreen.styles";
 
 import useCache from "../components/useCache";
-import useConnectionStatus from "../components/useConnectionStatus";
 
 const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const { isConnected } = useConnectionStatus();
 	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{ 
 		feedItemId: string;
 		feedItem?: string;
@@ -81,24 +78,16 @@ const FeedItemDetailScreen: React.FC = () => {
 	const handleMarkAsRead = useCallback(async () => {
 		const item = selectedFeedItem;
 		if (!item?.id) return;
-		if (!isConnected) {
-			await syncHelper.queueAction({
-				type: "GET",
-				path: `/feed_items/mark_as_read/${item.id}.json`,
-				body: null,
-			});
+		
+		const response = await markItemAsRead();
+		if (response && (response as any).queued) {
 			await markItemsReadInCache(item.feed_id!, [item.id]);
-		} else {
-			const response = await markItemAsRead();
-			if (response && (response as any).queued) {
-				await markItemsReadInCache(item.feed_id!, [item.id]);
-			}
 		}
 		router.back();
 		if (item?.id) {
 			router.setParams({ removedItemId: item.id.toString() });
 		}
-	}, [selectedFeedItem, markItemAsRead, router, markItemsReadInCache, isConnected]);
+	}, [selectedFeedItem, markItemAsRead, router, markItemsReadInCache]);
 
 	const markAsReadHandlerRef = useRef(handleMarkAsRead);
 	useEffect(() => {

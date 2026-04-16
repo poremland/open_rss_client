@@ -145,6 +145,10 @@ describe("FeedItemDetailScreen", () => {
 		mocks.api.getWithAuth.mockResolvedValue(item);
 		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
 		mocks.useConnectionStatusMock.isConnected = false;
+		mocks.localSearchParams.params = { 
+			feedItemId: "1", 
+			feedItem: JSON.stringify(item) 
+		};
 
 		const cachedItems = [item, { id: 2, title: "Other Item", feed_id: 10 }];
 		await cacheHelper.setCache("/feeds/10.json", cachedItems);

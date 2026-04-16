@@ -20,6 +20,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { api } from "../helpers/api_helper";
 import { auth } from "../helpers/auth_helper";
 import { useRouter } from "expo-router";
+import * as Network from "expo-network";
 import useCache from "./useCache";
 import useConnectionStatus from "./useConnectionStatus";
 import * as syncHelper from "../helpers/sync_helper";
@@ -70,11 +71,25 @@ const useApi = <T,>(
 	const execute = useCallback(
 		async (body?: any): Promise<T | null> => {
 			if (!path) return null;
+
 			const lowerMethod = method.toLowerCase();
 			const shouldCache = options.useCache !== false && lowerMethod === "get";
 			const shouldQueue = options.shouldQueue || lowerMethod === "post" || lowerMethod === "put";
 
-			if (!isConnected) {
+			// Re-check connection status to avoid race conditions
+			let currentIsConnected = isConnected;
+			if (currentIsConnected) {
+				try {
+					const state = await Network.getNetworkStateAsync();
+					if (state.isConnected !== undefined) {
+						currentIsConnected = state.isConnected;
+					}
+				} catch (e) {
+					console.error("Error checking network status:", e);
+				}
+			}
+
+			if (!currentIsConnected) {
 				if (shouldCache && !options.shouldQueue) {
 					const cachedData = await getCache<T>(path);
 					if (cachedData) {
