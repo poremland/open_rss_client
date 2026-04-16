@@ -262,7 +262,10 @@ export const networkMocks = {
 		sharedConnectionState.listeners.push(listener);
 		return { 
 			remove: mock(() => {
-				sharedConnectionState.listeners = sharedConnectionState.listeners.filter(l => l !== listener);
+				const index = sharedConnectionState.listeners.indexOf(listener);
+				if (index > -1) {
+					sharedConnectionState.listeners.splice(index, 1);
+				}
 			}) 
 		};
 	}),
@@ -274,7 +277,7 @@ const connectionMock = {
 		sharedConnectionState.isConnected = v;
 		sharedConnectionState.listeners.forEach(l => l({ isConnected: v }));
 	},
-	listeners: sharedConnectionState.listeners,
+	get listeners() { return sharedConnectionState.listeners; },
 	updateConnectionStatus: mock(async () => {}),
 };
 (globalThis as any).__useConnectionStatusMock = connectionMock;
@@ -686,7 +689,7 @@ export const resetAll = () => {
 	if ((process as any).localSyncQueue) {
 		(process as any).localSyncQueue.length = 0;
 	}
-	sharedConnectionState.listeners = [];
+	sharedConnectionState.listeners.length = 0;
 	sharedConnectionState.isConnected = true;
 	resetMocksInObj(routerMocks);
 	resetMocksInObj(navigationMocks);
@@ -719,7 +722,10 @@ export const resetAll = () => {
 		sharedConnectionState.listeners.push(listener);
 		return { 
 			remove: mock(() => {
-				sharedConnectionState.listeners = sharedConnectionState.listeners.filter(l => l !== listener);
+				const index = sharedConnectionState.listeners.indexOf(listener);
+				if (index > -1) {
+					sharedConnectionState.listeners.splice(index, 1);
+				}
 			}) 
 		};
 	});

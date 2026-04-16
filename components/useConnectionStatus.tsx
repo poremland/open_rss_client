@@ -92,7 +92,10 @@ export default function useConnectionStatus() {
 				updateConnectionStatus: g.__useConnectionStatusMock.updateConnectionStatus,
 			});
 			return () => {
-				g.__useConnectionStatusMock.listeners = g.__useConnectionStatusMock.listeners.filter((l: any) => l !== listener);
+				const index = g.__useConnectionStatusMock.listeners.indexOf(listener);
+				if (index > -1) {
+					g.__useConnectionStatusMock.listeners.splice(index, 1);
+				}
 			};
 		}
 	}, [context]);
