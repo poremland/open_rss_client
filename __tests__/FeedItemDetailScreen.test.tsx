@@ -140,7 +140,7 @@ describe("FeedItemDetailScreen", () => {
 		expect(mocks.router.setParams).toHaveBeenCalledWith({ removedItemId: "1" });
 	});
 
-	it.skip("should queue markItemAsRead and update local cache when offline", async () => {
+	it("should queue markItemAsRead and update local cache when offline", async () => {
 		const item = { ...mockFeedItem, feed_id: 10 };
 		mocks.api.getWithAuth.mockResolvedValue(item);
 		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
@@ -184,7 +184,7 @@ describe("FeedItemDetailScreen", () => {
 		expect(mocks.router.back).toHaveBeenCalled();
 	});
 
-	it.skip("should display feed item details offline when data is passed as param", async () => {
+	it("should display feed item details offline when data is passed as param", async () => {
 		const item = { ...mockFeedItem, feed_id: 10 };
 		mocks.localSearchParams.params = { 
 			feedItemId: "1", 

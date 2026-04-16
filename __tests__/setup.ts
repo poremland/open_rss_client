@@ -246,21 +246,35 @@ const useApi = <T,>(
 
 export const useApiMock = mock(useApi);
 
+// --- Shared Connection State for Mocks ---
+const sharedConnectionState = {
+	isConnected: true,
+	listeners: [] as Array<(s: { isConnected: boolean }) => void>,
+};
+
 export const networkMocks = {
-	getNetworkStateAsync: mock(async () => ({ isConnected: true, isInternetReachable: true })),
+	getNetworkStateAsync: mock(async () => ({ 
+		isConnected: sharedConnectionState.isConnected, 
+		isInternetReachable: sharedConnectionState.isConnected 
+	})),
 	addNetworkStateListener: mock((cb: any) => {
-		return { remove: mock() };
+		const listener = (s: any) => cb({ isConnected: s.isConnected, type: 'wifi' });
+		sharedConnectionState.listeners.push(listener);
+		return { 
+			remove: mock(() => {
+				sharedConnectionState.listeners = sharedConnectionState.listeners.filter(l => l !== listener);
+			}) 
+		};
 	}),
 };
 
 const connectionMock = {
-	_isConnected: true,
-	listeners: [] as Array<(s: { isConnected: boolean }) => void>,
-	get isConnected() { return this._isConnected; },
+	get isConnected() { return sharedConnectionState.isConnected; },
 	set isConnected(v: boolean) {
-		this._isConnected = v;
-		this.listeners.forEach(l => l({ isConnected: v }));
+		sharedConnectionState.isConnected = v;
+		sharedConnectionState.listeners.forEach(l => l({ isConnected: v }));
 	},
+	listeners: sharedConnectionState.listeners,
 	updateConnectionStatus: mock(async () => {}),
 };
 (globalThis as any).__useConnectionStatusMock = connectionMock;
@@ -672,11 +686,16 @@ export const resetAll = () => {
 	if ((process as any).localSyncQueue) {
 		(process as any).localSyncQueue.length = 0;
 	}
-	connectionMock.listeners = [];
-	connectionMock._isConnected = true;
+	sharedConnectionState.listeners = [];
+	sharedConnectionState.isConnected = true;
 	resetMocksInObj(routerMocks);
 	resetMocksInObj(navigationMocks);
-	resetMocksInObj(asyncStorageMock);
+	
+	// Just clear calls, do not reset implementation for asyncStorageMock
+	Object.values(asyncStorageMock).forEach(m => {
+		if (m && typeof m === 'function' && 'mock' in m) m.mockClear();
+	});
+
 	resetMocksInObj(clipboardMocks);
 	resetMocksInObj(apiMocks);
 	apiMocks.getWithAuth.mockImplementation(async (path: string) => {
@@ -691,11 +710,20 @@ export const resetAll = () => {
 	resetMocksInObj(hapticsMock);
 	resetMocksInObj(opmlMocks);
 	resetMocksInObj(networkMocks);
-	networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: true, isInternetReachable: true });
-	networkMocks.addNetworkStateListener.mockReturnValue({ remove: mock() });
+	networkMocks.getNetworkStateAsync.mockImplementation(async () => ({ 
+		isConnected: sharedConnectionState.isConnected, 
+		isInternetReachable: sharedConnectionState.isConnected 
+	}));
+	networkMocks.addNetworkStateListener.mockImplementation((cb: any) => {
+		const listener = (s: any) => cb({ isConnected: s.isConnected, type: 'wifi' });
+		sharedConnectionState.listeners.push(listener);
+		return { 
+			remove: mock(() => {
+				sharedConnectionState.listeners = sharedConnectionState.listeners.filter(l => l !== listener);
+			}) 
+		};
+	});
 	
-	useConnectionStatusMock.isConnected = true;
-	useConnectionStatusMock.listeners = [];
 	useConnectionStatusMock.updateConnectionStatus.mockClear();
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);
