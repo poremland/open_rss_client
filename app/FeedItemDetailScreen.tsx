@@ -51,7 +51,7 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [feedItemParam]);
 
-	const { getCache, setCache, decrementUnreadCount, markItemsReadInCache } = useCache();
+	const { getCache, setCache, markItemsReadInCache } = useCache();
 	const {
 		data: selectedFeedItem,
 		loading,
