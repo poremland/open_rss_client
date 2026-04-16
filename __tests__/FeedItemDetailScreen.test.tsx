@@ -171,10 +171,11 @@ describe("FeedItemDetailScreen", () => {
 
 		// Verify it was queued
 		const queue = await syncHelper.getQueue();
-		expect(queue).toContainEqual(expect.objectContaining({
+		const results = expect.objectContaining({
 			type: "GET",
 			path: expect.stringContaining("mark_as_read/1"),
-		}));
+		});
+		expect(queue).toContainEqual(results);
 
 		// Verify local cache was updated
 		const newCachedItems = await cacheHelper.getCache<any[]>("/feeds/10.json");

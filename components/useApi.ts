@@ -129,7 +129,9 @@ const useApi = <T,>(
 				
 				// If we get a network error, force an update of the connection status
 				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
-					await updateConnectionStatus();
+					if (updateConnectionStatus) {
+						await updateConnectionStatus();
+					}
 				}
 
 				if (shouldCache) {
