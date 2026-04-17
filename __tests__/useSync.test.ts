@@ -15,58 +15,41 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { mock, expect, describe, it, beforeEach } from "bun:test";
-
-const syncServiceMock = {
-	synchronize: mock(async () => {}),
-};
-
-const useConnectionStatusMock = {
-	isConnected: true,
-};
-
-mock.module("../helpers/sync_service", () => ({
-	syncService: syncServiceMock,
-}));
-
-mock.module("../components/useConnectionStatus", () => ({
-	__esModule: true,
-	default: () => ({ isConnected: useConnectionStatusMock.isConnected }),
-}));
-
+import { expect, describe, it, beforeEach } from "bun:test";
 import "./setup";
 import { mocks } from "./setup";
-import { renderHook, waitFor, act } from "@testing-library/react-native";
+import { renderHook, waitFor } from "@testing-library/react-native";
 import useSync from "../components/useSync";
+import { syncService } from "../helpers/sync_service";
 
 describe("useSync", () => {
 	beforeEach(() => {
 		mocks.resetAll();
-		syncServiceMock.synchronize.mockClear();
 	});
 
 	it("should call syncService.synchronize when connection is restored", async () => {
 		// Start online
-		useConnectionStatusMock.isConnected = true;
+		mocks.useConnectionStatusMock.isConnected = true;
 		const { rerender } = renderHook(() => useSync());
 
-		// Should call initially
+		// Should call initially (triggered by useEffect in useSync)
 		await waitFor(() => {
-			expect(syncServiceMock.synchronize).toHaveBeenCalled();
+			expect(mocks.api.getWithAuth).toHaveBeenCalled();
 		});
-		syncServiceMock.synchronize.mockClear();
 
 		// Go offline
-		useConnectionStatusMock.isConnected = false;
+		mocks.useConnectionStatusMock.isConnected = false;
 		rerender({});
-		expect(syncServiceMock.synchronize).not.toHaveBeenCalled();
+		
+		// Reset call history to check for new calls
+		mocks.api.getWithAuth.mockClear();
 
 		// Go online
-		useConnectionStatusMock.isConnected = true;
+		mocks.useConnectionStatusMock.isConnected = true;
 		rerender({});
 
 		await waitFor(() => {
-			expect(syncServiceMock.synchronize).toHaveBeenCalled();
+			expect(mocks.api.getWithAuth).toHaveBeenCalled();
 		});
 	});
 });

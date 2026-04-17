@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { expect, describe, it, mock, beforeEach } from "bun:test";
+import { expect, describe, it, mock, beforeEach, afterEach } from "bun:test";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
 import useConnectionStatus, { ConnectionProvider } from "../components/useConnectionStatus";
 import { mocks, networkMocks } from "./setup";
@@ -28,7 +28,12 @@ describe("useConnectionStatus", () => {
 	);
 
 	beforeEach(() => {
+		(globalThis as any).__disableConnectionMock = true;
 		mocks.resetAll();
+	});
+
+	afterEach(() => {
+		(globalThis as any).__disableConnectionMock = false;
 	});
 
 	it("should return isConnected as true when online", async () => {
