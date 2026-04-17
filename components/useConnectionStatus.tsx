@@ -27,11 +27,16 @@ interface ConnectionStatus {
 const ConnectionStatusContext = createContext<ConnectionStatus | undefined>(undefined);
 
 export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const [isConnected, setIsConnected] = useState(true);
+	const [isConnected, setIsConnected] = useState(false);
 
 	const updateConnectionStatus = useCallback(async () => {
-		const status = await Network.getNetworkStateAsync();
-		setIsConnected(status.isConnected ?? false);
+		try {
+			const status = await Network.getNetworkStateAsync();
+			setIsConnected(status.isConnected ?? false);
+		} catch (e) {
+			console.error("Error updating connection status:", e);
+			setIsConnected(false);
+		}
 	}, []);
 
 	useEffect(() => {
@@ -41,8 +46,15 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			setIsConnected(status.isConnected ?? false);
 		});
 
+		// Add periodic check as a fallback for unreliable listeners
+		const interval = 15000;
+		const timer = setInterval(() => {
+			updateConnectionStatus();
+		}, interval);
+
 		return () => {
 			subscription.remove();
+			clearInterval(timer);
 		};
 	}, [updateConnectionStatus]);
 

@@ -23,28 +23,40 @@ import * as cacheHelper from './cache_helper';
 const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
 
 export const performProactiveFetch = async () => {
-	// 1. Fetch feeds with unread counts
-	const tree = await api.getWithAuth<any[]>('/feeds/tree.json');
-	if (tree) {
-		await cacheHelper.setCache('/feeds/tree.json', tree);
+	try {
+		// 1. Fetch feeds with unread counts
+		const tree = await api.getWithAuth<any[]>('/feeds/tree.json');
+		if (tree) {
+			await cacheHelper.setCache('/feeds/tree.json', tree);
 
-		// 2. Fetch unread items for each feed in the tree
-		for (const entry of tree) {
-			const feed = entry.feed;
-			if (feed && feed.id) {
-				const path = `/feeds/${feed.id}.json`;
-				const items = await api.getWithAuth(path);
-				if (items) {
-					await cacheHelper.setCache(path, items);
+			// 2. Fetch unread items for each feed in the tree
+			for (const entry of tree) {
+				const feed = entry.feed;
+				if (feed && feed.id) {
+					try {
+						const path = `/feeds/${feed.id}.json`;
+						const items = await api.getWithAuth(path);
+						if (items) {
+							await cacheHelper.setCache(path, items);
+						}
+					} catch (e) {
+						console.error(`Error fetching items for feed ${feed.id}:`, e);
+					}
 				}
 			}
 		}
-	}
 
-	// Also sync all feeds list for manage feeds screen
-	const allFeeds = await api.getWithAuth('/feeds/all.json');
-	if (allFeeds) {
-		await cacheHelper.setCache('/feeds/all.json', allFeeds);
+		// Also sync all feeds list for manage feeds screen
+		try {
+			const allFeeds = await api.getWithAuth('/feeds/all.json');
+			if (allFeeds) {
+				await cacheHelper.setCache('/feeds/all.json', allFeeds);
+			}
+		} catch (e) {
+			console.error('Error fetching all feeds:', e);
+		}
+	} catch (e) {
+		console.error('Error in performProactiveFetch:', e);
 	}
 };
 

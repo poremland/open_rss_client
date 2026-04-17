@@ -11,6 +11,7 @@ import { styles } from "../styles/FeedListScreen.styles";
 import ListScreen from "../components/ListScreen";
 import FeedCard from "../components/FeedCard";
 import useConnectionStatus from "../components/useConnectionStatus";
+import { syncService } from "../helpers/sync_service";
 
 interface ListScreenHandle {
 	handleRefresh: () => void;
@@ -37,7 +38,21 @@ const FeedListScreen: React.FC = () => {
 		useCallback(() => {
 			if (!isFocused) return;
 
-			listRef.current?.handleRefresh();
+			const performRefresh = () => {
+				if (syncService.isSynchronizing) {
+					console.log("FeedListScreen: Sync in progress, waiting for syncFinished to refresh");
+					const onSyncFinished = () => {
+						console.log("FeedListScreen: Sync finished, refreshing now");
+						listRef.current?.handleRefresh();
+						syncService.off('syncFinished', onSyncFinished);
+					};
+					syncService.on('syncFinished', onSyncFinished);
+				} else {
+					listRef.current?.handleRefresh();
+				}
+			};
+
+			performRefresh();
 			const menuItems: MenuItem[] = [
 				{
 					label: "Add Feed",

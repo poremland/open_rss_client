@@ -53,9 +53,11 @@ const AddFeedScreen: React.FC = () => {
 
                 const user = await auth.getUser();
                 const body = {
-                        "feed[uri]": String(feedUri),
-                        "feed[name]": String(feedName),
-                        "feed[user]": String(user),
+                        feed: {
+                                uri: String(feedUri),
+                                name: String(feedName),
+                                user: String(user),
+                        }
                 };
                 const response = await addFeed(body);
 
@@ -83,17 +85,19 @@ const AddFeedScreen: React.FC = () => {
                                                                 You are offline. Adding feeds is disabled.
                                                         </Text>
                                                 )}
+                                                <Text style={styles.label}>Feed Name</Text>
                                                 <TextInput
                                                         style={styles.input}
-                                                        placeholder="FeedName"
+                                                        placeholder="e.g. My Favorite Blog"
                                                         testID="feedNameInput"
                                                         value={feedName}
                                                         onChangeText={setFeedName}
                                                         editable={isConnected}
                                                 />
+                                                <Text style={styles.label}>Feed URL</Text>
                                                 <TextInput
                                                         style={styles.input}
-                                                        placeholder="FeedUri"
+                                                        placeholder="https://example.com/rss.xml"
                                                         testID="feedUriInput"
                                                         value={feedUri}
                                                         onChangeText={setFeedUri}

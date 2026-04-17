@@ -18,6 +18,7 @@ import ListScreen from "../components/ListScreen";
 import FeedItemCard from "../components/FeedItemCard";
 import useConnectionStatus from "../components/useConnectionStatus";
 import useCache from "../components/useCache";
+import { syncService } from "../helpers/sync_service";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -176,7 +177,22 @@ const FeedItemListScreen: React.FC = () => {
 					navigation.goBack();
 				}
 			};
-			refreshAndCheck();
+
+			const performRefresh = () => {
+				if (syncService.isSynchronizing) {
+					console.log("FeedItemListScreen: Sync in progress, waiting for syncFinished to refresh");
+					const onSyncFinished = () => {
+						console.log("FeedItemListScreen: Sync finished, refreshing now");
+						refreshAndCheck();
+						syncService.off('syncFinished', onSyncFinished);
+					};
+					syncService.on('syncFinished', onSyncFinished);
+				} else {
+					refreshAndCheck();
+				}
+			};
+
+			performRefresh();
 
 			const menuItems: MenuItem[] = [
 				{

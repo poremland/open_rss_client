@@ -29,6 +29,13 @@ describe("syncService", () => {
 		mocks.resetAll();
 		await syncHelper.clearQueue();
 		consoleSpy = spyOn(console, "error").mockImplementation(() => {});
+		
+		// Setup default API mocks for proactive fetch
+		mocks.api.getWithAuth.mockImplementation(async (path: string) => {
+			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
+			return {};
+		});
+		mocks.api.postWithAuth.mockResolvedValue({ success: true });
 	});
 
 	afterEach(() => {
@@ -47,15 +54,70 @@ describe("syncService", () => {
 			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
 			return {};
 		});
-		mocks.api.postWithAuth.mockResolvedValue({ success: true });
 
 		await syncService.synchronize();
 
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/test1");
-		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/test2", { foo: "bar" }, "application/x-www-form-urlencoded");
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/test2", { foo: "bar" }, "application/json");
 
 		const queue = await syncHelper.getQueue();
 		expect(queue).toHaveLength(0);
+	});
+
+	it("should batch MARK_READ actions for the same feed", async () => {
+		const action1 = { 
+			type: "MARK_READ", 
+			path: "/feeds/mark_items_as_read/1", 
+			body: { items: JSON.stringify([101, 102]) } 
+		};
+		const action2 = { 
+			type: "MARK_READ", 
+			path: "/feeds/mark_items_as_read/1", 
+			body: { items: JSON.stringify([103]) } 
+		};
+		const action3 = { 
+			type: "MARK_READ", 
+			path: "/feeds/mark_items_as_read/2", 
+			body: { items: JSON.stringify([201]) } 
+		};
+		
+		await syncHelper.queueAction(action1);
+		await syncHelper.queueAction(action2);
+		await syncHelper.queueAction(action3);
+
+		await syncService.synchronize();
+
+		// Should call postWithAuth with batched items for feed 1
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+			"/feeds/mark_items_as_read/1", 
+			{ items: JSON.stringify([101, 102, 103]) },
+			"application/json"
+		);
+		// Should call postWithAuth for feed 2
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
+			"/feeds/mark_items_as_read/2", 
+			{ items: JSON.stringify([201]) },
+			"application/json"
+		);
+
+		const queue = await syncHelper.getQueue();
+		expect(queue).toHaveLength(0);
+	});
+
+	it("should emit syncStarted and syncFinished events", async () => {
+		const startedListener = mock(() => {});
+		const finishedListener = mock(() => {});
+
+		syncService.on('syncStarted', startedListener);
+		syncService.on('syncFinished', finishedListener);
+
+		await syncService.synchronize();
+
+		expect(startedListener).toHaveBeenCalled();
+		expect(finishedListener).toHaveBeenCalled();
+
+		syncService.off('syncStarted', startedListener);
+		syncService.off('syncFinished', finishedListener);
 	});
 
 	it("should keep failed actions in the queue", async () => {
@@ -86,13 +148,12 @@ describe("syncService", () => {
 			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
 			return {};
 		});
-		mocks.api.postWithAuth.mockResolvedValue({ success: true });
 
 		await syncService.synchronize();
 
 		const queue = await syncHelper.getQueue();
 		expect(queue).toHaveLength(1);
 		expect(queue[0].path).toBe("/fail");
-		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/post-success", { foo: "bar" }, "application/x-www-form-urlencoded");
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/post-success", { foo: "bar" }, "application/json");
 	});
 });

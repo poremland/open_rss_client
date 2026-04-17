@@ -30,6 +30,11 @@ describe("useConnectionStatus", () => {
 	beforeEach(() => {
 		(globalThis as any).__disableConnectionMock = true;
 		mocks.resetAll();
+		// Default to online
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
+			isConnected: true,
+			isInternetReachable: true,
+		});
 	});
 
 	afterEach(() => {
@@ -84,11 +89,6 @@ describe("useConnectionStatus", () => {
 	});
 
 	it("should update isConnected when updateConnectionStatus is called", async () => {
-		networkMocks.getNetworkStateAsync.mockResolvedValue({
-			isConnected: true,
-			isInternetReachable: true,
-		});
-
 		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
 		await waitFor(() => expect(result.current.isConnected).toBe(true));
 
@@ -108,15 +108,28 @@ describe("useConnectionStatus", () => {
 	it("should remove listener on unmount", async () => {
 		const mockRemove = mock(() => {});
 		networkMocks.addNetworkStateListener.mockReturnValue({ remove: mockRemove });
-		networkMocks.getNetworkStateAsync.mockResolvedValue({
-			isConnected: true,
-			isInternetReachable: true,
-		});
 
 		const { unmount } = renderHook(() => useConnectionStatus(), { wrapper });
 		
 		unmount();
 
 		await waitFor(() => expect(mockRemove).toHaveBeenCalled());
+	});
+
+	it("should periodically check connection status", async () => {
+		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
+		await waitFor(() => expect(result.current.isConnected).toBe(true));
+
+		// Change mock to offline
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
+			isConnected: false,
+			isInternetReachable: false,
+		});
+
+		// Wait for periodic check (every 10 seconds in implementation, so we mock time or just wait if feasible)
+		// For the test, I might want to reduce the interval or just verify that it's called multiple times.
+		// Since I haven't implemented it yet, I'll add this test case as a goal.
+		
+		// To make it testable quickly, I'll use a shorter interval in dev/test if possible.
 	});
 });

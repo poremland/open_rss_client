@@ -31,8 +31,10 @@ describe("AddFeedScreen", () => {
 
         it("renders correctly", async () => {
                 const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
-                expect(getByPlaceholderText("FeedName")).toBeTruthy();
-                expect(getByPlaceholderText("FeedUri")).toBeTruthy();
+                expect(getByText("Feed Name")).toBeTruthy();
+                expect(getByPlaceholderText("e.g. My Favorite Blog")).toBeTruthy();
+                expect(getByText("Feed URL")).toBeTruthy();
+                expect(getByPlaceholderText("https://example.com/rss.xml")).toBeTruthy();
                 expect(getByText("Add Feed")).toBeTruthy();
         });
 
@@ -47,8 +49,8 @@ describe("AddFeedScreen", () => {
         });
 
         it("calls addFeed with correct parameters on button press", async () => {		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
-		const nameInput = getByPlaceholderText("FeedName");
-		const uriInput = getByPlaceholderText("FeedUri");
+		const nameInput = getByPlaceholderText("e.g. My Favorite Blog");
+		const uriInput = getByPlaceholderText("https://example.com/rss.xml");
 		const addButton = getByTestId("addFeedButton");
 
 		fireEvent.changeText(nameInput, "Test Feed");
@@ -64,19 +66,21 @@ describe("AddFeedScreen", () => {
 			expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
 				"/feeds/create",
 				{
-					"feed[name]": "Test Feed",
-					"feed[uri]": "http://test.com/feed.xml",
-					"feed[user]": "test-user",
+					feed: {
+						name: "Test Feed",
+						uri: "http://test.com/feed.xml",
+						user: "test-user",
+					}
 				},
-				"application/x-www-form-urlencoded"
+				"application/json"
 			);
 		});
 	});
 
 	it("navigates back on successful feed addition", async () => {
 		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
-		const nameInput = getByPlaceholderText("FeedName");
-		const uriInput = getByPlaceholderText("FeedUri");
+		const nameInput = getByPlaceholderText("e.g. My Favorite Blog");
+		const uriInput = getByPlaceholderText("https://example.com/rss.xml");
 		const addButton = getByTestId("addFeedButton");
 
 		fireEvent.changeText(nameInput, "Test Feed");

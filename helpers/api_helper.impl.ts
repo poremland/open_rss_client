@@ -46,7 +46,11 @@ export class Api {
 	}
 
 	private get fetch(): typeof fetch {
-		return this.deps.fetch || fetch;
+		const f = this.deps.fetch || fetch;
+		if (typeof window !== 'undefined' && f === window.fetch) {
+			return f.bind(window);
+		}
+		return f;
 	}
 
 	setDeps(deps: ApiDeps) {
@@ -57,7 +61,7 @@ export class Api {
 		return await this.deps.storage.getItem('serverUrl');
 	};
 
-	post = async <T>(url: string, body: any, contentType: string = 'application/x-www-form-urlencoded'): Promise<T> => {
+	post = async <T>(url: string, body: any, contentType: string = 'application/json'): Promise<T> => {
 		const g = (globalThis as any);
 		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.post) return g.apiMocks.post(url, body, contentType);
 
@@ -97,7 +101,7 @@ export class Api {
 		return (await response.text()) as unknown as T;
 	};
 
-	postWithAuth = async <T>(url: string, body: any, contentType: string = 'application/x-www-form-urlencoded'): Promise<T> => {
+	postWithAuth = async <T>(url: string, body: any, contentType: string = 'application/json'): Promise<T> => {
 		const g = (globalThis as any);
 		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.postWithAuth) return g.apiMocks.postWithAuth(url, body, contentType);
 
@@ -351,7 +355,7 @@ export class Api {
 		return await response.json();
 	};
 
-	putWithAuth = async <T>(url: string, body: any): Promise<T> => {
+	putWithAuth = async <T>(url: string, body: any, contentType: string = 'application/json'): Promise<T> => {
 		const g = (globalThis as any);
 		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.putWithAuth) return g.apiMocks.putWithAuth(url, body);
 
@@ -362,16 +366,23 @@ export class Api {
 			throw new Error('No authentication token found.');
 		}
 
+		let formattedBody = body;
+		if (contentType === 'application/x-www-form-urlencoded') {
+			formattedBody = Object.keys(body)
+				.map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(body[key]))
+				.join('&');
+		} else if (contentType === 'application/json') {
+			formattedBody = JSON.stringify(body);
+		}
+
 		const response = await this.fetch(`${baseUrl}${url}`, {
 			method: 'PUT',
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
+				'Content-Type': contentType,
 				'Accept': 'application/json',
 				'Authorization': `Bearer ${authToken}`,
 			},
-			body: Object.keys(body)
-				.map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(body[key]))
-				.join('&'),
+			body: formattedBody,
 		});
 
 		if (response.status === 401) {

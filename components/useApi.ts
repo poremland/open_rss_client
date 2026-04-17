@@ -44,7 +44,7 @@ const useApi = <T,>(
 	method: string,
 	path: string,
 	options: UseApiOptions<T> = {},
-	contentType: string = "application/x-www-form-urlencoded",
+	contentType: string = "application/json",
 ): ApiResponse<T> => {
 	const [data, setDataState] = useState<T | null>(options.initialData || null);
 	const dataRef = useRef<T | null>(options.initialData || null);
@@ -146,6 +146,17 @@ const useApi = <T,>(
 				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
 					if (updateConnectionStatus) {
 						await updateConnectionStatus();
+					}
+
+					// Fallback to queuing if we should and it failed due to network
+					if (shouldQueue) {
+						await syncHelper.queueAction({
+							type: method.toUpperCase(),
+							path,
+							body,
+							contentType,
+						});
+						return { queued: true } as any;
 					}
 				}
 

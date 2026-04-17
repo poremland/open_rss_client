@@ -25,7 +25,9 @@ export default function useSync() {
 	useEffect(() => {
 		if (isConnected) {
 			console.log('useSync: triggering synchronization (isConnected changed to true or mounted online)');
-			syncService.synchronize();
+			syncService.synchronize().then(() => {
+				console.log('useSync: synchronization completed');
+			});
 		}
 	}, [isConnected]);
 }

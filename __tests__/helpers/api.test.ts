@@ -71,12 +71,12 @@ describe("API Helper", () => {
 			const result = await api.post("/test", { foo: "bar" });
 
 			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "POST",
+				method: 'POST',
 				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-					Accept: "application/json",
+					'Content-Type': 'application/json',
+					'Accept': 'application/json',
 				},
-				body: "foo=bar",
+				body: JSON.stringify({ foo: "bar" }),
 			});
 			expect(result).toEqual(mockData);
 		});
@@ -132,11 +132,11 @@ describe("API Helper", () => {
 			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
 				method: "POST",
 				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
+					"Content-Type": "application/json",
 					Accept: "application/json",
 					Authorization: "Bearer test-token",
 				},
-				body: "foo=bar",
+				body: JSON.stringify({ foo: "bar" }),
 			});
 			expect(result).toEqual(mockData);
 		});
@@ -158,7 +158,7 @@ describe("API Helper", () => {
 					Accept: "application/json",
 					Authorization: "Bearer test-token",
 				},
-				body: '{"foo":"bar"}',
+				body: JSON.stringify({ foo: "bar" }),
 			});
 			expect(result).toEqual(mockData);
 		});
@@ -413,3 +413,4 @@ describe("API Helper", () => {
 		});
 	});
 });
+;

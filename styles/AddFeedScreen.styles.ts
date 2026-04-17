@@ -40,6 +40,13 @@ export const styles = StyleSheet.create({
 		backgroundColor: "#fff",
 		fontSize: 16,
 	},
+	label: {
+		alignSelf: 'flex-start',
+		marginBottom: 5,
+		fontSize: 14,
+		fontWeight: 'bold',
+		color: '#555',
+	},
 	errorText: {
 		color: "red",
 		marginTop: 10,
