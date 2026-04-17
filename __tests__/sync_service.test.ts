@@ -37,7 +37,7 @@ describe("syncService", () => {
 		consoleSpy.mockRestore();
 	});
 
-	it.skip("should process the queue when synchronize is called", async () => {
+	it("should process the queue when synchronize is called", async () => {
 		const action1 = { type: "GET", path: "/test1", body: null };
 		const action2 = { type: "POST", path: "/test2", body: { foo: "bar" } };
 		
@@ -77,7 +77,7 @@ describe("syncService", () => {
 		expect(queue[0].path).toBe("/fail");
 	});
 
-	it.skip("should handle mixed success and failure", async () => {
+	it("should handle mixed success and failure", async () => {
 		await syncHelper.queueAction({ type: "GET", path: "/success", body: null });
 		await syncHelper.queueAction({ type: "GET", path: "/fail", body: null });
 		await syncHelper.queueAction({ type: "POST", path: "/post-success", body: { foo: "bar" } });

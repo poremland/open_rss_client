@@ -57,7 +57,7 @@ describe("useConnectionStatus", () => {
 		await waitFor(() => expect(result.current.isConnected).toBe(true));
 	});
 
-	it.skip("should return isConnected as false when offline", async () => {
+	it("should return isConnected as false when offline", async () => {
 		mockGetNetworkStateAsync.mockResolvedValue({
 			isConnected: false,
 			isInternetReachable: false,
@@ -68,7 +68,7 @@ describe("useConnectionStatus", () => {
 		await waitFor(() => expect(result.current.isConnected).toBe(false));
 	});
 
-	it.skip("should update isConnected when network state changes", async () => {
+	it("should update isConnected when network state changes", async () => {
 		mockGetNetworkStateAsync.mockResolvedValue({
 			isConnected: true,
 			isInternetReachable: true,
@@ -98,7 +98,7 @@ describe("useConnectionStatus", () => {
 		await waitFor(() => expect(result.current.isConnected).toBe(false));
 	});
 
-	it.skip("should update isConnected when updateConnectionStatus is called", async () => {
+	it("should update isConnected when updateConnectionStatus is called", async () => {
 		mockGetNetworkStateAsync.mockResolvedValue({
 			isConnected: true,
 			isInternetReachable: true,

@@ -203,7 +203,7 @@ describe("GlobalDropdownMenu Integration", () => {
 		}
 	});
 
-	it.skip("should disable online-only items when offline", async () => {
+	it("should disable online-only items when offline", async () => {
 		const items: MenuItem[] = [
 			{ label: "Add Feed", onPress: mock(), icon: "add", testID: "add-feed" },
 			{ label: "Normal Item", onPress: mock(), icon: "star", testID: "normal-item" },

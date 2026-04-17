@@ -97,7 +97,7 @@ describe("ManageFeedsListScreen", () => {
 		expect(mocks.auth.clearAuthData).toHaveBeenCalled();
 	});
 
-	it.skip("should display error message when api call fails", async () => {
+	it("should display error message when api call fails", async () => {
 		const errorMessage = `API Error ${Math.random()}`;
 		mocks.api.getWithAuth.mockRejectedValue(new Error(errorMessage));
 		

@@ -38,7 +38,7 @@ describe("FeedItemListScreen", () => {
                 mocks.localSearchParams.mockReturnValue({ feed: JSON.stringify(mockFeed) });
         });
 
-        it.skip("disables feed deletion when disconnected", async () => {
+        it("disables feed deletion when disconnected", async () => {
                 mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
                 mocks.useConnectionStatusMock.isConnected = false;
                 render(<FeedItemListScreen />);
@@ -154,7 +154,7 @@ describe("FeedItemListScreen", () => {
 		);
 	});
 
-	it.skip("should display an error message if the api call fails", async () => {
+	it("should display an error message if the api call fails", async () => {
 		mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
 		const { getByText } = render(<FeedItemListScreen />);
@@ -189,7 +189,7 @@ describe("FeedItemListScreen", () => {
 			await cacheHelper.setCache("/feeds/1.json", mockFeedItems);
 		});
 
-		it.skip("should queue mark all as read and update local cache when offline", async () => {
+		it("should queue mark all as read and update local cache when offline", async () => {
 			render(<FeedItemListScreen />);
 
 			await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
@@ -222,7 +222,7 @@ describe("FeedItemListScreen", () => {
 			expect(mocks.navigation.goBack).toHaveBeenCalled();
 		});
 
-		it.skip("should queue swipe mark as read and update local cache when offline", async () => {
+		it("should queue swipe mark as read and update local cache when offline", async () => {
 			const { getAllByTestId, getByText } = render(<FeedItemListScreen />);
 
 			await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
@@ -251,7 +251,7 @@ describe("FeedItemListScreen", () => {
 			expect(newCachedItems![0].id).toBe(2);
 		});
 
-		it.skip("should queue multi-select mark as read and update local cache when offline", async () => {
+		it("should queue multi-select mark as read and update local cache when offline", async () => {
 			const { getByText, getByTestId } = render(<FeedItemListScreen />);
 
 			await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
