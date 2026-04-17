@@ -15,39 +15,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { expect, describe, it, mock, beforeEach } from "bun:test";
-
-const mockGetNetworkStateAsync = mock();
-const mockAddNetworkStateListener = mock();
-const mockRemove = mock();
-
-mock.module('expo-network', () => ({
-	getNetworkStateAsync: mockGetNetworkStateAsync,
-	addNetworkStateListener: mockAddNetworkStateListener,
-}));
 
 import React from "react";
-import "./setup";
-import { mocks } from "./setup";
+import { expect, describe, it, mock, beforeEach } from "bun:test";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
 import useConnectionStatus, { ConnectionProvider } from "../components/useConnectionStatus";
+import { mocks, networkMocks } from "./setup";
 
 describe("useConnectionStatus", () => {
-	beforeEach(() => {
-		mocks.resetAll();
-		(globalThis as any).__useConnectionStatusMock = undefined;
-		mockGetNetworkStateAsync.mockClear();
-		mockAddNetworkStateListener.mockClear();
-		mockRemove.mockClear();
-		mockAddNetworkStateListener.mockReturnValue({ remove: mockRemove });
-	});
-
 	const wrapper = ({ children }: { children: React.ReactNode }) => (
 		<ConnectionProvider>{children}</ConnectionProvider>
 	);
 
+	beforeEach(() => {
+		mocks.resetAll();
+	});
+
 	it("should return isConnected as true when online", async () => {
-		mockGetNetworkStateAsync.mockResolvedValue({
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
 			isConnected: true,
 			isInternetReachable: true,
 		});
@@ -58,7 +43,7 @@ describe("useConnectionStatus", () => {
 	});
 
 	it("should return isConnected as false when offline", async () => {
-		mockGetNetworkStateAsync.mockResolvedValue({
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
 			isConnected: false,
 			isInternetReachable: false,
 		});
@@ -69,15 +54,10 @@ describe("useConnectionStatus", () => {
 	});
 
 	it("should update isConnected when network state changes", async () => {
-		mockGetNetworkStateAsync.mockResolvedValue({
-			isConnected: true,
-			isInternetReachable: true,
-		});
-
-		let listenerCallback: (state: any) => void;
-		mockAddNetworkStateListener.mockImplementation((callback: any) => {
+		let listenerCallback: ((state: any) => void) | undefined;
+		networkMocks.addNetworkStateListener.mockImplementation((callback: any) => {
 			listenerCallback = callback;
-			return { remove: mockRemove };
+			return { remove: mock(() => {}) };
 		});
 
 		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
@@ -99,17 +79,16 @@ describe("useConnectionStatus", () => {
 	});
 
 	it("should update isConnected when updateConnectionStatus is called", async () => {
-		mockGetNetworkStateAsync.mockResolvedValue({
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
 			isConnected: true,
 			isInternetReachable: true,
 		});
 
 		const { result } = renderHook(() => useConnectionStatus(), { wrapper });
-
 		await waitFor(() => expect(result.current.isConnected).toBe(true));
 
 		// Change mock to offline
-		mockGetNetworkStateAsync.mockResolvedValue({
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
 			isConnected: false,
 			isInternetReachable: false,
 		});
@@ -122,7 +101,9 @@ describe("useConnectionStatus", () => {
 	});
 
 	it("should remove listener on unmount", async () => {
-		mockGetNetworkStateAsync.mockResolvedValue({
+		const mockRemove = mock(() => {});
+		networkMocks.addNetworkStateListener.mockReturnValue({ remove: mockRemove });
+		networkMocks.getNetworkStateAsync.mockResolvedValue({
 			isConnected: true,
 			isInternetReachable: true,
 		});
