@@ -152,6 +152,7 @@ describe("FeedItemDetailScreen", () => {
 
 		const cachedItems = [item, { id: 2, title: "Other Item", feed_id: 10 }];
 		await cacheHelper.setCache("/feeds/10.json", cachedItems);
+		await cacheHelper.setCache("/feed_items/1.json", item);
 
 		render(<FeedItemDetailScreen />);
 
