@@ -88,6 +88,7 @@ export const asyncStorageMock = g.asyncStorageMock || {
 	multiRemove: mock(async (keys: string[]) => keys.forEach(k => storageMap.delete(k))),
 };
 g.asyncStorageMock = asyncStorageMock;
+g.AsyncStorage = asyncStorageMock;
 (globalThis as any).AsyncStorage = asyncStorageMock;
 (global as any).AsyncStorage = asyncStorageMock;
 
@@ -110,8 +111,29 @@ g.navigationMocks = navigationMocks;
 
 export const alertMock = g.alertMock || mock();
 g.alertMock = alertMock;
-export const fetchMock = g.fetchMock || mock();
+
+export const createFetchResponse = (ok: boolean, status: number, data: any, contentType: string = 'application/json') => {
+	const response = {
+		ok,
+		status,
+		json: async () => (typeof data === 'string' ? JSON.parse(data) : data),
+		text: async () => (typeof data === 'string' ? data : JSON.stringify(data)),
+		blob: async () => new Blob([typeof data === 'string' ? data : JSON.stringify(data)]),
+		headers: {
+			get: (name: string) => {
+				if (name.toLowerCase() === 'content-type') return contentType;
+				return null;
+			}
+		}
+	};
+	return response;
+};
+
+export const fetchMock = g.fetchMock || mock(() => Promise.resolve(createFetchResponse(true, 200, {})));
 g.fetchMock = fetchMock;
+g.fetch = fetchMock;
+(globalThis as any).fetch = fetchMock;
+(global as any).fetch = fetchMock;
 
 export const clipboardMocks = g.clipboardMocks || {
 	setStringAsync: mock(),
@@ -120,7 +142,13 @@ export const clipboardMocks = g.clipboardMocks || {
 g.clipboardMocks = clipboardMocks;
 
 export const opmlMocks = g.opmlMocks || {
-	validateOpmlFile: mock(),
+	validateOpmlFile: mock(async (content: string) => {
+		if (content === "not xml at all") throw new Error("Invalid OPML file: Not a valid XML");
+		if (content.includes("<notopml>")) throw new Error("Invalid OPML file: Missing <opml> root element");
+		if (content.includes("<opml") && !content.includes("<body>")) throw new Error("Invalid OPML file: Missing <body> element");
+		if (content.includes("<body>") && !content.includes("<outline")) throw new Error("Invalid OPML file: No <outline> elements found");
+		return true;
+	}),
 };
 g.opmlMocks = opmlMocks;
 
@@ -133,7 +161,7 @@ export const apiMocks = g.apiMocks || {
 	}),
 	getBlobWithAuth: mock(),
 	exportOpml: mock(),
-	importOpml: mock(),
+	importOpml: mock(async () => ({ success: true, count: 0 })),
 	readTextFile: mock(),
 	postFormDataWithAuth: mock(),
 	postWithAuth: mock(),
@@ -244,6 +272,7 @@ export const mocks = {
 	alertMock,
 	fetch: fetchMock,
 	fetchMock,
+	createFetchResponse,
 	clipboard: clipboardMocks,
 	clipboardMocks,
 	asyncStorage: asyncStorageMock,
@@ -268,13 +297,17 @@ export const mocks = {
 			cacheDirectory: "mock-cache",
 		},
 		Directory: mock(),
+		writeAsStringAsync: mock(async () => {}),
+		readAsStringAsync: mock(async () => ""),
+		cacheDirectory: "mock-cache/",
+		documentDirectory: "mock-docs/",
 	},
 	sharing: g.sharingMock || {
 		shareAsync: mock(async () => {}),
 		isAvailableAsync: mock(async () => true),
 	},
 	documentPicker: g.documentPickerMock || {
-		getDocumentAsync: mock(async () => ({ type: "success", uri: "mock-uri", name: "test.opml", mimeType: "text/xml" })),
+		getDocumentAsync: mock(async () => ({ canceled: false, assets: [{ uri: "mock-uri" }] })),
 	},
 	haptics: g.hapticsMock || {
 		impactAsync: mock(async () => {}),
@@ -437,9 +470,12 @@ mock.module("react-native-reanimated", () => {
 		FadeIn: { duration: () => ({ delay: () => ({ springify: () => {} }) }) },
 		FadeOut: { duration: () => ({ delay: () => ({ springify: () => {} }) }) },
 		useAnimatedGestureHandler: (handlers: any) => {
+			const ctx = {};
 			const handler = (event: any) => {
-				if (event.state === 5 && handlers.onActive) handlers.onActive(event);
-				if (event.state === 6 && handlers.onEnd) handlers.onEnd(event);
+				const fullEvent = { ...event, nativeEvent: event.nativeEvent || event };
+				if (fullEvent.nativeEvent.state === 1 && handlers.onStart) handlers.onStart(fullEvent.nativeEvent, ctx); // BEGAN
+				if (fullEvent.nativeEvent.state === 5 && handlers.onActive) handlers.onActive(fullEvent.nativeEvent, ctx); // ACTIVE
+				if (fullEvent.nativeEvent.state === 6 && handlers.onEnd) handlers.onEnd(fullEvent.nativeEvent, ctx); // END
 			};
 			return handler;
 		},
@@ -502,39 +538,8 @@ mock.module("expo-font", () => ({
 	isLoaded: mock(() => true),
 }));
 
-mock.module(resolveModule("../helpers/api_helper"), () => ({
-	api: apiMocks,
-	post: apiMocks.post,
-	postWithAuth: apiMocks.postWithAuth,
-	get: apiMocks.get,
-	getWithAuth: apiMocks.getWithAuth,
-	getBlobWithAuth: apiMocks.getBlobWithAuth,
-	exportOpml: apiMocks.exportOpml,
-	importOpml: apiMocks.importOpml,
-	readTextFile: apiMocks.readTextFile,
-	postFormDataWithAuth: apiMocks.postFormDataWithAuth,
-	putWithAuth: apiMocks.putWithAuth,
-	refreshToken: apiMocks.refreshToken,
-	__esModule: true,
-}));
-
-mock.module(resolveModule("../helpers/auth_helper"), () => ({
-	auth: authMocks,
-	storeAuthToken: authMocks.storeAuthToken,
-	getAuthToken: authMocks.getAuthToken,
-	storeUser: authMocks.storeUser,
-	getUser: authMocks.getUser,
-	clearAuthData: authMocks.clearAuthData,
-	checkLoggedIn: authMocks.checkLoggedIn,
-	refreshTokenOnLoad: authMocks.refreshTokenOnLoad,
-	handleSessionExpired: authMocks.handleSessionExpired,
-	__esModule: true,
-}));
-
-mock.module(resolveModule("../helpers/opml_helper"), () => ({
-	validateOpmlFile: opmlMocks.validateOpmlFile,
-	__esModule: true,
-}));
+// We don't use mock.module for project helpers to avoid re-evaluation SyntaxErrors.
+// Instead, they check globalThis.apiMocks/authMocks/opmlMocks in their implementation.
 
 mock.module(resolveModule("../components/GlobalDropdownMenu"), () => ({
 	useMenu: () => useMenuMock,
@@ -568,6 +573,7 @@ mock.module("react-native-gesture-handler", () => {
 			return React.createElement("PanGestureHandler", {
 				...props,
 				simulateSwipe: (translationX: number) => {
+					handler({ nativeEvent: { translationX: 0, state: 1 } }); // BEGAN
 					handler({ nativeEvent: { translationX, state: 5 } }); // ACTIVE
 					handler({ nativeEvent: { translationX, state: 6 } }); // END
 				}
@@ -589,6 +595,10 @@ mock.module("expo-file-system", () => ({
 	File: fileSystemMock.File,
 	Paths: fileSystemMock.Paths,
 	Directory: fileSystemMock.Directory,
+	writeAsStringAsync: fileSystemMock.writeAsStringAsync,
+	readAsStringAsync: fileSystemMock.readAsStringAsync,
+	cacheDirectory: fileSystemMock.cacheDirectory,
+	documentDirectory: fileSystemMock.documentDirectory,
 	__esModule: true,
 }));
 
@@ -702,6 +712,13 @@ export const resetAll = () => {
 	
 	// Just clear calls, do not reset implementation for asyncStorageMock
 	resetMocksInObj(asyncStorageMock);
+	asyncStorageMock.setItem.mockImplementation(async (k: string, v: any) => { storageMap.set(k, String(v)); });
+	asyncStorageMock.getItem.mockImplementation(async (k: string) => { 
+		const val = storageMap.get(k);
+		return val === undefined ? null : val;
+	});
+	asyncStorageMock.removeItem.mockImplementation(async (k: string) => { storageMap.delete(k); });
+	asyncStorageMock.clear.mockImplementation(async () => { storageMap.clear(); });
 	
 	resetMocksInObj(apiMocks);
 	apiMocks.getWithAuth.mockImplementation(async (path: string) => {
@@ -752,12 +769,7 @@ export const resetAll = () => {
 	localSearchParamsMock.params = {};
 
 	alertMock.mockClear().mockImplementation(() => {});
-	fetchMock.mockClear().mockImplementation(() => Promise.resolve({ 
-		ok: true, 
-		json: () => Promise.resolve({}),
-		text: () => Promise.resolve(""),
-		blob: () => Promise.resolve(new Blob())
-	}));
+	fetchMock.mockClear().mockImplementation(() => Promise.resolve(createFetchResponse(true, 200, {})));
 };
 
 mocks.resetAll = resetAll;

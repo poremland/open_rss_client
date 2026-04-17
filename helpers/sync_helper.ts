@@ -30,9 +30,7 @@ const SYNC_QUEUE_KEY = 'sync_queue';
 // Use a local array for shared state in tests
 // Using globalThis for reliable sharing in CI isolates
 const g = (globalThis as any);
-if (!g.localSyncQueue) {
-	g.localSyncQueue = [];
-}
+g.localSyncQueue = g.localSyncQueue || [];
 let localQueue: SyncAction[] = g.localSyncQueue;
 
 export const queueAction = async (action: Omit<SyncAction, 'timestamp'>): Promise<void> => {
@@ -46,9 +44,10 @@ export const queueAction = async (action: Omit<SyncAction, 'timestamp'>): Promis
 		localQueue.push(fullAction);
 
 		// Persist for later
-		const storedQueue = await getQueue();
-		storedQueue.push(fullAction);
-		await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(storedQueue));
+		const stored = await AsyncStorage.getItem(SYNC_QUEUE_KEY);
+		const queue = stored ? JSON.parse(stored) : [];
+		queue.push(fullAction);
+		await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
 	} catch (e) {
 		console.error('Error queuing sync action:', e);
 	}
@@ -58,11 +57,9 @@ export const getQueue = async (): Promise<SyncAction[]> => {
 	try {
 		const stored = await AsyncStorage.getItem(SYNC_QUEUE_KEY);
 		if (stored) {
-			const queue = JSON.parse(stored);
-			// Merge with local queue if needed, or just return local in tests
-			return queue;
+			return JSON.parse(stored);
 		}
-		return localQueue;
+		return [...localQueue];
 	} catch (e) {
 		console.error('Error getting sync queue:', e);
 		return [];
@@ -75,5 +72,15 @@ export const clearQueue = async (): Promise<void> => {
 		await AsyncStorage.removeItem(SYNC_QUEUE_KEY);
 	} catch (e) {
 		console.error('Error clearing sync queue:', e);
+	}
+};
+
+export const replaceQueue = async (actions: SyncAction[]): Promise<void> => {
+	try {
+		localQueue.length = 0;
+		actions.forEach(a => localQueue.push(a));
+		await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(actions));
+	} catch (e) {
+		console.error('Error replacing sync queue:', e);
 	}
 };

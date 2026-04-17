@@ -88,13 +88,22 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: Arr
 		if (tree) {
 			const updatedTree = tree.map(entry => {
 				if (entry.feed.id.toString() === feedId.toString()) {
+					const currentCount = entry.feed.count !== undefined ? entry.feed.count : entry.unread_count;
+					const newCount = currentCount !== undefined ? Math.max(0, currentCount - itemIds.length) : undefined;
 					return {
 						...entry,
-						unread_count: Math.max(0, (entry.unread_count || 0) - itemIds.length)
+						unread_count: newCount,
+						feed: {
+							...entry.feed,
+							count: newCount
+						}
 					};
 				}
 				return entry;
-			}).filter(entry => entry.unread_count > 0);
+			}).filter(entry => {
+				const count = entry.feed.count !== undefined ? entry.feed.count : entry.unread_count;
+				return count === undefined || count > 0;
+			});
 			await setCache(treePath, updatedTree);
 		}
 	} catch (e) {
@@ -105,7 +114,7 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: Arr
 export const markAllItemsReadInCache = async (feedId: string | number): Promise<void> => {
 	try {
 		const path = `/feeds/${feedId}.json`;
-		await clearCache(path);
+		await setCache(path, []);
 
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';

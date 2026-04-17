@@ -173,7 +173,7 @@ describe("ManageFeedsListScreen", () => {
 			canceled: false,
 			assets: [{ uri: mockFileUri }]
 		});
-		mocks.api.readTextFile.mockResolvedValue("<opml>test</opml>");
+		mocks.api.readTextFile.mockResolvedValue("<opml><body><outline text='test'/></body></opml>");
 		const mockImportResponse = { message: "Import started", count: 5 };
 		mocks.api.importOpml.mockResolvedValue(mockImportResponse);
 

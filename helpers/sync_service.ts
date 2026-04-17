@@ -40,9 +40,9 @@ export const syncService = {
 						if (action.type === 'GET') {
 							await api.getWithAuth(action.path);
 						} else if (action.type === 'POST') {
-							await api.postWithAuth(action.path, action.body, action.contentType);
+							await api.postWithAuth(action.path, action.body);
 						} else if (action.type === 'PUT') {
-							await api.putWithAuth(action.path, action.body, action.contentType);
+							await api.putWithAuth(action.path, action.body);
 						}
 						console.log(`Sync service: success ${action.type} ${action.path}`);
 					} catch (e) {
@@ -51,10 +51,7 @@ export const syncService = {
 					}
 				}
 
-				await syncHelper.clearQueue();
-				for (const action of remainingQueue) {
-					await syncHelper.queueAction(action);
-				}
+				await syncHelper.replaceQueue(remainingQueue);
 				console.log(`Sync service: queue processed, ${remainingQueue.length} items remaining`);
 			}
 

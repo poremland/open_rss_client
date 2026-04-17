@@ -16,386 +16,390 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { File, Paths, Directory } from "expo-file-system";
-import * as Sharing from "expo-sharing";
-import * as Haptics from "expo-haptics";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 
 export interface ApiDeps {
-	storage: typeof AsyncStorage;
-	fetch: typeof fetch;
-	sharing: typeof Sharing;
-	haptics: typeof Haptics;
-	platform: typeof Platform;
-	file: typeof File;
-	paths: typeof Paths;
-	directory: typeof Directory;
-	blob: typeof Blob;
+	storage: {
+		getItem: (key: string) => Promise<string | null>;
+		setItem: (key: string, value: string) => Promise<void>;
+	};
+	fetch?: typeof fetch;
 }
 
 export class Api {
-	deps: ApiDeps = {
-		storage: AsyncStorage,
-		fetch: fetch.bind(globalThis),
-		sharing: Sharing,
-		haptics: Haptics,
-		platform: Platform,
-		file: File,
-		paths: Paths,
-		directory: Directory,
-		blob: globalThis.Blob,
-	};
+	private _deps: ApiDeps | undefined;
 
-	setDeps(deps: Partial<ApiDeps>) {
-		this.deps = { ...this.deps, ...deps };
+	constructor(deps?: ApiDeps) {
+		this._deps = deps;
 	}
 
-	private handleResponse = async (response: Response) => {
-		if (response.status === 401) {
-			throw new Error("Session expired");
+	private get deps(): ApiDeps {
+		if (this._deps) return this._deps;
+		const g = (globalThis as any);
+		return {
+			storage: g.AsyncStorage || AsyncStorage,
+			fetch: g.fetch || fetch,
+		};
+	}
+
+	private get fetch(): typeof fetch {
+		return this.deps.fetch || fetch;
+	}
+
+	setDeps(deps: ApiDeps) {
+		this._deps = deps;
+	}
+
+	getBaseUrl = async () => {
+		return await this.deps.storage.getItem('serverUrl');
+	};
+
+	post = async <T>(url: string, body: any, contentType: string = 'application/x-www-form-urlencoded'): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.post) return g.apiMocks.post(url, body, contentType);
+
+		const baseUrl = await this.getBaseUrl();
+		let formattedBody = body;
+
+		if (contentType === 'application/x-www-form-urlencoded') {
+			formattedBody = Object.keys(body)
+				.map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(body[key]))
+				.join('&');
+		} else if (contentType === 'application/json') {
+			formattedBody = JSON.stringify(body);
 		}
+
+		const response = await this.fetch(`${baseUrl}${url}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': contentType,
+				'Accept': 'application/json',
+			},
+			body: formattedBody,
+		});
+
+		if (response.status === 401) {
+			throw new Error('Session expired');
+		}
+
 		if (!response.ok) {
 			const errorText = await response.text();
-			throw new Error(
-				`Request failed with status ${response.status}: ${errorText}`,
-			);
+			throw new Error(`Request failed with status ${response.status}: ${errorText}`);
 		}
 
-		const contentType = response.headers.get("content-type");
-		if (contentType && contentType.includes("application/json")) {
+		const responseContentType = response.headers.get('content-type');
+		if (responseContentType && responseContentType.includes('application/json')) {
 			return await response.json();
 		}
-		return await response.text();
+		return (await response.text()) as unknown as T;
 	};
 
-	private getBaseUrl = async (): Promise<string> => {
-		const storedUrl = await this.deps.storage.getItem("serverUrl");
-		return storedUrl || "";
+	postWithAuth = async <T>(url: string, body: any, contentType: string = 'application/x-www-form-urlencoded'): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.postWithAuth) return g.apiMocks.postWithAuth(url, body, contentType);
+
+		const baseUrl = await this.getBaseUrl();
+		const authToken = await this.deps.storage.getItem('authToken');
+
+		if (!authToken) {
+			throw new Error('No authentication token found.');
+		}
+
+		let formattedBody = body;
+		if (contentType === 'application/x-www-form-urlencoded') {
+			formattedBody = Object.keys(body)
+				.map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(body[key]))
+				.join('&');
+		} else if (contentType === 'application/json') {
+			formattedBody = JSON.stringify(body);
+		}
+
+		const response = await this.fetch(`${baseUrl}${url}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': contentType,
+				'Accept': 'application/json',
+				'Authorization': `Bearer ${authToken}`,
+			},
+			body: formattedBody,
+		});
+
+		if (response.status === 401) {
+			throw new Error('Session expired');
+		}
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+		}
+
+		const responseContentType = response.headers.get('content-type');
+		if (responseContentType && responseContentType.includes('application/json')) {
+			return await response.json();
+		}
+		return (await response.text()) as unknown as T;
 	};
 
-	private requestWithRetry = async (
-		url: string,
-		options: RequestInit,
-		retries = 3,
-	) => {
-		let lastError;
-		for (let i = 0; i < retries; i++) {
+	get = async <T>(url: string): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.get) return g.apiMocks.get(url);
+
+		const baseUrl = await this.getBaseUrl();
+		const authToken = await this.deps.storage.getItem('authToken');
+		const headers: any = {};
+		if (authToken) {
+			headers['Authorization'] = `Bearer ${authToken}`;
+			headers['Content-Type'] = 'application/json';
+			headers['Accept'] = 'application/json';
+		}
+
+		let lastError: any;
+		for (let i = 0; i < 3; i++) {
 			try {
-				const response = await this.deps.fetch(url, options);
-				return this.handleResponse(response);
-			} catch (error) {
-				lastError = error;
-				if (i < retries - 1) {
-				        await new Promise((resolve) => setTimeout(resolve, 200 * (i + 1)));
+				const response = await this.fetch(`${baseUrl}${url}`, {
+					method: 'GET',
+					headers,
+				});
+
+				if (response.status === 401) {
+					throw new Error('Session expired');
 				}
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+				}
+
+				const responseContentType = response.headers.get('content-type');
+				if (responseContentType && responseContentType.includes('application/json')) {
+					return await response.json();
+				}
+				return (await response.text()) as unknown as T;
+			} catch (e) {
+				lastError = e;
+				if (i < 2) await new Promise((resolve) => setTimeout(resolve, 200));
 			}
 		}
 		throw lastError;
 	};
 
-	post = async (url: string, body: any) => {
-		const baseUrl = await this.getBaseUrl();
-		const response = await this.deps.fetch(`${baseUrl}${url}`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				Accept: "application/json",
-			},
-			body: Object.keys(body)
-				.map(
-				        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
-				)
-				.join("&"),
-		});
-		return this.handleResponse(response);
-	};
-
-	postWithAuth = async <T>(
-		url: string,
-		body: any,
-		contentType: string = "application/x-www-form-urlencoded",
-	): Promise<T> => {
-		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
-
-		if (!authToken) {
-			throw new Error("No authentication token found.");
-		}
-
-		const headers: HeadersInit = {
-			Authorization: `Bearer ${authToken}`,
-			Accept: "application/json",
-		};
-
-		let requestBody: string | FormData;
-
-		if (contentType === "application/json") {
-			headers["Content-Type"] = "application/json";
-			requestBody = JSON.stringify(body);
-		} else {
-			headers["Content-Type"] = "application/x-www-form-urlencoded";
-			requestBody = Object.keys(body)
-				.map(
-				        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
-				)
-				.join("&");
-		}
-
-		const response = await this.deps.fetch(`${baseUrl}${url}`, {
-			method: "POST",
-			headers: headers,
-			body: requestBody,
-		});
-		return this.handleResponse(response) as Promise<T>;
-	};
-
-	get = async <T>(url: string): Promise<T> => {
-		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
-		const headers: HeadersInit = {};
-		if (authToken) {
-			headers["Authorization"] = `Bearer ${authToken}`;
-			headers["Content-Type"] = "application/json";
-			headers["Accept"] = "application/json";
-		}
-		return this.requestWithRetry(`${baseUrl}${url}`, {
-			method: "GET",
-			headers: headers,
-		}) as Promise<T>;
-	};
-
 	getWithAuth = async <T>(url: string): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.getWithAuth) return g.apiMocks.getWithAuth(url);
+
 		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
+		const authToken = await this.deps.storage.getItem('authToken');
+
 		if (!authToken) {
-			throw new Error("No authentication token found.");
+			throw new Error('No authentication token found.');
 		}
-		return this.requestWithRetry(`${baseUrl}${url}`, {
-			method: "GET",
-			headers: {
-				Authorization: `Bearer ${authToken}`,
-				"Content-Type": "application/json",
-				Accept: "application/json",
-			},
-		}) as Promise<T>;
+
+		let lastError: any;
+		for (let i = 0; i < 3; i++) {
+			try {
+				const response = await this.fetch(`${baseUrl}${url}`, {
+					method: 'GET',
+					headers: {
+						'Authorization': `Bearer ${authToken}`,
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+					},
+				});
+
+				if (response.status === 401) {
+					throw new Error('Session expired');
+				}
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+				}
+
+				const responseContentType = response.headers.get('content-type');
+				if (responseContentType && responseContentType.includes('application/json')) {
+					return await response.json();
+				}
+				return (await response.text()) as unknown as T;
+			} catch (e) {
+				lastError = e;
+				if (i < 2) await new Promise((resolve) => setTimeout(resolve, 200));
+			}
+		}
+		throw lastError;
 	};
 
 	getBlobWithAuth = async (url: string): Promise<Blob> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.getBlobWithAuth) return g.apiMocks.getBlobWithAuth(url);
+
 		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
+		const authToken = await this.deps.storage.getItem('authToken');
+
 		if (!authToken) {
-			throw new Error("No authentication token found.");
+			throw new Error('No authentication token found.');
 		}
-		const response = await this.deps.fetch(`${baseUrl}${url}`, {
-			method: "GET",
+
+		const response = await this.fetch(`${baseUrl}${url}`, {
+			method: 'GET',
 			headers: {
-				Authorization: `Bearer ${authToken}`,
+				'Authorization': `Bearer ${authToken}`,
 			},
 		});
 
 		if (response.status === 401) {
-			throw new Error("Session expired");
+			throw new Error('Session expired');
 		}
+
 		if (!response.ok) {
 			const errorText = await response.text();
-			throw new Error(
-				`Request failed with status ${response.status}: ${errorText}`,
-			);
+			throw new Error(`Request failed with status ${response.status}: ${errorText}`);
 		}
-		return response.blob();
-	};
 
-	readTextFile = async (fileUri: string): Promise<string> => {
-		if (this.deps.platform.OS === "web") {
-			const response = await fetch(fileUri);
-			return await response.text();
-		}
-		const file = new (this.deps.file)(fileUri);
-		return await file.text();
+		return await response.blob();
 	};
 
 	exportOpml = async (): Promise<void> => {
-		const text = await this.getWithAuth<string>("/feeds/export");
-		const filename = `subscriptions_${new Date().getTime()}.opml`;
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.exportOpml) return g.apiMocks.exportOpml();
 
-		if (this.deps.platform.OS === "web") {
-			const blob = new (this.deps.blob)([text], { type: "text/x-opml" });
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement("a");
+		const opmlText = await this.getWithAuth<string>('/feeds/export');
+
+		if (Platform.OS === 'web') {
+			const blob = new Blob([opmlText], { type: 'text/xml' });
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
 			a.href = url;
-			a.setAttribute("download", filename);
-			a.style.display = "none";
-			document.body.appendChild(a);
+			a.download = 'subscriptions.opml';
 			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
-		} else if (this.deps.platform.OS === "android") {
-			const directory = await this.deps.directory.pickDirectoryAsync();
-			if (!directory) return;
-
-			const file = directory.createFile(filename, "text/x-opml");
-			await file.write(text);
-		} else {
-			const file = new (this.deps.file)(this.deps.paths.cache, filename);
-			await file.write(text);
-			await this.deps.sharing.shareAsync(file.uri, {
-				mimeType: "text/x-opml",
-				dialogTitle: "Export Subscriptions",
-				UTI: "public.xml",
-			});
-		}
-		if (this.deps.haptics.notificationAsync && this.deps.platform.OS !== "web") {
-			await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
+			window.URL.revokeObjectURL(url);
+		} else if (Platform.OS === 'ios') {
+			const fileUri = `${FileSystem.cacheDirectory}subscriptions.opml`;
+			await FileSystem.writeAsStringAsync(fileUri, opmlText);
+			await Sharing.shareAsync(fileUri);
+		} else if (Platform.OS === 'android') {
+			const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+			if (permissions.granted) {
+				const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+					permissions.directoryUri,
+					'subscriptions.opml',
+					'text/xml'
+				);
+				await FileSystem.writeAsStringAsync(fileUri, opmlText);
+			}
 		}
 	};
 
-	importOpml = async <T>(fileUri: string): Promise<T> => {
-		let content: string;
-		if (this.deps.platform.OS === "web") {
-			const response = await fetch(fileUri);
-			content = await response.text();
-		} else {
-			// Ensure we have a clean local file URI by copying to cache using new API
-			const sourceFile = new (this.deps.file)(fileUri);
-			content = await sourceFile.text();
-		}
+	importOpml = async <T>(uri: string): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.importOpml) return g.apiMocks.importOpml(uri);
 
 		const formData = new FormData();
 
-		if (this.deps.platform.OS === "web") {
-			const blob = new (this.deps.blob)([content], { type: "text/x-opml" });
-			formData.append("file", blob, "subscriptions.opml");
+		if (Platform.OS === 'web') {
+			const response = await this.fetch(uri);
+			const blob = await response.blob();
+			formData.append('file', blob, 'subscriptions.opml');
 		} else {
-			const filename = `import_${new Date().getTime()}.opml`;
-			const cacheFile = new (this.deps.file)(this.deps.paths.cache, filename);
-			await cacheFile.write(content);
-
-			// @ts-ignore - React Native FormData.append accepts this object format for files
-			formData.append("file", {
-				uri: cacheFile.uri,
-				name: "subscriptions.opml",
-				type: "text/x-opml",
-			});
-
-			// We'll clean up later
-			const result = await this.postFormDataWithAuth<T>("/feeds/import", formData);
-			if (this.deps.haptics.notificationAsync) {
-				await this.deps.haptics.notificationAsync(this.deps.haptics.NotificationFeedbackType.Success);
-			}
-
-			// Clean up cache file
-			try { await cacheFile.delete(); } catch {}
-			return result;
+			formData.append('file', {
+				uri,
+				name: 'subscriptions.opml',
+				type: 'text/xml',
+			} as any);
 		}
 
-		const result = await this.postFormDataWithAuth<T>("/feeds/import", formData);
-		return result;
+		return await this.postFormDataWithAuth<T>('/feeds/import', formData);
+	};
+
+	readTextFile = async (uri: string): Promise<string> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.readTextFile) return g.apiMocks.readTextFile(uri);
+		return await FileSystem.readAsStringAsync(uri);
 	};
 
 	postFormDataWithAuth = async <T>(url: string, formData: FormData): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.postFormDataWithAuth) return g.apiMocks.postFormDataWithAuth(url, formData);
+
 		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
+		const authToken = await this.deps.storage.getItem('authToken');
 
 		if (!authToken) {
-			throw new Error("No authentication token found.");
+			throw new Error('No authentication token found.');
 		}
 
-		// Use XMLHttpRequest for multipart on Android to avoid SDK 54 fetch regressions
-		if (this.deps.platform.OS === "android") {
-			return new Promise((resolve, reject) => {
-				const xhr = new XMLHttpRequest();
-				xhr.open("POST", `${baseUrl}${url}`);
-				xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
-				xhr.setRequestHeader("Accept", "application/json");
-
-				xhr.onload = () => {
-				        if (xhr.status >= 200 && xhr.status < 300) {
-				                try {
-				                        resolve(JSON.parse(xhr.responseText) as T);
-				                } catch {
-				                        resolve(xhr.responseText as any as T);
-				                }
-				        } else {
-				                reject(new Error(`Request failed with status ${xhr.status}: ${xhr.responseText}`));
-				        }
-				};
-				xhr.onerror = () => reject(new Error("Network request failed"));
-				xhr.send(formData);
-			});
-		}
-
-		const response = await this.deps.fetch(`${baseUrl}${url}`, {
-			method: "POST",
+		const response = await this.fetch(`${baseUrl}${url}`, {
+			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${authToken}`,
-				"Accept": "application/json",
+				'Authorization': `Bearer ${authToken}`,
+				'Accept': 'application/json',
 			},
 			body: formData,
 		});
 
-		return this.handleResponse(response) as Promise<T>;
+		if (response.status === 401) {
+			throw new Error('Session expired');
+		}
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+		}
+
+		return await response.json();
 	};
 
-	putWithAuth = async (
-		url: string,
-		body: any,
-		contentType: string = "application/x-www-form-urlencoded",
-	) => {
+	putWithAuth = async <T>(url: string, body: any): Promise<T> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.putWithAuth) return g.apiMocks.putWithAuth(url, body);
+
 		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
+		const authToken = await this.deps.storage.getItem('authToken');
 
 		if (!authToken) {
-			throw new Error("No authentication token found.");
+			throw new Error('No authentication token found.');
 		}
 
-		const headers: HeadersInit = {
-			Authorization: `Bearer ${authToken}`,
-			Accept: "application/json",
-		};
-
-		let requestBody: string | FormData;
-
-		if (contentType === "application/json") {
-			headers["Content-Type"] = "application/json";
-			requestBody = JSON.stringify(body);
-		} else {
-			headers["Content-Type"] = "application/x-www-form-urlencoded";
-			requestBody = Object.keys(body)
-				.map(
-				        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`,
-				)
-				.join("&");
-		}
-
-		const response = await this.deps.fetch(`${baseUrl}${url}`, {
-			method: "PUT",
-			headers: headers,
-			body: requestBody,
-		});
-		return this.handleResponse(response);
-	};
-
-	refreshToken = async () => {
-		const baseUrl = await this.getBaseUrl();
-		const authToken = await this.deps.storage.getItem("authToken");
-
-		if (!authToken) {
-			throw new Error("No authentication token found.");
-		}
-
-		const response = await this.deps.fetch(`${baseUrl}/api/refresh_token`, {
-			method: "POST",
+		const response = await this.fetch(`${baseUrl}${url}`, {
+			method: 'PUT',
 			headers: {
-				Authorization: `Bearer ${authToken}`,
-				"Content-Type": "application/json",
-				Accept: "application/json",
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'Accept': 'application/json',
+				'Authorization': `Bearer ${authToken}`,
 			},
-			body: JSON.stringify({}),
+			body: Object.keys(body)
+				.map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(body[key]))
+				.join('&'),
 		});
 
-		const data = await this.handleResponse(response);
-		return data.token;
+		if (response.status === 401) {
+			throw new Error('Session expired');
+		}
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+		}
+
+		return await response.json();
+	};
+
+	refreshToken = async (): Promise<string | null> => {
+		const g = (globalThis as any);
+		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.refreshToken) return g.apiMocks.refreshToken();
+
+		try {
+			const response = await this.postWithAuth<{ token: string }>('/api/refresh_token', {});
+			if (response && response.token) {
+				await this.deps.storage.setItem('authToken', response.token);
+				return response.token;
+			}
+		} catch (e) {
+			console.error('Error refreshing token:', e);
+		}
+		return null;
 	};
 }
 

@@ -25,11 +25,9 @@ import { syncService } from "../helpers/sync_service";
 describe("syncService", () => {
 	let consoleSpy: any;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		mocks.resetAll();
-		if ((process as any).localSyncQueue) {
-			(process as any).localSyncQueue.length = 0;
-		}
+		await syncHelper.clearQueue();
 		consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 	});
 
@@ -54,7 +52,7 @@ describe("syncService", () => {
 		await syncService.synchronize();
 
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/test1");
-		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/test2", { foo: "bar" }, undefined);
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/test2", { foo: "bar" }, "application/x-www-form-urlencoded");
 
 		const queue = await syncHelper.getQueue();
 		expect(queue).toHaveLength(0);
@@ -95,6 +93,6 @@ describe("syncService", () => {
 		const queue = await syncHelper.getQueue();
 		expect(queue).toHaveLength(1);
 		expect(queue[0].path).toBe("/fail");
-		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/post-success", { foo: "bar" }, undefined);
+		expect(mocks.api.postWithAuth).toHaveBeenCalledWith("/post-success", { foo: "bar" }, "application/x-www-form-urlencoded");
 	});
 });
