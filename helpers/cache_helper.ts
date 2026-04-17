@@ -20,7 +20,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const getCacheKey = (url: string) => `cache:${url}`;
 
 // Module-level variable is shared among all importers in the same JS environment
-const localCacheMap = new Map<string, string>();
+const g = (globalThis as any);
+g.localCacheMap = g.localCacheMap || new Map<string, string>();
+const localCacheMap: Map<string, string> = g.localCacheMap;
 
 export const clearLocalCache = () => {
 	localCacheMap.clear();

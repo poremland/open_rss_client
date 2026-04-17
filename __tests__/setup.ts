@@ -18,6 +18,7 @@
 
 import { mock, expect } from "bun:test";
 import * as path from "path";
+import * as cacheHelper from "../helpers/cache_helper";
 
 // Silence react-test-renderer deprecation warning
 const originalWarn = console.warn;
