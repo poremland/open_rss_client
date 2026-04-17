@@ -274,6 +274,7 @@ export const networkMocks = {
 const connectionMock = {
 	get isConnected() { return sharedConnectionState.isConnected; },
 	set isConnected(v: boolean) {
+		console.error(`[setup.ts] Setting isConnected to: ${v}. Listeners count: ${sharedConnectionState.listeners.length}`);
 		sharedConnectionState.isConnected = v;
 		sharedConnectionState.listeners.forEach(l => l({ isConnected: v }));
 	},
