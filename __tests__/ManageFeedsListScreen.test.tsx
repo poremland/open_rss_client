@@ -40,10 +40,9 @@ describe("ManageFeedsListScreen", () => {
                 mocks.useConnectionStatusMock.isConnected = false;
                 const { getByText, queryByTestId } = render(<ManageFeedsListScreen />);
 
-                // Wait for the hook to update and setMenuItems to be called with the new handler
+                // Wait for the hook to update and setMenuItems to be called
                 await waitFor(() => {
                         expect(mocks.useMenu.setMenuItems).toHaveBeenCalled();
-                        expect(mocks.useMenu.setMenuItems.mock.calls.length).toBeGreaterThan(1);
                 });
 
                 const menuItems = mocks.useMenu.setMenuItems.mock.calls[mocks.useMenu.setMenuItems.mock.calls.length - 1][0];
