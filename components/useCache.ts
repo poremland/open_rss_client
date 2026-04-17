@@ -15,45 +15,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import { useCallback } from 'react';
+import * as cacheHelper from '../helpers/cache_helper';
 
-import { StyleSheet } from "react-native";
+export default function useCache() {
+	const getCache = useCallback(cacheHelper.getCache, []);
+	const setCache = useCallback(cacheHelper.setCache, []);
+	const clearCache = useCallback(cacheHelper.clearCache, []);
+	const markItemsReadInCache = useCallback(cacheHelper.markItemsReadInCache, []);
+	const markAllItemsReadInCache = useCallback(cacheHelper.markAllItemsReadInCache, []);
 
-export const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	title: {
-		fontSize: 24,
-		marginBottom: 20,
-		color: "#333",
-	},
-	input: {
-		width: "100%",
-		padding: 10,
-		marginBottom: 15,
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 5,
-		backgroundColor: "#fff",
-		fontSize: 16,
-	},
-	label: {
-		alignSelf: 'flex-start',
-		marginBottom: 5,
-		fontSize: 14,
-		fontWeight: 'bold',
-		color: '#555',
-	},
-	errorText: {
-		color: "red",
-		marginTop: 10,
-	},
-	logo: {
-		width: 100,
-		height: 100,
-		marginBottom: 30,
-	},
-});
+	return {
+	        getCache,
+	        setCache,
+	        clearCache,
+	        markItemsReadInCache,
+	        markAllItemsReadInCache,
+	};
+}

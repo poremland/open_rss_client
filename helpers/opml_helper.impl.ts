@@ -26,6 +26,9 @@
  * @returns true if valid, throws an error otherwise.
  */
 export const validateOpmlFile = async (content: string): Promise<boolean> => {
+	const g = (globalThis as any);
+	if (g.opmlMocks && g.opmlMocks.validateOpmlFile) return g.opmlMocks.validateOpmlFile(content);
+
 	const trimmed = content.trim();
 
 	// Very basic XML check

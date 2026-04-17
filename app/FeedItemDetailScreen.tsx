@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Platform, Linking, Share, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
@@ -32,12 +32,26 @@ import * as Clipboard from "expo-clipboard";
 import Screen from "../components/Screen";
 import { styles } from "../styles/FeedItemDetailScreen.styles";
 
+import useCache from "../components/useCache";
+
 const FeedItemDetailScreen: React.FC = () => {
-	const [webViewSource, setWebViewSource] = useState<string>("");
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const { feedItemId } = useLocalSearchParams<{ feedItemId: string }>();
+	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{ 
+		feedItemId: string;
+		feedItem?: string;
+	}>();
+	const initialData = useMemo(() => {
+		try {
+			return feedItemParam ? JSON.parse(feedItemParam) as FeedItem : undefined;
+		} catch (e) {
+			console.error("Error parsing feedItem param:", e);
+			return undefined;
+		}
+	}, [feedItemParam]);
+
+	const { getCache, setCache, markItemsReadInCache } = useCache();
 	const {
 		data: selectedFeedItem,
 		loading,
@@ -46,6 +60,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	} = useApi<FeedItem>(
 		"get",
 		feedItemId ? `/feed_items/${feedItemId}.json` : "",
+		{ useCache: true, initialData },
 	);
 
 	useEffect(() => {
@@ -54,18 +69,30 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	const { execute: markItemAsRead } = useApi(
 		"get",
-		selectedFeedItem
+		selectedFeedItem?.id
 			? `/feed_items/mark_as_read/${selectedFeedItem.id}.json`
 			: "",
+		{ shouldQueue: true },
 	);
 
 	const handleMarkAsRead = useCallback(async () => {
-		if (selectedFeedItem) {
-			await markItemAsRead();
-			router.back();
-			router.setParams({ removedItemId: selectedFeedItem.id.toString() });
+		const item = selectedFeedItem;
+		if (!item?.id) return;
+		
+		const response = await markItemAsRead();
+		if (response && (response as any).queued) {
+			await markItemsReadInCache(item.feed_id!, [item.id]);
 		}
-	}, [selectedFeedItem, markItemAsRead, router]);
+		router.back();
+		if (item?.id) {
+			router.setParams({ removedItemId: item.id.toString() });
+		}
+	}, [selectedFeedItem, markItemAsRead, router, markItemsReadInCache]);
+
+	const markAsReadHandlerRef = useRef(handleMarkAsRead);
+	useEffect(() => {
+		markAsReadHandlerRef.current = handleMarkAsRead;
+	}, [handleMarkAsRead]);
 
 	const handleShare = useCallback(async () => {
 		if (selectedFeedItem) {
@@ -83,65 +110,67 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [selectedFeedItem]);
 
+	const shareHandlerRef = useRef(handleShare);
+	useEffect(() => {
+		shareHandlerRef.current = handleShare;
+	}, [handleShare]);
+
 	const { setMenuItems, onToggleDropdown } = useMenu();
 
-	useFocusEffect(
-		useCallback(() => {
-			if (!isFocused) return;
+	useEffect(() => {
+		if (!isFocused) return;
 
-			const menuItems: MenuItem[] = [
-				{
-					label: "Mark As Read",
-					icon: "checkmark-sharp",
-					onPress: handleMarkAsRead,
-					testID: "mark-as-read-button",
-				},
-				{
-					label: "Open Full Site",
-					icon: "open-outline",
-					onPress: () =>
-						selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
-				},
-				{
-					label: "Share",
-					icon: "share-social-outline",
-					onPress: handleShare,
-				},
-				{
-					label: "Log-out",
-					icon: "log-out-outline",
-					onPress: () => authHelper.clearAuthData(router),
-				},
-			];
-			setMenuItems(menuItems);
-		}, [isFocused, handleMarkAsRead, handleShare, router, selectedFeedItem, setMenuItems]),
-	);
+		const menuItems: MenuItem[] = [
+			{
+				label: "Mark As Read",
+				icon: "checkmark-sharp",
+				onPress: () => markAsReadHandlerRef.current(),
+				testID: "mark-as-read-button",
+			},
+			{
+				label: "Open Full Site",
+				icon: "open-outline",
+				onPress: () =>
+					selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
+			},
+			{
+				label: "Share",
+				icon: "share-social-outline",
+				onPress: () => shareHandlerRef.current(),
+			},
+			{
+				label: "Log-out",
+				icon: "log-out-outline",
+				onPress: () => authHelper.clearAuthData(router),
+			},
+		];
+		setMenuItems(menuItems);
+	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
+
+	const webViewSource = useMemo(() => {
+		if (!selectedFeedItem) return "";
+		const decodedItem = { ...selectedFeedItem };
+		decodedItem.title = decode(decodedItem.title || "");
+		const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
+		if (Platform.OS === "web") {
+			return `data:text/html;charset=utf-8,${encodeURIComponent(staticHtml)}`;
+		}
+		return staticHtml;
+	}, [selectedFeedItem?.id]); // Use id to avoid re-calculating on every object change
 
 	useEffect(() => {
-		if (selectedFeedItem) {
-			const decodedItem = { ...selectedFeedItem };
-			decodedItem.title = decode(decodedItem.title || "");
-			// The following styles are for the HTML content displayed in the WebView and cannot be moved to a React Native stylesheet.
-			const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
-			if (Platform.OS === "web") {
-				setWebViewSource(
-					`data:text/html;charset=utf-8,${encodeURIComponent(staticHtml)}`,
-				);
-			} else {
-				setWebViewSource(staticHtml);
-			}
-		} else if (!loading && !selectedFeedItem && !feedItemId) {
+		if (!selectedFeedItem && !loading && !feedItemId) {
 			navigation.goBack();
 		}
 
 		navigation.setOptions({
-			headerTitle: selectedFeedItem?.title || "Feed Item",
+			headerTitle: selectedFeedItem?.title ? decode(selectedFeedItem.title) : "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
 			),
 		});
 	}, [
-		selectedFeedItem,
+		selectedFeedItem?.id, // Use id here too
 		loading,
 		feedItemId,
 		navigation,

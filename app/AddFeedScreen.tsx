@@ -33,69 +33,86 @@ import { auth } from "../helpers/auth_helper";
 import { NewFeedResponse } from "../models/Feed";
 import Screen from "../components/Screen";
 import { styles } from "../styles/AddFeedScreen.styles";
+import useConnectionStatus from "../components/useConnectionStatus";
 
 const AddFeedScreen: React.FC = () => {
-	const [feedName, setFeedName] = useState<string>("");
-	const [feedUri, setFeedUri] = useState<string>("");
-	const navigation = useNavigation();
-	const {
-		loading,
-		error,
-		execute: addFeed,
-	} = useApi<NewFeedResponse>("post", "/feeds/create");
+        const [feedName, setFeedName] = useState<string>("");
+        const [feedUri, setFeedUri] = useState<string>("");
+        const navigation = useNavigation();
+        const { isConnected } = useConnectionStatus();
+        const {
+                loading,
+                error,
+                execute: addFeed,
+        } = useApi<NewFeedResponse>("post", "/feeds/create");
 
-	const handleAddFeed = useCallback(async () => {
-		const user = await auth.getUser();
-		const body = {
-			"feed[uri]": String(feedUri),
-			"feed[name]": String(feedName),
-			"feed[user]": String(user),
-		};
-		const response = await addFeed(body);
+        const handleAddFeed = useCallback(async () => {
+                if (!isConnected) {
+                        return;
+                }
 
-		if (response?.id && response.id > 0) {
-			navigation.goBack();
-		}
-	}, [feedUri, feedName, addFeed, navigation]);
+                const user = await auth.getUser();
+                const body = {
+                        feed: {
+                                uri: String(feedUri),
+                                name: String(feedName),
+                                user: String(user),
+                        }
+                };
+                const response = await addFeed(body);
 
-	return (
-		<Screen loading={loading} error={error}>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				style={{ flex: 1 }}
-				keyboardVerticalOffset={100}
-			>
-				<ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-					<View style={styles.container}>
-						<Image
-							source={require("../assets/images/icon.png")}
-							style={styles.logo}
-						/>
-						<Text style={styles.title}>Open RSS Client</Text>
-						<TextInput
-							style={styles.input}
-							placeholder="FeedName"
-							testID="feedNameInput"
-							value={feedName}
-							onChangeText={setFeedName}
-						/>
-						<TextInput
-							style={styles.input}
-							placeholder="FeedUri"
-							testID="feedUriInput"
-							value={feedUri}
-							onChangeText={setFeedUri}
-						/>
-						<Button
-							title="Add Feed"
-							testID="addFeedButton"
-							onPress={handleAddFeed}
-						/>
-					</View>
-				</ScrollView>
-			</KeyboardAvoidingView>
-		</Screen>
-	);
+                if (response?.id && response.id > 0) {
+                        navigation.goBack();
+                }
+        }, [feedUri, feedName, addFeed, navigation, isConnected]);
+
+        return (
+                <Screen loading={loading} error={error}>
+                        <KeyboardAvoidingView
+                                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                                style={{ flex: 1 }}
+                                keyboardVerticalOffset={100}
+                        >
+                                <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+                                        <View style={styles.container}>
+                                                <Image
+                                                        source={require("../assets/images/icon.png")}
+                                                        style={styles.logo}
+                                                />
+                                                <Text style={styles.title}>Open RSS Client</Text>
+                                                {!isConnected && (
+                                                        <Text style={{ color: '#FF3B30', textAlign: 'center', marginBottom: 10 }}>
+                                                                You are offline. Adding feeds is disabled.
+                                                        </Text>
+                                                )}
+                                                <Text style={styles.label}>Feed Name</Text>
+                                                <TextInput
+                                                        style={styles.input}
+                                                        placeholder="e.g. My Favorite Blog"
+                                                        testID="feedNameInput"
+                                                        value={feedName}
+                                                        onChangeText={setFeedName}
+                                                        editable={isConnected}
+                                                />
+                                                <Text style={styles.label}>Feed URL</Text>
+                                                <TextInput
+                                                        style={styles.input}
+                                                        placeholder="https://example.com/rss.xml"
+                                                        testID="feedUriInput"
+                                                        value={feedUri}
+                                                        onChangeText={setFeedUri}
+                                                        editable={isConnected}
+                                                />
+                                                <Button
+                                                        title="Add Feed"
+                                                        testID="addFeedButton"
+                                                        onPress={handleAddFeed}
+                                                        disabled={!isConnected}
+                                                />
+                                        </View>
+                                </ScrollView>
+                        </KeyboardAvoidingView>
+                </Screen>
+        );
 };
-
 export default AddFeedScreen;

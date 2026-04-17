@@ -15,25 +15,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-import { expect, describe, it, beforeEach } from "bun:test";
-import { validateOpmlFile } from "../../helpers/opml_helper.impl";
-import { resetAll } from "../mocks";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { validateOpmlFile } from "../../helpers/opml_helper";
 
 describe("OPML Helper", () => {
 	beforeEach(() => {
-		resetAll();
+		(globalThis as any).__disableOpmlMock = true;
+	});
+
+	afterEach(() => {
+		(globalThis as any).__disableOpmlMock = false;
 	});
 
 	it("should return true for a valid OPML string", async () => {
 		const validOpml = `
 			<?xml version="1.0" encoding="UTF-8"?>
-			<opml version="2.0">
+			<opml version="1.0">
 				<head>
-				        <title>Subscriptions</title>
+					<title>Subscriptions</title>
 				</head>
 				<body>
-				        <outline text="Feed 1" type="rss" xmlUrl="http://feed1.com" />
+					<outline text="Example Feed" title="Example Feed" type="rss" xmlUrl="https://example.com/rss" htmlUrl="https://example.com" />
 				</body>
 			</opml>
 		`;
@@ -44,9 +46,9 @@ describe("OPML Helper", () => {
 
 	it("should return true for OPML without head", async () => {
 		const validOpml = `
-			<opml version="2.0">
+			<opml version="1.0">
 				<body>
-				        <outline text="Feed 1" type="rss" xmlUrl="http://feed1.com" />
+					<outline text="Example Feed" title="Example Feed" type="rss" xmlUrl="https://example.com/rss" htmlUrl="https://example.com" />
 				</body>
 			</opml>
 		`;
@@ -74,7 +76,7 @@ describe("OPML Helper", () => {
 
 	it("should throw an error if <body> is missing", async () => {
 		const missingBody = `
-			<opml version="2.0">
+			<opml version="1.0">
 				<head></head>
 			</opml>
 		`;
@@ -84,7 +86,7 @@ describe("OPML Helper", () => {
 
 	it("should throw an error if no <outline> elements are found", async () => {
 		const emptyBody = `
-			<opml version="2.0">
+			<opml version="1.0">
 				<body></body>
 			</opml>
 		`;

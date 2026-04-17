@@ -15,35 +15,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { mock, expect, describe, it, beforeEach } from "bun:test";
-import { resolveModule } from "./setup";
-
-const storageMap = new Map();
-const asyncStorageMock = {
-	setItem: mock(async (k: string, v: any) => { storageMap.set(k, String(v)); }),
-	getItem: mock(async (k: string) => { 
-		const val = storageMap.get(k);
-		return val === undefined ? null : val;
-	}),
-	removeItem: mock(async (k: string) => { storageMap.delete(k); }),
-	clear: mock(async () => { storageMap.clear(); }),
-};
-
-mock.module("@react-native-async-storage/async-storage", () => ({
-	default: asyncStorageMock,
-	__esModule: true,
-}));
-
 import "./setup";
 import { mocks } from "./setup";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import LoginScreen from "../app/index";
 
+const fetchMock = mocks.fetch;
+const createFetchResponse = mocks.createFetchResponse;
+const storageMap = mocks.storageMap;
+
 describe("Login Screen", () => {
 	beforeEach(async () => {
 		mocks.resetAll();
-		storageMap.clear();
 	});
 
 	it("should render the server URL input", async () => {
@@ -69,10 +54,7 @@ describe("Login Screen", () => {
 		fireEvent.changeText(urlInput, "http://test-server.com");
 		fireEvent.changeText(usernameInput, "testuser");
 
-		mocks.fetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ status: "ok" }),
-		});
+		fetchMock.mockResolvedValueOnce(createFetchResponse(true, 200, { status: "ok" }));
 
 		fireEvent.press(otpButton);
 
@@ -90,10 +72,7 @@ describe("Login Screen", () => {
 		fireEvent.changeText(urlInput, "http://test-server.com");
 		fireEvent.changeText(usernameInput, "testuser");
 
-		mocks.fetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ status: "ok" }),
-		});
+		fetchMock.mockResolvedValueOnce(createFetchResponse(true, 200, { status: "ok" }));
 
 		fireEvent.press(otpButton);
 
@@ -106,14 +85,8 @@ describe("Login Screen", () => {
 
 		fireEvent.changeText(otpInput, "123456");
 
-		mocks.fetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ status: "ok" }),
-		});
-		mocks.fetch.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({ status: "error", message: "Invalid OTP" }),
-		});
+		fetchMock.mockResolvedValueOnce(createFetchResponse(true, 200, { status: "ok" }));
+		fetchMock.mockResolvedValueOnce(createFetchResponse(true, 200, { status: "error", message: "Invalid OTP" }));
 
 		fireEvent.press(loginButton);
 

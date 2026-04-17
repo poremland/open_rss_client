@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fs from "fs";
-import path from "path";
+const fs = require("fs");
+const path = require("path");
 
 module.exports = ({ config }) => {
 	// This function will be executed after the "publish" step but before the build.
@@ -50,6 +50,7 @@ module.exports = ({ config }) => {
 
 	// Inject the Android keystore configuration
 	baseConfig.android = {
+		...baseConfig.android,
 		useProguard: true,
 		package: "open.rss.client",
 		build: {
@@ -67,9 +68,34 @@ module.exports = ({ config }) => {
 		},
 	};
 
-	// Write the modified configuration to app.json
-	fs.writeFileSync(path.join(__dirname, "app.json"), JSON.stringify(baseConfig, null, 2));
+	// Merge baseConfig into the provided config
+	const finalConfig = {
+		...config,
+		...baseConfig,
+	};
 
-	// Return the config that was loaded and modified
-	return baseConfig;
+	// ABI splits configuration
+	const { withAppBuildGradle } = require("@expo/config-plugins");
+
+	return withAppBuildGradle(finalConfig, (config) => {
+		if (config.modResults.language === "groovy") {
+			const splitsConfig = `
+	splits {
+		abi {
+			enable true
+			reset() // Clears all default ABIs
+			include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64' // Specify the ABIs you want to include
+			universalApk false // Set to true if you want a universal APK as well
+		}
+	}
+`;
+			if (!config.modResults.contents.includes("splits {")) {
+				config.modResults.contents = config.modResults.contents.replace(
+					/android\s*{/,
+					`android {${splitsConfig}`
+				);
+			}
+		}
+		return config;
+	});
 };

@@ -16,10 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { api } from "../helpers/api_helper";
 import { auth } from "../helpers/auth_helper";
 import { useRouter } from "expo-router";
+import * as Network from "expo-network";
+import useCache from "./useCache";
+import useConnectionStatus from "./useConnectionStatus";
+import * as syncHelper from "../helpers/sync_helper";
 
 export interface ApiResponse<T> {
 	data: T | null;
@@ -27,32 +31,105 @@ export interface ApiResponse<T> {
 	error: string | null;
 	execute: (body?: any) => Promise<T | null>;
 	setData: (data: T | null) => void;
+	isConnected: boolean;
 }
 
 interface UseApiOptions<T> {
 	initialData?: T;
+	useCache?: boolean;
+	shouldQueue?: boolean;
 }
 
 const useApi = <T,>(
 	method: string,
 	path: string,
 	options: UseApiOptions<T> = {},
-	contentType: string = "application/x-www-form-urlencoded",
+	contentType: string = "application/json",
 ): ApiResponse<T> => {
-	const [data, setData] = useState<T | null>(options.initialData || null);
+	const [data, setDataState] = useState<T | null>(options.initialData || null);
+	const dataRef = useRef<T | null>(options.initialData || null);
+	
+	const setData = useCallback((newData: T | null) => {
+		dataRef.current = newData;
+		setDataState(newData);
+	}, []);
+
+	// Sync initialData if it changes and we don't have data yet
+	useEffect(() => {
+		if (options.initialData && !dataRef.current) {
+			setData(options.initialData);
+		}
+	}, [options.initialData, setData]);
+
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
+	const { getCache, setCache } = useCache();
+	const { isConnected, updateConnectionStatus } = useConnectionStatus();
+
 
 	const execute = useCallback(
 		async (body?: any): Promise<T | null> => {
+			if (!path) return null;
+
+			const lowerMethod = method.toLowerCase();
+			const shouldCache = options.useCache !== false && lowerMethod === "get";
+			const shouldQueue = options.shouldQueue || lowerMethod === "post" || lowerMethod === "put";
+
+			// Re-check connection status to avoid race conditions
+			let currentIsConnected = isConnected;
+			if (currentIsConnected) {
+				try {
+					const state = await Network.getNetworkStateAsync();
+					if (state.isConnected !== undefined) {
+						currentIsConnected = state.isConnected;
+					}
+				} catch (e) {
+					console.error("Error checking network status:", e);
+				}
+			}
+
+			if (!currentIsConnected) {
+				if (shouldCache && !options.shouldQueue) {
+					const cachedData = await getCache<T>(path);
+					if (cachedData) {
+						setError(null);
+						setData(cachedData);
+						return cachedData;
+					}
+					if (dataRef.current) {
+						setError(null);
+						return dataRef.current;
+					}
+					setError("No cached data available offline");
+					return null;
+				} else if (shouldQueue) {
+					await syncHelper.queueAction({
+						type: method.toUpperCase(),
+						path,
+						body,
+						contentType,
+					});
+					return { queued: true } as any;
+				} else {
+					if (dataRef.current) {
+						setError(null);
+						return dataRef.current;
+					}
+					setError("App is offline");
+					return null;
+				}
+			}
+
 			setLoading(true);
 			setError(null);
 			try {
 				let result: T;
-				const lowerMethod = method.toLowerCase();
 				if (lowerMethod === "get") {
 					result = await api.getWithAuth<T>(path);
+					if (shouldCache) {
+						await setCache(path, result);
+					}
 				} else if (lowerMethod === "post") {
 					result = await api.postWithAuth<T>(path, body, contentType);
 				} else if (lowerMethod === "put") {
@@ -64,7 +141,42 @@ const useApi = <T,>(
 				return result;
 			} catch (err: any) {
 				const errorMessage = err.message || "An unknown error occurred";
+				
+				// If we get a network error, force an update of the connection status
+				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
+					if (updateConnectionStatus) {
+						await updateConnectionStatus();
+					}
+
+					// Fallback to queuing if we should and it failed due to network
+					if (shouldQueue) {
+						await syncHelper.queueAction({
+							type: method.toUpperCase(),
+							path,
+							body,
+							contentType,
+						});
+						return { queued: true } as any;
+					}
+				}
+
+				if (shouldCache) {
+					const cachedData = await getCache<T>(path);
+					if (cachedData) {
+						setError(null);
+						setData(cachedData);
+						return cachedData;
+					}
+				}
+
+				// If we already have data (from initialData or previous fetch), don't show error
+				if (dataRef.current) {
+					setError(null);
+					return dataRef.current;
+				}
+
 				setError(errorMessage);
+
 				if (errorMessage === "Session expired") {
 					await auth.handleSessionExpired(router);
 				}
@@ -73,7 +185,7 @@ const useApi = <T,>(
 				setLoading(false);
 			}
 		},
-		[method, path, contentType, router],
+		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache, updateConnectionStatus, setData],
 	);
 
 	return {
@@ -82,6 +194,7 @@ const useApi = <T,>(
 		error,
 		execute,
 		setData,
+		isConnected,
 	};
 };
 

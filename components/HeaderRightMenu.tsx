@@ -20,27 +20,29 @@ import React from "react";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/HeaderRightMenu.styles";
+import useConnectionStatus from "./useConnectionStatus";
 
 interface HeaderRightMenuProps {
-	onToggleDropdown: () => void;
+        onToggleDropdown: () => void;
 }
 
 const HeaderRightMenu: React.FC<HeaderRightMenuProps> = ({
-	onToggleDropdown,
+        onToggleDropdown,
 }) => {
-	return (
-		<TouchableOpacity
-			testID="menu"
-			onPress={onToggleDropdown}
-			style={styles.container}
-		>
-			<Ionicons
-				name="ellipsis-vertical"
-				size={styles.icon.fontSize}
-				color={styles.icon.color}
-			/>
-		</TouchableOpacity>
-	);
-};
+        const { isConnected } = useConnectionStatus();
 
+        return (
+                <TouchableOpacity
+                        testID="menu"
+                        onPress={onToggleDropdown}
+                        style={styles.container}
+                >
+                        <Ionicons
+                                name={isConnected ? "ellipsis-vertical" : "cloud-offline"}
+                                size={styles.icon.fontSize}
+                                color={isConnected ? styles.icon.color : "#FF3B30"}
+                        />
+                </TouchableOpacity>
+        );
+};
 export default HeaderRightMenu;

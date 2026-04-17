@@ -5,7 +5,7 @@ import React, {
 	useEffect,
 	useMemo,
 } from "react";
-import { View } from "react-native";
+import { View, Alert } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import useApi from "../components/useApi";
@@ -16,6 +16,9 @@ import { FeedItem } from "../models/FeedItem";
 import { useMenu, MenuItem } from "../components/GlobalDropdownMenu";
 import ListScreen from "../components/ListScreen";
 import FeedItemCard from "../components/FeedItemCard";
+import useConnectionStatus from "../components/useConnectionStatus";
+import useCache from "../components/useCache";
+import { syncService } from "../helpers/sync_service";
 
 const FeedItemListScreen: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -23,6 +26,7 @@ const FeedItemListScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
+	const { isConnected } = useConnectionStatus();
 	const listRef = useRef<{
 		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
@@ -53,46 +57,104 @@ const FeedItemListScreen: React.FC = () => {
 		selectedFeed ? `/feeds/remove/${selectedFeed.id}` : "",
 	);
 
+	const { markItemsReadInCache, markAllItemsReadInCache } = useCache();
+
 	const handleMarkSelectedAsRead = useCallback(
 		async (ids: number[]) => {
-			await markItemsAsRead({ items: JSON.stringify(ids) });
+			const response = await markItemsAsRead({ items: JSON.stringify(ids) });
 			setMultiSelectActive(false);
 			setSelectedItems([]);
+
+			if (response && (response as any).queued) {
+				const currentData = listRef.current?.getData() || [];
+				const newData = currentData.filter((item) => !ids.includes(item.id));
+				listRef.current?.setData(newData);
+				if (selectedFeed) {
+					await markItemsReadInCache(selectedFeed.id, ids);
+				}
+				if (newData.length === 0) {
+					navigation.goBack();
+				}
+				return;
+			}
+
 			const refreshedData = await listRef.current?.handleRefresh();
 			if (refreshedData?.length === 0) {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation],
+		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleSwipeMarkAsRead = useCallback(
 		async (item: FeedItem) => {
-			await markItemsAsRead({ items: JSON.stringify([item.id]) });
+			const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
+
+			if (response && (response as any).queued) {
+				const currentData = listRef.current?.getData() || [];
+				const newData = currentData.filter((i) => i.id !== item.id);
+				listRef.current?.setData(newData);
+				if (selectedFeed) {
+					await markItemsReadInCache(selectedFeed.id, [item.id]);
+				}
+				if (newData.length === 0) {
+					navigation.goBack();
+				}
+				return;
+			}
+
 			const refreshedData = await listRef.current?.handleRefresh();
 			if (refreshedData?.length === 0) {
 				navigation.goBack();
 			}
 		},
-		[markItemsAsRead, navigation],
+		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
-		const allItemIds = listRef.current?.getData()?.map((item) => item.id) || [];
-		await markItemsAsRead({ items: JSON.stringify(allItemIds) });
+		const currentData = listRef.current?.getData() || [];
+		const allItemIds = currentData.map((item) => item.id) || [];
+		const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
+
+		if (response && (response as any).queued) {
+			listRef.current?.setData([]);
+			if (selectedFeed) {
+				await markAllItemsReadInCache(selectedFeed.id);
+			}
+			navigation.goBack();
+			return;
+		}
+
 		navigation.goBack();
-	}, [markItemsAsRead, navigation]);
+	}, [markItemsAsRead, navigation, selectedFeed, markAllItemsReadInCache]);
+
+	const markAllAsReadRef = useRef(handleMarkAllAsRead);
+	useEffect(() => {
+		markAllAsReadRef.current = handleMarkAllAsRead;
+	}, [handleMarkAllAsRead]);
 
 	const handleDeleteFeed = useCallback(async () => {
+		if (!isConnected) {
+			Alert.alert("Offline", "Deleting feeds is disabled while offline.");
+			return;
+		}
 		await deleteFeed();
 		navigation.goBack();
-	}, [deleteFeed, navigation]);
+	}, [deleteFeed, navigation, isConnected]);
+
+	const deleteFeedRef = useRef(handleDeleteFeed);
+	useEffect(() => {
+		deleteFeedRef.current = handleDeleteFeed;
+	}, [handleDeleteFeed]);
 
 	const displayFeedItemDetails = useCallback(
 		(item: FeedItem) => {
 			router.push({
 				pathname: "/FeedItemDetailScreen",
-				params: { feedItemId: item.id.toString() },
+				params: { 
+					feedItemId: item.id.toString(),
+					feedItem: JSON.stringify(item),
+				},
 			});
 		},
 		[router],
@@ -115,18 +177,34 @@ const FeedItemListScreen: React.FC = () => {
 					navigation.goBack();
 				}
 			};
-			refreshAndCheck();
+
+			const performRefresh = () => {
+				if (syncService.isSynchronizing) {
+					console.log("FeedItemListScreen: Sync in progress, waiting for syncFinished to refresh");
+					const onSyncFinished = () => {
+						console.log("FeedItemListScreen: Sync finished, refreshing now");
+						refreshAndCheck();
+						syncService.off('syncFinished', onSyncFinished);
+					};
+					syncService.on('syncFinished', onSyncFinished);
+				} else {
+					refreshAndCheck();
+				}
+			};
+
+			performRefresh();
 
 			const menuItems: MenuItem[] = [
 				{
 					label: "Mark All As Read",
 					icon: "checkmark-done",
-					onPress: handleMarkAllAsRead,
+					onPress: () => markAllAsReadRef.current(),
 				},
 				{
 					label: "Delete Feed",
 					icon: "trash-outline",
-					onPress: handleDeleteFeed,
+					onPress: () => deleteFeedRef.current(),
+					disabled: !isConnected,
 				},
 				{
 					label: "Log-out",
@@ -151,6 +229,7 @@ const FeedItemListScreen: React.FC = () => {
 			handleDeleteFeed,
 			setMenuItems,
 			onToggleDropdown,
+			isConnected,
 		]),
 	);
 

@@ -16,72 +16,121 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { api } from "./api_helper.impl";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api as apiInstance, Api } from './api_helper';
 
 export interface AuthDeps {
-	storage: typeof AsyncStorage;
-	alert: typeof Alert;
+	storage: {
+		getItem: (key: string) => Promise<string | null>;
+		setItem: (key: string, value: string) => Promise<void>;
+		removeItem: (key: string) => Promise<void>;
+	};
+	router: {
+		replace: (route: string) => void;
+	};
+	fetch?: typeof fetch;
+	api?: Api;
 }
 
 export class Auth {
-	private deps: AuthDeps = {
-		storage: AsyncStorage,
-		alert: Alert,
-	};
+	private _deps: AuthDeps | undefined;
 
-	setDeps(deps: Partial<AuthDeps>) {
-		this.deps = { ...this.deps, ...deps };
+	constructor(deps?: AuthDeps) {
+		this._deps = deps;
+	}
+
+	private get deps(): AuthDeps {
+		if (this._deps) return this._deps;
+		const g = (globalThis as any);
+		return {
+			storage: g.AsyncStorage || AsyncStorage,
+			router: {
+				replace: () => {},
+			},
+			fetch: g.fetch || fetch,
+			api: apiInstance,
+		};
+	}
+
+	private get fetch(): typeof fetch {
+		return this.deps.fetch || fetch;
+	}
+
+	private get api(): Api {
+		return this.deps.api || apiInstance;
+	}
+
+	setDeps(deps: AuthDeps) {
+		this._deps = deps;
 	}
 
 	storeAuthToken = async (token: string) => {
-		await this.deps.storage.setItem("authToken", token);
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.storeAuthToken) return g.authMocks.storeAuthToken(token);
+		await this.deps.storage.setItem('authToken', token);
 	};
 
 	getAuthToken = async () => {
-		return await this.deps.storage.getItem("authToken");
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.getAuthToken) return g.authMocks.getAuthToken();
+		return await this.deps.storage.getItem('authToken');
 	};
 
 	storeUser = async (user: string) => {
-		await this.deps.storage.setItem("user", user);
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.storeUser) return g.authMocks.storeUser(user);
+		await this.deps.storage.setItem('user', user);
 	};
 
 	getUser = async () => {
-		return await this.deps.storage.getItem("user");
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.getUser) return g.authMocks.getUser();
+		return await this.deps.storage.getItem('user');
 	};
 
-	clearAuthData = async (router: any) => {
-		await this.deps.storage.removeItem("authToken");
-		await this.deps.storage.removeItem("user");
-		router.dismissAll();
-		router.replace("/");
-	};
-
-	checkLoggedIn = async (router: any) => {
-		const token = await this.getAuthToken();
-		if (token) {
-			router.replace("FeedListScreen");
+	clearAuthData = async (router?: any) => {
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.clearAuthData) return g.authMocks.clearAuthData(router);
+		
+		await this.deps.storage.removeItem('authToken');
+		await this.deps.storage.removeItem('user');
+		if (router) {
+			router.replace('/');
+		} else {
+			this.deps.router.replace('/');
 		}
 	};
 
-	handleSessionExpired = async (router: any) => {
-		this.deps.alert.alert(
-			"Session Expired",
-			"Your session has expired. Please log in again.",
-		);
-		router.dismissAll();
-		router.replace("/");
+	checkLoggedIn = async (router?: any) => {
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.checkLoggedIn) return g.authMocks.checkLoggedIn(router);
+
+		const token = await this.getAuthToken();
+		if (token) {
+			if (router) {
+				router.replace('FeedListScreen');
+			} else {
+				this.deps.router.replace('FeedListScreen');
+			}
+		}
+	};
+
+	handleSessionExpired = async (router?: any) => {
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.handleSessionExpired) return g.authMocks.handleSessionExpired(router);
+
+		const { Alert } = require('react-native');
+		await this.clearAuthData(router);
+		Alert.alert('Session Expired', 'Your session has expired. Please log in again.');
 	};
 
 	refreshTokenOnLoad = async () => {
-		try {
-			const newToken = await api.refreshToken();
-			if (newToken) {
-				await this.storeAuthToken(newToken);
-			}
-		} catch (error) {
-			console.error("Failed to refresh token:", error);
+		const g = (globalThis as any);
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.refreshTokenOnLoad) return g.authMocks.refreshTokenOnLoad();
+
+		const token = await this.api.refreshToken();
+		if (token) {
+			await this.storeAuthToken(token);
 		}
 	};
 }

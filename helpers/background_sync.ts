@@ -1,0 +1,92 @@
+/*
+ * RSS Reader: A mobile application for consuming RSS feeds.
+ * Copyright (C) 2025 Paul Oremland
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+import * as BackgroundTask from 'expo-background-task';
+import * as TaskManager from 'expo-task-manager';
+import { api } from './api_helper';
+import * as cacheHelper from './cache_helper';
+
+const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
+
+export const performProactiveFetch = async () => {
+	try {
+		// 1. Fetch feeds with unread counts
+		const tree = await api.getWithAuth<any[]>('/feeds/tree.json');
+		if (tree) {
+			await cacheHelper.setCache('/feeds/tree.json', tree);
+
+			// 2. Fetch unread items for each feed in the tree
+			for (const entry of tree) {
+				const feed = entry.feed;
+				if (feed && feed.id) {
+					try {
+						const path = `/feeds/${feed.id}.json`;
+						const items = await api.getWithAuth(path);
+						if (items) {
+							await cacheHelper.setCache(path, items);
+						}
+					} catch (e) {
+						console.error(`Error fetching items for feed ${feed.id}:`, e);
+					}
+				}
+			}
+		}
+
+		// Also sync all feeds list for manage feeds screen
+		try {
+			const allFeeds = await api.getWithAuth('/feeds/all.json');
+			if (allFeeds) {
+				await cacheHelper.setCache('/feeds/all.json', allFeeds);
+			}
+		} catch (e) {
+			console.error('Error fetching all feeds:', e);
+		}
+	} catch (e) {
+		console.error('Error in performProactiveFetch:', e);
+	}
+};
+
+export const backgroundSyncTask = async () => {
+	try {
+		console.log('Background sync task started');
+		
+		await performProactiveFetch();
+
+		console.log('Background sync task finished successfully');
+		return BackgroundTask.BackgroundTaskResult.Success;
+	} catch (error) {
+		console.error('Background sync task failed:', error);
+		return BackgroundTask.BackgroundTaskResult.Failed;
+	}
+};
+
+export const registerBackgroundSync = async () => {
+	try {
+		if (TaskManager.isTaskDefined(BACKGROUND_SYNC_TASK)) {
+			console.log(`Task ${BACKGROUND_SYNC_TASK} is already defined`);
+		} else {
+			TaskManager.defineTask(BACKGROUND_SYNC_TASK, backgroundSyncTask);
+		}
+
+		await BackgroundTask.registerTaskAsync(BACKGROUND_SYNC_TASK, {
+			minimumInterval: 60 * 15, // 15 minutes
+		});
+		console.log(`Task ${BACKGROUND_SYNC_TASK} registered`);
+	} catch (err) {
+		console.error('Task registration failed:', err);
+	}
+};

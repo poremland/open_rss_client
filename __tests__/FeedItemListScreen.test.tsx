@@ -17,27 +17,49 @@
  */
 import "./setup";
 import { mocks } from "./setup";
-import { expect, describe, it, beforeEach } from "bun:test";
+import { mock, expect, describe, it, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { act } from "react";
 import FeedItemListScreen from "../app/FeedItemListScreen";
+import * as syncHelper from "../helpers/sync_helper";
+import * as cacheHelper from "../helpers/cache_helper";
 
 describe("FeedItemListScreen", () => {
-	const mockFeed = { id: 1, name: "Test Feed" };
-	const mockFeedItems = [
-		{ id: 1, feed_id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
-		{ id: 2, feed_id: 1, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
-	];
+        const mockFeed = { id: 1, name: "Test Feed" };
+        const mockFeedItems = [
+                { id: 1, feed_id: 1, title: "Item 1", link: "http://test.com/1", description: "Desc 1" },
+                { id: 2, feed_id: 1, title: "Item 2", link: "http://test.com/2", description: "Desc 2" },
+        ];
 
-	beforeEach(() => {
-		mocks.resetAll();
-		mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
-		mocks.localSearchParams.mockReturnValue({ feed: JSON.stringify(mockFeed) });
-	});
+        beforeEach(() => {
+                mocks.resetAll();
+                mocks.api.getWithAuth.mockResolvedValue(mockFeedItems);
+                mocks.localSearchParams.mockReturnValue({ feed: JSON.stringify(mockFeed) });
+        });
 
-	it("should display a list of feed items", async () => {
-		const { getByText } = render(<FeedItemListScreen />);
+        it("disables feed deletion when disconnected", async () => {
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+                mocks.useConnectionStatusMock.isConnected = false;
+                render(<FeedItemListScreen />);
+
+                // Wait for the hook to update and setMenuItems to be called
+                await waitFor(() => {
+                        expect(mocks.useMenu.setMenuItems).toHaveBeenCalled();
+                });
+
+                const menuItems = mocks.useMenu.setMenuItems.mock.calls[mocks.useMenu.setMenuItems.mock.calls.length - 1][0];
+                const deleteAction = menuItems.find((item: any) => item.label === "Delete Feed");
+
+                await act(async () => {
+                        await deleteAction.onPress();
+                });
+
+                expect(mocks.alert).toHaveBeenCalledWith("Offline", "Deleting feeds is disabled while offline.");
+                expect(mocks.api.getWithAuth).not.toHaveBeenCalledWith(expect.stringContaining("remove"));
+        });
+
+        it("should display a list of feed items", async () => {		const { getByText } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
 		expect(getByText("Item 2")).toBeTruthy();
@@ -139,7 +161,7 @@ describe("FeedItemListScreen", () => {
 	});
 
 	it("should navigate to FeedItemDetailScreen when an item is pressed", async () => {
-		const { getAllByTestId, getAllByTestId: getAllByTestIdOriginal } = render(<FeedItemListScreen />);
+		const { getAllByTestId } = render(<FeedItemListScreen />);
 
 		await waitFor(() => expect(mocks.api.getWithAuth).toHaveBeenCalled());
 		
@@ -148,7 +170,114 @@ describe("FeedItemListScreen", () => {
 
 		expect(mocks.router.push).toHaveBeenCalledWith(expect.objectContaining({
 			pathname: "/FeedItemDetailScreen",
-			params: { feedItemId: "1" }
+			params: expect.objectContaining({ 
+				feedItemId: "1",
+				feedItem: JSON.stringify(mockFeedItems[0])
+			})
 		}));
+	});
+
+	describe("Offline Mode", () => {
+		beforeEach(async () => {
+			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+			mocks.useConnectionStatusMock.isConnected = false;
+			if ((process as any).localSyncQueue) {
+				(process as any).localSyncQueue.length = 0;
+			}
+			await cacheHelper.setCache("/feeds/1.json", mockFeedItems);
+		});
+
+		it("should queue mark all as read and update local cache when offline", async () => {
+			render(<FeedItemListScreen />);
+
+			await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+			
+			// Wait for useConnectionStatus to update
+			await act(async () => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+			});
+
+			const lastCallIndex = mocks.useMenu.setMenuItems.mock.calls.length - 1;
+			const menuItems = mocks.useMenu.setMenuItems.mock.calls[lastCallIndex][0];
+			const markAllReadAction = menuItems.find((item: any) => item.label === "Mark All As Read");
+
+			await act(async () => {
+				await markAllReadAction.onPress();
+			});
+
+			// Verify it was queued
+			const queue = await syncHelper.getQueue();
+			expect(queue).toContainEqual(expect.objectContaining({
+				type: "POST",
+				path: expect.stringContaining("mark_items_as_read/1"),
+				body: { items: JSON.stringify([1, 2]) },
+			}));
+
+			// Verify local cache was cleared
+			const newCachedItems = await cacheHelper.getCache<any[]>("/feeds/1.json");
+			expect(newCachedItems).toHaveLength(0);
+
+			expect(mocks.navigation.goBack).toHaveBeenCalled();
+		});
+
+		it("should queue swipe mark as read and update local cache when offline", async () => {
+			const { getAllByTestId, getByText } = render(<FeedItemListScreen />);
+
+			await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
+			// Wait for useConnectionStatus to update
+			await act(async () => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+			});
+
+			const handlers = getAllByTestId("pan-gesture-handler");
+			await act(async () => {
+				(handlers[0] as any).props.simulateSwipe(-500);
+			});
+
+			// Verify it was queued
+			const queue = await syncHelper.getQueue();
+			expect(queue).toContainEqual(expect.objectContaining({
+				type: "POST",
+				path: expect.stringContaining("mark_items_as_read/1"),
+				body: { items: JSON.stringify([1]) },
+			}));
+
+			// Verify local cache was updated
+			const newCachedItems = await cacheHelper.getCache<any[]>("/feeds/1.json");
+			expect(newCachedItems).toHaveLength(1);
+			expect(newCachedItems![0].id).toBe(2);
+		});
+
+		it("should queue multi-select mark as read and update local cache when offline", async () => {
+			const { getByText, getByTestId } = render(<FeedItemListScreen />);
+
+			await waitFor(() => expect(getByText("Item 1")).toBeTruthy());
+
+			// Wait for useConnectionStatus to update
+			await act(async () => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+			});
+
+			fireEvent(getByTestId("feed-item-1"), "onLongPress");
+			await waitFor(() => expect(getByText("Mark Read")).toBeTruthy());
+
+			await act(async () => {
+				fireEvent.press(getByText("Mark Read"));
+			});
+
+			// Verify it was queued
+			const queue = await syncHelper.getQueue();
+			expect(queue).toContainEqual(expect.objectContaining({
+				type: "POST",
+				path: expect.stringContaining("mark_items_as_read/1"),
+				body: { items: JSON.stringify([1]) },
+			}));
+
+			// Verify local cache was updated
+			const newCachedItems = await cacheHelper.getCache<any[]>("/feeds/1.json");
+			expect(newCachedItems).toHaveLength(1);
+			expect(newCachedItems![0].id).toBe(2);
+		});
 	});
 });

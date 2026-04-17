@@ -1,8 +1,0 @@
-{
-  "track_id": "migrate-to-rntl_20260327",
-  "type": "chore",
-  "status": "new",
-  "created_at": "2026-03-27T12:30:00Z",
-  "updated_at": "2026-03-27T12:30:00Z",
-  "description": "Migrate from react-test-renderer to @testing-library/react-native to resolve deprecation warnings."
-}

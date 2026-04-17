@@ -1,8 +1,0 @@
-{
-  "id": "jest-cleanup",
-  "name": "Legacy Jest Cleanup & Artifact Removal",
-  "description": "Remove residual Jest configurations and artifacts to finalize the migration to Bun.",
-  "status": "pending",
-  "priority": "medium",
-  "owner": "Gemini"
-}

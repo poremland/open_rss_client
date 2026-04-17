@@ -1,8 +1,0 @@
-{
-  "id": "bun-test-stabilization",
-  "name": "Bun Test Stabilization & Standard RNTL",
-  "description": "Stabilize UI/UX testing using Bun and official React Native Testing Library patterns.",
-  "status": "active",
-  "priority": "high",
-  "owner": "Gemini"
-}

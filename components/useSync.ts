@@ -15,45 +15,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import { useEffect } from 'react';
+import useConnectionStatus from './useConnectionStatus';
+import { syncService } from '../helpers/sync_service';
 
-import { StyleSheet } from "react-native";
+export default function useSync() {
+	const { isConnected } = useConnectionStatus();
 
-export const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	title: {
-		fontSize: 24,
-		marginBottom: 20,
-		color: "#333",
-	},
-	input: {
-		width: "100%",
-		padding: 10,
-		marginBottom: 15,
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 5,
-		backgroundColor: "#fff",
-		fontSize: 16,
-	},
-	label: {
-		alignSelf: 'flex-start',
-		marginBottom: 5,
-		fontSize: 14,
-		fontWeight: 'bold',
-		color: '#555',
-	},
-	errorText: {
-		color: "red",
-		marginTop: 10,
-	},
-	logo: {
-		width: 100,
-		height: 100,
-		marginBottom: 30,
-	},
-});
+	useEffect(() => {
+		if (isConnected) {
+			console.log('useSync: triggering synchronization (isConnected changed to true or mounted online)');
+			syncService.synchronize().then(() => {
+				console.log('useSync: synchronization completed');
+			});
+		}
+	}, [isConnected]);
+}

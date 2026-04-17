@@ -1,7 +1,7 @@
 {
 	"name": "Open RSS Client",
 	"slug": "open-rss-client",
-	"version": "1.5.2",
+	"version": "1.6.0",
 	"orientation": "portrait",
 	"icon": "./assets/images/icon.png",
 	"scheme": "myapp",
@@ -9,7 +9,12 @@
 	"newArchEnabled": true,
 	"ios": {
 		"supportsTablet": true,
-		"bundleIdentifier": "open.rss.client"
+		"bundleIdentifier": "open.rss.client",
+		"infoPlist": {
+			"UIBackgroundModes": [
+				"fetch"
+			]
+		}
 	},
 	"web": {
 		"bundler": "metro",
@@ -19,6 +24,8 @@
 	"plugins": [
 		"expo-web-browser",
 		"expo-router",
+		"expo-background-fetch",
+		"expo-task-manager",
 		[
 			"expo-splash-screen",
 			{

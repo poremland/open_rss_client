@@ -22,20 +22,32 @@ import { Stack } from "expo-router";
 import GlobalDropdownMenu from "../components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
+import useSync from "../components/useSync";
+import { registerBackgroundSync } from "../helpers/background_sync";
+import { ConnectionProvider } from "../components/useConnectionStatus";
+
+const SyncHandler = () => {
+	useSync();
+	return null;
+};
 
 const RootLayout = () => {
 	useEffect(() => {
 		refreshTokenOnLoad();
+		registerBackgroundSync();
 	}, []);
 
 	return (
-	        <GlobalDropdownMenu>
-	                <GestureHandlerRootView style={{ flex: 1 }}>
-	                        {/* Wrap content with GestureHandlerRootView */}
-	                        <StatusBar hidden={false} barStyle="dark-content" />
-	                        <Stack />
-	                </GestureHandlerRootView>
-	        </GlobalDropdownMenu>
+		<ConnectionProvider>
+			<SyncHandler />
+			<GlobalDropdownMenu>
+				<GestureHandlerRootView style={{ flex: 1 }}>
+					{/* Wrap content with GestureHandlerRootView */}
+					<StatusBar hidden={false} barStyle="dark-content" />
+					<Stack />
+				</GestureHandlerRootView>
+			</GlobalDropdownMenu>
+		</ConnectionProvider>
 	);};
 
 export default RootLayout;

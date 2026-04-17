@@ -24,22 +24,33 @@ import { act } from "react";
 import AddFeedScreen from "../app/AddFeedScreen";
 
 describe("AddFeedScreen", () => {
-	beforeEach(() => {
-		mocks.resetAll();
-		mocks.auth.getUser.mockResolvedValue("test-user");
-	});
+        beforeEach(() => {
+                mocks.resetAll();
+                mocks.auth.getUser.mockResolvedValue("test-user");
+        });
 
-	it("renders correctly", async () => {
-		const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
-		expect(getByPlaceholderText("FeedName")).toBeTruthy();
-		expect(getByPlaceholderText("FeedUri")).toBeTruthy();
-		expect(getByText("Add Feed")).toBeTruthy();
-	});
+        it("renders correctly", async () => {
+                const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
+                expect(getByText("Feed Name")).toBeTruthy();
+                expect(getByPlaceholderText("e.g. My Favorite Blog")).toBeTruthy();
+                expect(getByText("Feed URL")).toBeTruthy();
+                expect(getByPlaceholderText("https://example.com/rss.xml")).toBeTruthy();
+                expect(getByText("Add Feed")).toBeTruthy();
+        });
 
-	it("calls addFeed with correct parameters on button press", async () => {
-		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
-		const nameInput = getByPlaceholderText("FeedName");
-		const uriInput = getByPlaceholderText("FeedUri");
+        it("disables the add button and shows offline message when disconnected", async () => {
+                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+                mocks.useConnectionStatusMock.isConnected = false;
+                const { getByTestId, getByText } = render(<AddFeedScreen />);
+                const addButton = getByTestId("addFeedButton");
+
+                await waitFor(() => expect(addButton.props.disabled).toBe(true));
+                expect(getByText("You are offline. Adding feeds is disabled.")).toBeTruthy();
+        });
+
+        it("calls addFeed with correct parameters on button press", async () => {		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+		const nameInput = getByPlaceholderText("e.g. My Favorite Blog");
+		const uriInput = getByPlaceholderText("https://example.com/rss.xml");
 		const addButton = getByTestId("addFeedButton");
 
 		fireEvent.changeText(nameInput, "Test Feed");
@@ -55,19 +66,21 @@ describe("AddFeedScreen", () => {
 			expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
 				"/feeds/create",
 				{
-					"feed[name]": "Test Feed",
-					"feed[uri]": "http://test.com/feed.xml",
-					"feed[user]": "test-user",
+					feed: {
+						name: "Test Feed",
+						uri: "http://test.com/feed.xml",
+						user: "test-user",
+					}
 				},
-				"application/x-www-form-urlencoded"
+				"application/json"
 			);
 		});
 	});
 
 	it("navigates back on successful feed addition", async () => {
 		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
-		const nameInput = getByPlaceholderText("FeedName");
-		const uriInput = getByPlaceholderText("FeedUri");
+		const nameInput = getByPlaceholderText("e.g. My Favorite Blog");
+		const uriInput = getByPlaceholderText("https://example.com/rss.xml");
 		const addButton = getByTestId("addFeedButton");
 
 		fireEvent.changeText(nameInput, "Test Feed");
