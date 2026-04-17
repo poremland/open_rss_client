@@ -216,18 +216,20 @@ export const useMenuMock = {
 	onToggleDropdown: mock(),
 };
 
-export const localSearchParamsMock = {
+export const localSearchParamsMock = (globalThis as any).__localSearchParamsMock || {
 	params: {} as any,
 	mockReturnValue: (p: any) => { localSearchParamsMock.params = p; }
 };
+(globalThis as any).__localSearchParamsMock = localSearchParamsMock;
 
-export const useApiConfig = {
+export const useApiConfig = (globalThis as any).__useApiConfig || {
 	data: null as any,
 	loading: false,
 	error: null as string | null,
 	execute: mock().mockImplementation(() => Promise.resolve(null)),
 	setData: mock(),
 };
+(globalThis as any).__useApiConfig = useApiConfig;
 
 const useApi = <T,>(
 	method: string,
@@ -247,10 +249,11 @@ const useApi = <T,>(
 export const useApiMock = mock(useApi);
 
 // --- Shared Connection State for Mocks ---
-const sharedConnectionState = {
+(globalThis as any).__sharedConnectionState = (globalThis as any).__sharedConnectionState || {
 	isConnected: true,
 	listeners: [] as Array<(s: { isConnected: boolean }) => void>,
 };
+const sharedConnectionState = (globalThis as any).__sharedConnectionState;
 
 export const networkMocks = {
 	getNetworkStateAsync: mock(async () => ({ 
