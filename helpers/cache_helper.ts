@@ -15,11 +15,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const getCacheKey = (url: string) => `cache:${url}`;
 
 // Module-level variable is shared among all importers in the same JS environment
+// Using globalThis for reliable sharing in CI isolates
 const g = (globalThis as any);
 g.localCacheMap = g.localCacheMap || new Map<string, string>();
 const localCacheMap: Map<string, string> = g.localCacheMap;
@@ -31,29 +33,33 @@ export const clearLocalCache = () => {
 export const getCache = async <T>(url: string): Promise<T | null> => {
 	try {
 		const key = getCacheKey(url);
-		let jsonValue = localCacheMap.get(key);
-		if (jsonValue === undefined) {
-			jsonValue = await AsyncStorage.getItem(key) || undefined;
-			if (jsonValue !== undefined) {
-				localCacheMap.set(key, jsonValue);
-			}
+		
+		// Try local map first
+		const localValue = localCacheMap.get(key);
+		if (localValue) {
+			return JSON.parse(localValue);
 		}
-		return jsonValue != null ? JSON.parse(jsonValue) : null;
+
+		// Fallback to AsyncStorage
+		const storedValue = await AsyncStorage.getItem(key);
+		if (storedValue) {
+			localCacheMap.set(key, storedValue);
+			return JSON.parse(storedValue);
+		}
 	} catch (e) {
-		console.error('Error reading cache:', e);
-		return null;
+		console.error('Error getting cache:', e);
 	}
+	return null;
 };
 
-export const setCache = async (url: string, value: any): Promise<void> => {
+export const setCache = async (url: string, data: any): Promise<void> => {
 	try {
 		const key = getCacheKey(url);
-		const jsonValue = JSON.stringify(value);
-		localCacheMap.set(key, jsonValue);
-		// Persist to AsyncStorage
-		await AsyncStorage.setItem(key, jsonValue);
+		const value = JSON.stringify(data);
+		localCacheMap.set(key, value);
+		await AsyncStorage.setItem(key, value);
 	} catch (e) {
-		console.error('Error saving cache:', e);
+		console.error('Error setting cache:', e);
 	}
 };
 
@@ -67,60 +73,51 @@ export const clearCache = async (url: string): Promise<void> => {
 	}
 };
 
-/**
- * Marks items as read in the local cache and updates the unread count in the tree cache.
- * 
- * @param feedId - The ID of the feed the items belong to.
- * @param itemIds - The IDs of the items to mark as read.
- */
-export const markItemsReadInCache = async (feedId: number, itemIds: number[]): Promise<void> => {
+export const markItemsReadInCache = async (feedId: string | number, itemIds: Array<string | number>): Promise<void> => {
 	try {
-		const itemCachePath = `/feeds/${feedId}.json`;
-		const cachedItems = await getCache<any[]>(itemCachePath);
-		let preciseCount: number | undefined;
-
+		const path = `/feeds/${feedId}.json`;
+		const cachedItems = await getCache<any[]>(path);
 		if (cachedItems) {
-			const newData = cachedItems.filter(item => item && item.id && !itemIds.includes(item.id));
-			await setCache(itemCachePath, newData);
-			preciseCount = newData.length;
+			const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
+			await setCache(path, updatedItems);
 		}
-
-		const tree = await getCache<any[]>('/feeds/tree.json');
-		if (Array.isArray(tree)) {
+		
+		// Update feed tree if it exists
+		const treePath = '/feeds/tree.json';
+		const tree = await getCache<any[]>(treePath);
+		if (tree) {
 			const updatedTree = tree.map(entry => {
-				if (entry && entry.feed && entry.feed.id === feedId) {
-					const currentCount = entry.feed.count !== undefined ? entry.feed.count : entry.unread_count;
-					const newCount = preciseCount !== undefined ? preciseCount : (currentCount !== undefined ? Math.max(0, currentCount - itemIds.length) : undefined);
-					return { ...entry, feed: { ...entry.feed, count: newCount } };
+				if (entry.feed.id.toString() === feedId.toString()) {
+					return {
+						...entry,
+						unread_count: Math.max(0, (entry.unread_count || 0) - itemIds.length)
+					};
 				}
 				return entry;
-			}).filter(entry => {
-				if (!entry || !entry.feed) return true;
-				if (entry.feed.id === feedId) {
-					return entry.feed.count === undefined || entry.feed.count > 0;
-				}
-				return true;
-			});
-			await setCache('/feeds/tree.json', updatedTree);
+			}).filter(entry => entry.unread_count > 0);
+			await setCache(treePath, updatedTree);
 		}
 	} catch (e) {
 		console.error('Error marking items read in cache:', e);
 	}
 };
-export const markAllItemsReadInCache = async (feedId: number): Promise<void> => {
+
+export const markAllItemsReadInCache = async (feedId: string | number): Promise<void> => {
 	try {
-		const itemCachePath = `/feeds/${feedId}.json`;
-		await setCache(itemCachePath, []);
-		
-		const tree = await getCache<any[]>('/feeds/tree.json');
-		if (Array.isArray(tree)) {
+		const path = `/feeds/${feedId}.json`;
+		await clearCache(path);
+
+		// Update feed tree if it exists
+		const treePath = '/feeds/tree.json';
+		const tree = await getCache<any[]>(treePath);
+		if (tree) {
 			const updatedTree = tree.filter(entry => {
-				if (entry && entry.feed && entry.feed.id === feedId) {
+				if (entry.feed.id.toString() === feedId.toString()) {
 					return false;
 				}
 				return true;
 			});
-			await setCache('/feeds/tree.json', updatedTree);
+			await setCache(treePath, updatedTree);
 		}
 	} catch (e) {
 		console.error('Error marking all items read in cache:', e);

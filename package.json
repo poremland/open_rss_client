@@ -20,6 +20,7 @@
     "@react-navigation/stack": "^7.4.10",
     "expo": "54.0.23",
     "expo-background-fetch": "~14.0.9",
+    "expo-background-task": "^55.0.16",
     "expo-blur": "~15.0.7",
     "expo-clipboard": "~8.0.7",
     "expo-constants": "~18.0.9",

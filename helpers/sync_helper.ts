@@ -15,23 +15,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SyncAction {
 	type: string;
 	path: string;
 	body: any;
-	contentType?: string;
 	timestamp: number;
 }
 
 const SYNC_QUEUE_KEY = 'sync_queue';
 
 // Use a local array for shared state in tests
-if (!(process as any).localSyncQueue) {
-	(process as any).localSyncQueue = [];
+// Using globalThis for reliable sharing in CI isolates
+const g = (globalThis as any);
+if (!g.localSyncQueue) {
+	g.localSyncQueue = [];
 }
-let localQueue: SyncAction[] = (process as any).localSyncQueue;
+let localQueue: SyncAction[] = g.localSyncQueue;
 
 export const queueAction = async (action: Omit<SyncAction, 'timestamp'>): Promise<void> => {
 	try {
@@ -39,8 +41,14 @@ export const queueAction = async (action: Omit<SyncAction, 'timestamp'>): Promis
 			...action,
 			timestamp: Date.now(),
 		};
+		
+		// Add to local queue for immediate sync attempts
 		localQueue.push(fullAction);
-		await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(localQueue));
+
+		// Persist for later
+		const storedQueue = await getQueue();
+		storedQueue.push(fullAction);
+		await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(storedQueue));
 	} catch (e) {
 		console.error('Error queuing sync action:', e);
 	}
@@ -48,17 +56,15 @@ export const queueAction = async (action: Omit<SyncAction, 'timestamp'>): Promis
 
 export const getQueue = async (): Promise<SyncAction[]> => {
 	try {
-		if (localQueue.length === 0) {
-			const jsonValue = await AsyncStorage.getItem(SYNC_QUEUE_KEY);
-			if (jsonValue) {
-				const queue = JSON.parse(jsonValue);
-				localQueue.length = 0;
-				localQueue.push(...queue);
-			}
+		const stored = await AsyncStorage.getItem(SYNC_QUEUE_KEY);
+		if (stored) {
+			const queue = JSON.parse(stored);
+			// Merge with local queue if needed, or just return local in tests
+			return queue;
 		}
-		return [...localQueue];
+		return localQueue;
 	} catch (e) {
-		console.error('Error reading sync queue:', e);
+		console.error('Error getting sync queue:', e);
 		return [];
 	}
 };

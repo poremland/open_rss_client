@@ -15,11 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import * as BackgroundFetch from 'expo-background-fetch';
+import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { api } from './api_helper';
 import * as cacheHelper from './cache_helper';
-import { Feed } from '../models/Feed';
 
 const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
 
@@ -56,10 +55,10 @@ export const backgroundSyncTask = async () => {
 		await performProactiveFetch();
 
 		console.log('Background sync task finished successfully');
-		return BackgroundFetch.BackgroundFetchResult.NewData;
+		return BackgroundTask.BackgroundTaskResult.Success;
 	} catch (error) {
 		console.error('Background sync task failed:', error);
-		return BackgroundFetch.BackgroundFetchResult.Failed;
+		return BackgroundTask.BackgroundTaskResult.Failed;
 	}
 };
 
@@ -71,10 +70,8 @@ export const registerBackgroundSync = async () => {
 			TaskManager.defineTask(BACKGROUND_SYNC_TASK, backgroundSyncTask);
 		}
 
-		await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
+		await BackgroundTask.registerTaskAsync(BACKGROUND_SYNC_TASK, {
 			minimumInterval: 60 * 15, // 15 minutes
-			stopOnTerminate: false,
-			startOnBoot: true,
 		});
 		console.log(`Task ${BACKGROUND_SYNC_TASK} registered`);
 	} catch (err) {
