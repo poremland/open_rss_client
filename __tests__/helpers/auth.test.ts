@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+import "../setup";
 import { mock, expect, describe, it, beforeEach, spyOn } from "bun:test";
 import { Auth } from "../../helpers/auth_helper.impl";
 import { api as apiInstance } from "../../helpers/api_helper.impl";

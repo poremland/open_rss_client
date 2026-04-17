@@ -15,8 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { mock, expect, describe, it, beforeEach } from "bun:test";
-import React from "react";
+import "./setup";
+import { resetAll, mocks } from "./setup";
 import { render, waitFor, act, fireEvent, renderHook } from "@testing-library/react-native";
 import ManageFeedsListScreen from "../app/ManageFeedsListScreen";
 import * as cacheHelper from "../helpers/cache_helper";

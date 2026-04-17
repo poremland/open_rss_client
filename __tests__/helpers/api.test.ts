@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+import "../setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { Api } from "../../helpers/api_helper.impl";
 import { resetAll, asyncStorageMock, fetchMock, fileSystemMock, sharingMock, hapticsMock } from "../mocks";
