@@ -20,7 +20,7 @@ import React, { useEffect, useState } from "react";
 import { expect, describe, it, beforeEach, spyOn, mock } from "bun:test";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { View, Text, TouchableOpacity } from "react-native";
-import { resetAll } from "./setup";
+import { resetAll, mocks } from "./setup";
 
 // Import from the .impl file to bypass the global mock of GlobalDropdownMenu.tsx
 import GlobalDropdownMenu, { useMenu, MenuItem } from "../components/GlobalDropdownMenu.impl";
@@ -210,8 +210,7 @@ describe("GlobalDropdownMenu Integration", () => {
 		];
 
 		// Mock offline state
-		(globalThis as any).__useConnectionStatusMock.isConnected = false;
-		(globalThis as any).__useConnectionStatusMock.listeners.forEach((l: any) => l({ isConnected: false }));
+		mocks.useConnectionStatusMock.isConnected = false;
 
 		const { getByTestId } = render(
 			<GlobalDropdownMenu>

@@ -77,9 +77,6 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 export default function useConnectionStatus() {
 	const context = useContext(ConnectionContext);
 	const g = (globalThis as any);
-	if (g.__useConnectionStatusMock) {
-		console.error(`[useConnectionStatus] mock exists. isConnected: ${g.__useConnectionStatusMock.isConnected}`);
-	}
 	const [mockState, setMockState] = useState({ 
 		isConnected: g.__useConnectionStatusMock ? g.__useConnectionStatusMock.isConnected : true,
 		updateConnectionStatus: g.__useConnectionStatusMock ? g.__useConnectionStatusMock.updateConnectionStatus : async () => {},
@@ -89,7 +86,6 @@ export default function useConnectionStatus() {
 		if (context !== undefined) return;
 		if (g.__useConnectionStatusMock) {
 			const listener = (s: any) => {
-				console.error(`[useConnectionStatus] listener called with isConnected: ${s.isConnected}`);
 				setMockState(prev => ({ ...prev, ...s }));
 			};
 			g.__useConnectionStatusMock.listeners.push(listener);
