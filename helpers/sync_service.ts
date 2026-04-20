@@ -55,7 +55,7 @@ export const syncService = {
 				const queue = await syncHelper.getQueue();
 				if (queue.length > 0) {
 					console.log(`Sync service: processing ${queue.length} actions`);
-					
+
 					// Group MARK_READ actions by feed
 					const markReadActions: Record<number, number[]> = {};
 					const otherActions: syncHelper.SyncAction[] = [];

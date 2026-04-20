@@ -39,7 +39,7 @@ export const queueAction = async (action: Omit<SyncAction, 'timestamp'>): Promis
 			...action,
 			timestamp: Date.now(),
 		};
-		
+
 		// Add to local queue for immediate sync attempts
 		localQueue.push(fullAction);
 

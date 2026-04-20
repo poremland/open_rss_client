@@ -140,7 +140,7 @@ describe("GlobalDropdownMenu Integration", () => {
 		const MultiScreenTest = ({ activeScreen, id }: { activeScreen: string, id: string }) => {
 			const { setMenuItems, onToggleDropdown } = useMenu();
 			const isFocused = activeScreen === id;
-			
+
 			useEffect(() => {
 				if (isFocused) {
 					setMenuItems(id === "A" ? itemsA : itemsB);
@@ -152,7 +152,7 @@ describe("GlobalDropdownMenu Integration", () => {
 				if (!isFocused) {
 					// Background screen trying to clear items
 					// In real code, this would be inside useFocusEffect which would check isFocused
-					if (isFocused) { 
+					if (isFocused) {
 						setMenuItems([]);
 					}
 				}

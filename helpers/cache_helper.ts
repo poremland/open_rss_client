@@ -73,7 +73,7 @@ export const clearCache = async (url: string): Promise<void> => {
 	}
 };
 
-export const markItemsReadInCache = async (feedId: string | number, itemIds: Array<string | number>): Promise<void> => {
+export const markItemsReadInCache = async (feedId: string | number, itemIds: (string | number)[]): Promise<void> => {
 	try {
 		const path = `/feeds/${feedId}.json`;
 		const cachedItems = await getCache<any[]>(path);

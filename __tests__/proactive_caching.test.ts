@@ -16,11 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { expect, describe, it, mock, beforeEach, afterEach } from "bun:test";
-import { mocks } from "./setup";
+import { mocks , storageMap } from "./setup";
 import { backgroundSyncTask } from "../helpers/background_sync";
 import * as cacheHelper from "../helpers/cache_helper";
 import { syncService } from "../helpers/sync_service";
-import { storageMap } from "./setup";
 
 describe("Proactive Caching", () => {
 	beforeEach(() => {
@@ -54,13 +53,13 @@ describe("Proactive Caching", () => {
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/tree.json");
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/1.json");
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/2.json");
-		
+
 		const treeCache = await cacheHelper.getCache("/feeds/tree.json");
 		expect(treeCache).toEqual(mockTree);
-		
+
 		const items1Cache = await cacheHelper.getCache("/feeds/1.json");
 		expect(items1Cache).toEqual(mockItems1);
-		
+
 		const items2Cache = await cacheHelper.getCache("/feeds/2.json");
 		expect(items2Cache).toEqual(mockItems2);
 	});

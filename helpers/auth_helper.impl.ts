@@ -94,7 +94,7 @@ export class Auth {
 
 		await this.deps.storage.removeItem('authToken');
 		await this.deps.storage.removeItem('user');
-		
+
 		const { clearLocalCache } = require('./cache_helper');
 		clearLocalCache();
 

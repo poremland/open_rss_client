@@ -38,7 +38,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{ 
+	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{
 		feedItemId: string;
 		feedItem?: string;
 	}>();
@@ -78,7 +78,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	const handleMarkAsRead = useCallback(async () => {
 		const item = selectedFeedItem;
 		if (!item?.id) return;
-		
+
 		const response = await markItemAsRead();
 		if (response) {
 			await markItemsReadInCache(item.feed_id!, [item.id]);

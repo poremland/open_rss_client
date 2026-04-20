@@ -16,12 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { expect, describe, it, beforeEach, afterEach } from "bun:test";
-import "./setup";
-import { mocks } from "./setup";
+import { mocks , storageMap } from "./setup";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import useSync from "../components/useSync";
 import { syncService } from "../helpers/sync_service";
-import { storageMap } from "./setup";
 
 describe("useSync", () => {
 	beforeEach(() => {
@@ -46,7 +44,7 @@ describe("useSync", () => {
 		// Go offline
 		mocks.useConnectionStatusMock.isConnected = false;
 		rerender({});
-		
+
 		// Reset call history to check for new calls
 		mocks.api.getWithAuth.mockClear();
 

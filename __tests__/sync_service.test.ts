@@ -17,7 +17,6 @@
  */
 import { mock, expect, describe, it, beforeEach, afterEach, spyOn } from "bun:test";
 
-import "./setup";
 import { mocks } from "./setup";
 import * as syncHelper from "../helpers/sync_helper";
 import { syncService } from "../helpers/sync_service";
@@ -29,7 +28,7 @@ describe("syncService", () => {
 		mocks.resetAll();
 		await syncHelper.clearQueue();
 		consoleSpy = spyOn(console, "error").mockImplementation(() => {});
-		
+
 		// Setup default API mocks for proactive fetch
 		mocks.api.getWithAuth.mockImplementation(async (path: string) => {
 			if (path === "/feeds/tree.json" || path === "/feeds/all.json") return [];
@@ -45,7 +44,7 @@ describe("syncService", () => {
 	it("should process the queue when synchronize is called", async () => {
 		const action1 = { type: "GET", path: "/test1", body: null };
 		const action2 = { type: "POST", path: "/test2", body: { foo: "bar" } };
-		
+
 		await syncHelper.queueAction(action1);
 		await syncHelper.queueAction(action2);
 
@@ -65,22 +64,22 @@ describe("syncService", () => {
 	});
 
 	it("should batch MARK_READ actions for the same feed", async () => {
-		const action1 = { 
-			type: "MARK_READ", 
-			path: "/feeds/mark_items_as_read/1", 
-			body: { items: JSON.stringify([101, 102]) } 
+		const action1 = {
+			type: "MARK_READ",
+			path: "/feeds/mark_items_as_read/1",
+			body: { items: JSON.stringify([101, 102]) }
 		};
-		const action2 = { 
-			type: "MARK_READ", 
-			path: "/feeds/mark_items_as_read/1", 
-			body: { items: JSON.stringify([103]) } 
+		const action2 = {
+			type: "MARK_READ",
+			path: "/feeds/mark_items_as_read/1",
+			body: { items: JSON.stringify([103]) }
 		};
-		const action3 = { 
-			type: "MARK_READ", 
-			path: "/feeds/mark_items_as_read/2", 
-			body: { items: JSON.stringify([201]) } 
+		const action3 = {
+			type: "MARK_READ",
+			path: "/feeds/mark_items_as_read/2",
+			body: { items: JSON.stringify([201]) }
 		};
-		
+
 		await syncHelper.queueAction(action1);
 		await syncHelper.queueAction(action2);
 		await syncHelper.queueAction(action3);
@@ -89,13 +88,13 @@ describe("syncService", () => {
 
 		// Should call postWithAuth with batched items for feed 1
 		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
-			"/feeds/mark_items_as_read/1", 
+			"/feeds/mark_items_as_read/1",
 			{ items: JSON.stringify([101, 102, 103]) },
 			"application/json"
 		);
 		// Should call postWithAuth for feed 2
 		expect(mocks.api.postWithAuth).toHaveBeenCalledWith(
-			"/feeds/mark_items_as_read/2", 
+			"/feeds/mark_items_as_read/2",
 			{ items: JSON.stringify([201]) },
 			"application/json"
 		);

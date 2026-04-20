@@ -18,7 +18,6 @@
 import { expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import React, { act } from "react";
-import "./setup";
 import { mocks } from "./setup";
 import * as cacheHelper from "../helpers/cache_helper";
 import useApi from "../components/useApi";

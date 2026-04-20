@@ -17,11 +17,9 @@
  */
 import { mock, expect, describe, it, beforeEach, afterEach } from "bun:test";
 import { Platform } from "react-native";
-import "./setup";
-import { mocks } from "./setup";
+import { mocks , storageMap } from "./setup";
 import * as cacheHelper from "../helpers/cache_helper";
 import { backgroundSyncTask } from "../helpers/background_sync";
-import { storageMap } from "./setup";
 
 describe("backgroundSyncTask", () => {
 	beforeEach(() => {
@@ -85,11 +83,11 @@ describe("registerBackgroundSync", () => {
 		it("should be a no-op on web platform", async () => {
 			const { registerBackgroundSync } = require("../helpers/background_sync");
 			await registerBackgroundSync();
-			
+
 			// TaskManager.defineTask and BackgroundTask.registerTaskAsync should NOT have been called
 			const TaskManager = require("expo-task-manager");
 			const BackgroundTask = require("expo-background-task");
-			
+
 			expect(TaskManager.defineTask).not.toHaveBeenCalled();
 			expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
 		});
@@ -103,13 +101,13 @@ describe("registerBackgroundSync", () => {
 		it("should register background sync on native platform", async () => {
 			const TaskManager = require("expo-task-manager");
 			const BackgroundTask = require("expo-background-task");
-			
+
 			// Ensure it's not considered defined so defineTask is called
 			TaskManager.isTaskDefined.mockReturnValue(false);
 
 			const { registerBackgroundSync } = require("../helpers/background_sync");
 			await registerBackgroundSync();
-			
+
 			expect(TaskManager.defineTask).toHaveBeenCalled();
 			expect(BackgroundTask.registerTaskAsync).toHaveBeenCalled();
 		});

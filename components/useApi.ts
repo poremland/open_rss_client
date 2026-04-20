@@ -48,7 +48,7 @@ const useApi = <T,>(
 ): ApiResponse<T> => {
 	const [data, setDataState] = useState<T | null>(options.initialData || null);
 	const dataRef = useRef<T | null>(options.initialData || null);
-	
+
 	const setData = useCallback((newData: T | null) => {
 		dataRef.current = newData;
 		setDataState(newData);
@@ -80,7 +80,7 @@ const useApi = <T,>(
 				}
 			})();
 		}
-		}, [method, path, options.useCache, getCache, setData]);
+	}, [method, path, options.useCache, getCache, setData]);
 
 
 
@@ -157,7 +157,7 @@ const useApi = <T,>(
 				return result;
 			} catch (err: any) {
 				const errorMessage = err.message || "An unknown error occurred";
-				
+
 				// If we get a network error, force an update of the connection status
 				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
 					if (updateConnectionStatus) {

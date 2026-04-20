@@ -25,42 +25,42 @@ import useConnectionStatus from "../components/useConnectionStatus";
 const mocks = (globalThis as any).__mocks;
 
 describe("ManageFeedsListScreen", () => {
-        const mockFeeds = [
-                { id: 1, name: "Feed 1", uri: "http://feed1.com" },
-                { id: 2, name: "Feed 2", uri: "http://feed2.com" },
-        ];
+	const mockFeeds = [
+		{ id: 1, name: "Feed 1", uri: "http://feed1.com" },
+		{ id: 2, name: "Feed 2", uri: "http://feed2.com" },
+	];
 
-        beforeEach(() => {
-                mocks.resetAll();
-                mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
-        });
+	beforeEach(() => {
+		mocks.resetAll();
+		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
+	});
 
-        it("disables OPML actions and deletion when disconnected", async () => {
-                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
-                mocks.useConnectionStatusMock.isConnected = false;
-                const { getByText, queryByTestId } = render(<ManageFeedsListScreen />);
+	it("disables OPML actions and deletion when disconnected", async () => {
+		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+		mocks.useConnectionStatusMock.isConnected = false;
+		const { getByText, queryByTestId } = render(<ManageFeedsListScreen />);
 
-                // Wait for the hook to update and setMenuItems to be called
-                await waitFor(() => {
-                        expect(mocks.useMenu.setMenuItems).toHaveBeenCalled();
-                });
+		// Wait for the hook to update and setMenuItems to be called
+		await waitFor(() => {
+			expect(mocks.useMenu.setMenuItems).toHaveBeenCalled();
+		});
 
-                const menuItems = mocks.useMenu.setMenuItems.mock.calls[mocks.useMenu.setMenuItems.mock.calls.length - 1][0];
-                const importAction = menuItems.find((item: any) => item.label === "Import OPML");
-                const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
+		const menuItems = mocks.useMenu.setMenuItems.mock.calls[mocks.useMenu.setMenuItems.mock.calls.length - 1][0];
+		const importAction = menuItems.find((item: any) => item.label === "Import OPML");
+		const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
 
-                await act(async () => {
-                        await importAction.onPress();
-                });
-                expect(mocks.alert).toHaveBeenCalledWith("Offline", "Importing feeds is disabled while offline.");
+		await act(async () => {
+			await importAction.onPress();
+		});
+		expect(mocks.alert).toHaveBeenCalledWith("Offline", "Importing feeds is disabled while offline.");
 
-                await act(async () => {
-                        await exportAction.onPress();
-                });
-                expect(mocks.alert).toHaveBeenCalledWith("Offline", "Exporting feeds is disabled while offline.");
-        });
+		await act(async () => {
+			await exportAction.onPress();
+		});
+		expect(mocks.alert).toHaveBeenCalledWith("Offline", "Exporting feeds is disabled while offline.");
+	});
 
-        it("should fetch feeds when the screen is focused", async () => {
+	it("should fetch feeds when the screen is focused", async () => {
 		mocks.api.getWithAuth.mockResolvedValue(mockFeeds);
 
 		render(<ManageFeedsListScreen />);
@@ -99,13 +99,13 @@ describe("ManageFeedsListScreen", () => {
 	it("should display error message when api call fails", async () => {
 		const errorMessage = `API Error ${Math.random()}`;
 		mocks.api.getWithAuth.mockRejectedValue(new Error(errorMessage));
-		
+
 		await act(async () => {
 			mocks.useConnectionStatusMock.isConnected = true;
 		});
 		const { result: connResult } = renderHook(() => useConnectionStatus());
 		await waitFor(() => expect(connResult.current.isConnected).toBe(true));
-		
+
 		// Force clear cache for this URL to avoid serving stale cache from other tests
 		await cacheHelper.clearCache("/feeds/all.json");
 		await cacheHelper.clearLocalCache();
@@ -142,7 +142,7 @@ describe("ManageFeedsListScreen", () => {
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
 		const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
-		
+
 		await act(async () => {
 			await exportAction.onPress();
 		});
@@ -159,7 +159,7 @@ describe("ManageFeedsListScreen", () => {
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
 		const exportAction = menuItems.find((item: any) => item.label === "Export OPML");
-		
+
 		await act(async () => {
 			await exportAction.onPress();
 		});
@@ -182,7 +182,7 @@ describe("ManageFeedsListScreen", () => {
 		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
 		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
 		const importAction = menuItems.find((item: any) => item.label === "Import OPML");
-		
+
 		await act(async () => {
 			await importAction.onPress();
 		});

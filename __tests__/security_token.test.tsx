@@ -18,7 +18,6 @@
 import React, { act } from "react";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { expect, describe, it, beforeEach, spyOn, mock } from "bun:test";
-import "./setup";
 import { mocks } from "./setup";
 import useApi from "../components/useApi";
 import { auth } from "../helpers/auth_helper";

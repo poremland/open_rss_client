@@ -76,7 +76,7 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 export default function useConnectionStatus() {
 	const g = (globalThis as any);
 	const context = useContext(ConnectionStatusContext);
-	
+
 	// Check for mock bypass flag
 	if (g.__useConnectionStatusMock && !g.__disableConnectionMock) {
 		return {

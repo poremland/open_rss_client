@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import "../setup";
-import { expect, describe, it, mock, beforeEach } from "bun:test";
 import { alertMock } from "../setup";
+import { expect, describe, it, mock, beforeEach } from "bun:test";
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { View, Text } from "react-native";
@@ -234,7 +233,7 @@ describe("SelectableFlatList", () => {
 	it("should execute action when confirmed", async () => {
 		let called = false;
 		const onSwipeAction = mock(() => { called = true; });
-		
+
 		const { getAllByTestId } = render(
 			<GestureHandlerRootView>
 				<SelectableFlatList
@@ -262,11 +261,11 @@ describe("SelectableFlatList", () => {
 		await waitFor(() => expect(alertMock).toHaveBeenCalled());
 		const buttons = alertMock.mock.calls[0][2];
 		const yesButton = buttons.find((b: any) => b.text === "Yes");
-		
+
 		await act(async () => {
 			yesButton.onPress();
 		});
-		
+
 		await waitFor(() => expect(called).toBe(true));
 		expect(onSwipeAction).toHaveBeenCalled();
 	});
@@ -300,7 +299,7 @@ describe("SelectableFlatList", () => {
 		await waitFor(() => expect(alertMock).toHaveBeenCalled());
 		const buttons = alertMock.mock.calls[0][2];
 		const noButton = buttons.find((b: any) => b.text === "No");
-		
+
 		await act(async () => {
 			noButton.onPress();
 		});

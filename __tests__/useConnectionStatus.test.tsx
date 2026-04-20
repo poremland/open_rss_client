@@ -110,7 +110,7 @@ describe("useConnectionStatus", () => {
 		networkMocks.addNetworkStateListener.mockReturnValue({ remove: mockRemove });
 
 		const { unmount } = renderHook(() => useConnectionStatus(), { wrapper });
-		
+
 		unmount();
 
 		await waitFor(() => expect(mockRemove).toHaveBeenCalled());
@@ -129,7 +129,7 @@ describe("useConnectionStatus", () => {
 		// Wait for periodic check (every 10 seconds in implementation, so we mock time or just wait if feasible)
 		// For the test, I might want to reduce the interval or just verify that it's called multiple times.
 		// Since I haven't implemented it yet, I'll add this test case as a goal.
-		
+
 		// To make it testable quickly, I'll use a shorter interval in dev/test if possible.
 	});
 });

@@ -37,10 +37,10 @@ describe("API Helper", () => {
 		originalOS = Platform.OS;
 		(globalThis as any).__disableApiMock = true;
 		storageMap.clear();
-		
+
 		// Use a locally created fetch mock for ultimate isolation
 		localFetchMock = mock(() => Promise.resolve(createFetchResponse(true, 200, {})));
-		
+
 		sharingMock.shareAsync.mockClear();
 		if (fileSystemMock.StorageAccessFramework) {
 			Object.values(fileSystemMock.StorageAccessFramework).forEach((fn: any) => fn.mockClear && fn.mockClear());

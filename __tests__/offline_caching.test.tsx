@@ -18,7 +18,6 @@
 import { mock, expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import React, { act } from "react";
-import "./setup";
 import { mocks, networkMocks } from "./setup";
 import * as cacheHelper from "../helpers/cache_helper";
 import * as syncHelper from "../helpers/sync_helper";
@@ -46,7 +45,7 @@ describe("Offline Caching and Sync", () => {
 		it("should store and retrieve cached items", async () => {
 			const url = `/test-cache-helper-${Math.random()}`;
 			const data = [{ id: 1, title: "Test Item" }];
-			
+
 			await cacheHelper.setCache(url, data);
 			const cachedData = await cacheHelper.getCache(url);
 			expect(cachedData).toEqual(data);
@@ -95,7 +94,7 @@ describe("Offline Caching and Sync", () => {
 			});
 
 			expect(result.current.data).toEqual(mockData);
-			
+
 			// Verify it was cached by checking cacheHelper directly
 			const cachedVal = await cacheHelper.getCache(path);
 			expect(cachedVal).toEqual(mockData);
@@ -105,7 +104,7 @@ describe("Offline Caching and Sync", () => {
 			const path = `/test-offline-cache-${Math.random()}`;
 			const mockCachedData = { id: 1, name: "Cached" };
 			await cacheHelper.setCache(path, mockCachedData);
-			
+
 			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
 			mocks.useConnectionStatusMock.isConnected = false;
 
@@ -132,7 +131,7 @@ describe("Offline Caching and Sync", () => {
 			const path = `/test-fail-cache-${Math.random()}`;
 			const mockCachedData = { id: 1, name: "Cached" };
 			await cacheHelper.setCache(path, mockCachedData);
-			
+
 			mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
 			const { result } = renderHook(() => useApi("get", path), { wrapper });
@@ -149,7 +148,7 @@ describe("Offline Caching and Sync", () => {
 		it("should NOT show error when offline and using initialData", async () => {
 			const path = "/offline-initial-data";
 			const mockInitialData = { id: 1, name: "Initial" };
-			
+
 			mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
 			mocks.useConnectionStatusMock.isConnected = false;
 

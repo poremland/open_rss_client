@@ -86,10 +86,10 @@ describe("auth helpers", () => {
 		it("should navigate to feed list if token is valid", async () => {
 			await auth.storeAuthToken("test-token");
 			await asyncStorageMock.setItem("serverUrl", "http://localhost");
-			
+
 			// Mock valid response
 			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, []));
-			
+
 			await auth.checkLoggedIn();
 			expect(routerMocks.replace).toHaveBeenCalledWith("/FeedListScreen");
 		});
@@ -97,12 +97,12 @@ describe("auth helpers", () => {
 		it("should handle session expired by clearing data and navigating", async () => {
 			await auth.storeAuthToken("test-token");
 			await asyncStorageMock.setItem("serverUrl", "http://localhost");
-			
+
 			// Mock expired response
 			localFetchMock.mockResolvedValue(createFetchResponse(false, 401, { error: "Session expired" }));
-			
+
 			await auth.checkLoggedIn();
-			
+
 			expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
 			expect(routerMocks.replace).toHaveBeenCalledWith("/");
 		});
@@ -140,7 +140,7 @@ describe("auth helpers", () => {
 
 		it("should handle session expired using browser alert", async () => {
 			await auth.handleSessionExpired();
-			
+
 			expect((globalThis as any).alert).toHaveBeenCalledWith(
 				"Your session has expired. Please log in again.",
 			);
@@ -156,7 +156,7 @@ describe("auth helpers", () => {
 
 		it("should handle session expired using Alert.alert", async () => {
 			await auth.handleSessionExpired();
-			
+
 			expect(alertMock).toHaveBeenCalledWith(
 				"Session Expired",
 				"Your session has expired. Please log in again.",

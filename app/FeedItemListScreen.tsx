@@ -48,7 +48,7 @@ const FeedItemListScreen: React.FC = () => {
 		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
 		getData: () => FeedItem[];
-	}>(null);
+			}>(null);
 	const { setMenuItems, onToggleDropdown } = useMenu();
 	const { feed, removedItemId } = useLocalSearchParams<{
 		feed: string;
@@ -168,7 +168,7 @@ const FeedItemListScreen: React.FC = () => {
 		(item: FeedItem) => {
 			router.push({
 				pathname: "/FeedItemDetailScreen",
-				params: { 
+				params: {
 					feedItemId: item.id.toString(),
 					feedItem: JSON.stringify(item),
 				},

@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { expect, describe, it, beforeEach, afterEach, spyOn, mock } from "bun:test";
-import "./setup";
 import { mocks, storageMap } from "./setup";
 import { auth } from "../helpers/auth_helper";
 import { api } from "../helpers/api_helper";
@@ -41,17 +40,17 @@ describe("Security: Garbage Token Handling", () => {
 		// Spy on clearAuthData to verify it is called
 		const clearAuthDataSpy = spyOn(auth, "clearAuthData");
 		const getWithAuthSpy = spyOn(api, "getWithAuth").mockRejectedValue(new Error("Session expired"));
-		
+
 		const routerReplaceSpy = mocks.router.replace;
-		
+
 		await auth.checkLoggedIn(mocks.router);
 
 		// Should have called clearAuthData
 		expect(clearAuthDataSpy).toHaveBeenCalled();
-		
+
 		// Should NOT have replaced with FeedListScreen
 		expect(routerReplaceSpy).not.toHaveBeenCalledWith("/FeedListScreen");
-		
+
 		clearAuthDataSpy.mockRestore();
 		getWithAuthSpy.mockRestore();
 	});

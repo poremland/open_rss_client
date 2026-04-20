@@ -93,7 +93,7 @@ describe("Cache Cleanup on Mark Read", () => {
 		expect(await cacheHelper.getCache(itemUrl)).toBeDefined();
 		const feedItems = await cacheHelper.getCache<any[]>(feedUrl);
 		expect(feedItems).toHaveLength(1);
-		
+
 		consoleErrorSpy.mockRestore();
 	});
 });

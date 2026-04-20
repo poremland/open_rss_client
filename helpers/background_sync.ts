@@ -72,7 +72,7 @@ export const performProactiveFetch = async () => {
 export const backgroundSyncTask = async () => {
 	try {
 		console.log('Background sync task started');
-		
+
 		await performProactiveFetch();
 
 		console.log('Background sync task finished successfully');

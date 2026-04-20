@@ -39,7 +39,7 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 
 	it("should decrement unread count in tree cache when an item is marked read", async () => {
 		await cacheHelper.markItemsReadInCache(1, [101]);
-		
+
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(2);
 		expect(newTree!.find(f => f.feed.id === 1).feed.count).toBe(1);
@@ -51,7 +51,7 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 
 	it("should remove feed from tree cache when all items are marked read", async () => {
 		await cacheHelper.markItemsReadInCache(1, [101, 102]);
-		
+
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(1);
 		expect(newTree!.find(f => f.feed.id === 1)).toBeUndefined();
@@ -61,16 +61,16 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		await cacheHelper.clearCache("/feeds/tree.json");
 		await cacheHelper.clearLocalCache();
 		storageMap.clear();
-		
+
 		await cacheHelper.markItemsReadInCache(1, [101]);
-		
+
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toBeNull();
 	});
 
 	it("should handle marking all items read", async () => {
 		await cacheHelper.markAllItemsReadInCache(1);
-		
+
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(1);
 		expect(newTree!.find(f => f.feed.id === 1)).toBeUndefined();
@@ -82,30 +82,30 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 	it("should handle errors in getCache", async () => {
 		const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 		await cacheHelper.clearLocalCache();
-		
+
 		const getItemSpy = spyOn(AsyncStorage, "getItem").mockImplementationOnce(() => {
 			return Promise.reject(new Error("AsyncStorage error"));
 		});
-		
+
 		const result = await cacheHelper.getCache("/any-error");
 		expect(result).toBeNull();
 		expect(consoleSpy).toHaveBeenCalled();
-		
+
 		consoleSpy.mockRestore();
 		getItemSpy.mockRestore();
 	});
 
 	it("should handle errors in setCache", async () => {
 		const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
-		
+
 		const setItemSpy = spyOn(AsyncStorage, "setItem").mockImplementationOnce(() => {
 			return Promise.reject(new Error("AsyncStorage error"));
 		});
-		
+
 		await cacheHelper.setCache("/any-set-error", { data: 1 });
-		
+
 		expect(consoleSpy).toHaveBeenCalled();
-		
+
 		consoleSpy.mockRestore();
 		setItemSpy.mockRestore();
 	});
@@ -128,9 +128,9 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		expect(newTree!.find(f => f.feed.id === 2)).toBeDefined();
 		expect(newTree!.find(f => f.feed.id === 3)).toBeDefined();
 		expect(newTree!.find(f => f.feed.id === 1)).toBeUndefined();
-		});
+	});
 
-		it("should NOT remove feed from tree when count is undefined", async () => {
+	it("should NOT remove feed from tree when count is undefined", async () => {
 		const tree = [
 		        { feed: { id: 1, name: "Feed 1" } }, // count is undefined
 		        { feed: { id: 2, name: "Feed 2", count: 5 } },
@@ -142,9 +142,9 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(2);
 		expect(newTree!.find(f => f.feed.id === 1)).toBeDefined();
-		});
+	});
 
-		it("should handle unread_count at top level (backward compatibility/bug fix)", async () => {
+	it("should handle unread_count at top level (backward compatibility/bug fix)", async () => {
 		        const tree = [
 		                { feed: { id: 1, name: "Feed 1" }, unread_count: 5 },
 		                { feed: { id: 2, name: "Feed 2" }, unread_count: 10 },
@@ -156,5 +156,5 @@ describe("Offline Feed List Pruning Unit Tests", () => {
 		const newTree = await cacheHelper.getCache<any[]>("/feeds/tree.json");
 		expect(newTree).toHaveLength(2);
 		expect(newTree!.find(f => f.feed.id === 1).feed.count).toBe(4);
-		});
-		});
+	});
+});

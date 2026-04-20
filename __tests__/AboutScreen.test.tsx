@@ -19,7 +19,6 @@ import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { expect, describe, it, beforeEach, afterEach, spyOn, mock } from "bun:test";
 import { Platform } from "react-native";
-import "./setup";
 import { mocks } from "./setup";
 import AboutScreen from "../app/AboutScreen";
 import { ConnectionProvider } from "../components/useConnectionStatus";
@@ -33,7 +32,7 @@ describe("AboutScreen", () => {
 	beforeEach(() => {
 		originalOS = Platform.OS;
 		mocks.resetAll();
-		
+
 		// Mock cacheHelper functions directly
 		getCacheStatsSpy = spyOn(cacheHelper, "getCacheStats").mockResolvedValue({
 			cachedFeeds: 5,
@@ -119,7 +118,7 @@ describe("AboutScreen", () => {
 			fireEvent.press(clearButton);
 
 			expect(mocks.alert).toHaveBeenCalled();
-			
+
 			// Simulate confirm
 			const confirmCallback = (mocks.alert as any).mock.calls[0][2][1].onPress;
 			confirmCallback();

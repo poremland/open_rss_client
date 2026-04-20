@@ -8,8 +8,8 @@
 import { mock, expect, describe, it } from "bun:test";
 import React from "react";
 import "./setup";
-const { View, Text } = require("react-native");
 import { render } from "@testing-library/react-native";
+const { View, Text } = require("react-native");
 
 describe("Native Rendering Baseline", () => {
 	it("renders basic components correctly", () => {

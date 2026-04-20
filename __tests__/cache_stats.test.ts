@@ -39,7 +39,7 @@ describe("Cache Stats", () => {
 		await AsyncStorage.setItem("lastSyncTime", "2026-04-20T10:00:00Z");
 
 		const stats = await cacheHelper.getCacheStats();
-		
+
 		expect(stats.cachedFeeds).toBe(1);
 		expect(stats.cachedItems).toBe(2); // Counted from data1
 		expect(stats.lastSyncTime).toBe("2026-04-20T10:00:00Z");
