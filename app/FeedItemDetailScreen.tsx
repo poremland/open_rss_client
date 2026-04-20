@@ -81,10 +81,9 @@ const FeedItemDetailScreen: React.FC = () => {
 		
 		const response = await markItemAsRead();
 		if (response) {
-		        await markItemsReadInCache(item.feed_id!, [item.id]);
+			await markItemsReadInCache(item.feed_id!, [item.id]);
 		}
 		router.back();
-
 		if (item?.id) {
 			router.setParams({ removedItemId: item.id.toString() });
 		}
@@ -122,35 +121,34 @@ const FeedItemDetailScreen: React.FC = () => {
 		if (!isFocused) return;
 
 		const menuItems: MenuItem[] = [
-		        {
-		                label: "Mark As Read",
-		                icon: "checkmark-sharp",
-		                onPress: () => markAsReadHandlerRef.current(),
-		                testID: "mark-as-read-button",
-		        },
-		        {
-		                label: "Open Full Site",
-		                icon: "open-outline",
-		                onPress: () =>
-		                        selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
-		        },
-		        {
-		                label: "Share",
-		                icon: "share-social-outline",
-		                onPress: () => shareHandlerRef.current(),
-		        },
-		        {
-		                label: "About",
-		                icon: "information-circle-outline",
-		                onPress: () => router.push("/AboutScreen"),
-		        },
-		        {
-		                label: "Log-out",
-		                icon: "log-out-outline",
-		                onPress: () => authHelper.clearAuthData(router),
-		        },
+			{
+				label: "Mark As Read",
+				icon: "checkmark-sharp",
+				onPress: () => markAsReadHandlerRef.current(),
+				testID: "mark-as-read-button",
+			},
+			{
+				label: "Open Full Site",
+				icon: "open-outline",
+				onPress: () =>
+					selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link),
+			},
+			{
+				label: "Share",
+				icon: "share-social-outline",
+				onPress: () => shareHandlerRef.current(),
+			},
+			{
+				label: "About",
+				icon: "information-circle-outline",
+				onPress: () => router.push("/AboutScreen"),
+			},
+			{
+				label: "Log-out",
+				icon: "log-out-outline",
+				onPress: () => authHelper.clearAuthData(router),
+			},
 		];
-
 		setMenuItems(menuItems);
 	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 

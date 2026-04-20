@@ -28,13 +28,13 @@ export default function useCache() {
 	const clearAllCache = useCallback(cacheHelper.clearAllCache, []);
 
 	return {
-	        getCache,
-	        setCache,
-	        clearCache,
-	        markItemsReadInCache,
-	        markAllItemsReadInCache,
-	        getCacheStats,
-	        clearAllCache,
+		getCache,
+		setCache,
+		clearCache,
+		markItemsReadInCache,
+		markAllItemsReadInCache,
+		getCacheStats,
+		clearAllCache,
 	};
 
 }

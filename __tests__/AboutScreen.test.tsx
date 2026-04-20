@@ -17,39 +17,39 @@
  */
 import React, { act } from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { expect, describe, it, beforeEach, mock } from "bun:test";
+import { expect, describe, it, beforeEach, afterEach, spyOn } from "bun:test";
 import "./setup";
 import { mocks } from "./setup";
 import AboutScreen from "../app/AboutScreen";
 import { ConnectionProvider } from "../components/useConnectionStatus";
-
-// Mock useCache
-const mockGetCacheStats = mock(() => Promise.resolve({
-	cachedFeeds: 5,
-	cachedItems: 120,
-	totalSize: 1024 * 500, // 512 KB
-	lastSyncTime: "2026-04-20T10:00:00Z"
-}));
-const mockClearAllCache = mock(() => Promise.resolve());
-
-mock.module("../components/useCache", () => ({
-	default: () => ({
-		getCacheStats: mockGetCacheStats,
-		clearAllCache: mockClearAllCache,
-	}),
-	__esModule: true,
-}));
+import * as cacheHelper from "../helpers/cache_helper";
 
 describe("AboutScreen", () => {
+	let getCacheStatsSpy: any;
+	let clearAllCacheSpy: any;
+
 	beforeEach(() => {
 		mocks.resetAll();
-		mockGetCacheStats.mockClear();
-		mockClearAllCache.mockClear();
+		
+		// Mock cacheHelper functions directly
+		getCacheStatsSpy = spyOn(cacheHelper, "getCacheStats").mockResolvedValue({
+			cachedFeeds: 5,
+			cachedItems: 120,
+			totalSize: 1024 * 500, // 512 KB
+			lastSyncTime: "2026-04-20T10:00:00Z"
+		});
+		clearAllCacheSpy = spyOn(cacheHelper, "clearAllCache").mockResolvedValue(undefined);
+
 		mocks.asyncStorage.getItem.mockImplementation(async (key: string) => {
 			if (key === "serverUrl") return "https://rss.example.com";
 			if (key === "user") return "testuser";
 			return null;
 		});
+	});
+
+	afterEach(() => {
+		getCacheStatsSpy.mockRestore();
+		clearAllCacheSpy.mockRestore();
 	});
 
 	const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -59,7 +59,7 @@ describe("AboutScreen", () => {
 	it("renders all required information", async () => {
 		const { getByText } = render(<AboutScreen />, { wrapper });
 
-		await waitFor(() => expect(mockGetCacheStats).toHaveBeenCalled());
+		await waitFor(() => expect(cacheHelper.getCacheStats).toHaveBeenCalled());
 
 		expect(getByText("Open RSS Client")).toBeTruthy();
 		expect(getByText("Version: 1.6.1")).toBeTruthy();
@@ -94,6 +94,6 @@ describe("AboutScreen", () => {
 			await clearButtonConfig.onPress();
 		});
 
-		expect(mockClearAllCache).toHaveBeenCalled();
+		expect(cacheHelper.clearAllCache).toHaveBeenCalled();
 	});
 });

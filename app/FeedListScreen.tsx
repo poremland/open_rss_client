@@ -55,28 +55,27 @@ const FeedListScreen: React.FC = () => {
 			performRefresh();
 			const menuItems: MenuItem[] = [
 				{
-				        label: "Add Feed",
-				        icon: "duplicate-outline",
-				        onPress: () => router.push("/AddFeedScreen"),
-				        disabled: !isConnected,
+					label: "Add Feed",
+					icon: "duplicate-outline",
+					onPress: () => router.push("/AddFeedScreen"),
+					disabled: !isConnected,
 				},
 				{
-				        label: "Manage Feeds",
-				        icon: "settings-outline",
-				        onPress: () => router.push("/ManageFeedsListScreen"),
-				        disabled: !isConnected,
+					label: "Manage Feeds",
+					icon: "settings-outline",
+					onPress: () => router.push("/ManageFeedsListScreen"),
+					disabled: !isConnected,
 				},
 				{
-				        label: "About",
-				        icon: "information-circle-outline",
-				        onPress: () => router.push("/AboutScreen"),
+					label: "About",
+					icon: "information-circle-outline",
+					onPress: () => router.push("/AboutScreen"),
 				},
 				{
-				        label: "Log-out",
-				        icon: "log-out-outline",
-				        onPress: () => authHelper.clearAuthData(router),
+					label: "Log-out",
+					icon: "log-out-outline",
+					onPress: () => authHelper.clearAuthData(router),
 				},
-
 			];
 			setMenuItems(menuItems);
 		}, [isFocused, router, setMenuItems, isConnected]),

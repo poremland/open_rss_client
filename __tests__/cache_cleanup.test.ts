@@ -30,7 +30,7 @@ describe("Cache Cleanup on Mark Read", () => {
 
 	beforeEach(async () => {
 		mocks.resetAll();
-		await cacheHelper.clearLocalCache();
+		if ((globalThis as any).storageMap) (globalThis as any).storageMap.clear();
 		await syncHelper.clearQueue();
 
 		// Setup initial cache
@@ -74,6 +74,7 @@ describe("Cache Cleanup on Mark Read", () => {
 	});
 
 	it("should NOT clear cache if syncService.synchronize fails", async () => {
+		const consoleErrorSpy = spyOn(console, "error").mockImplementation(() => {});
 		mocks.api.postWithAuth.mockRejectedValue(new Error("Server Error"));
 
 		await syncHelper.queueAction({
@@ -92,5 +93,7 @@ describe("Cache Cleanup on Mark Read", () => {
 		expect(await cacheHelper.getCache(itemUrl)).toBeDefined();
 		const feedItems = await cacheHelper.getCache<any[]>(feedUrl);
 		expect(feedItems).toHaveLength(1);
+		
+		consoleErrorSpy.mockRestore();
 	});
 });

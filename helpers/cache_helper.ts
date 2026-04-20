@@ -30,17 +30,6 @@ export const clearLocalCache = () => {
 	localCacheMap.clear();
 };
 
-export const clearAllCache = async () => {
-	try {
-		const allKeys = await AsyncStorage.getAllKeys();
-		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
-		await AsyncStorage.multiRemove(cacheKeys);
-		localCacheMap.clear();
-	} catch (e) {
-		console.error('Error clearing all cache:', e);
-	}
-};
-
 export const getCache = async <T>(url: string): Promise<T | null> => {
 	try {
 		const key = getCacheKey(url);
@@ -89,14 +78,15 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: Arr
 		const path = `/feeds/${feedId}.json`;
 		const cachedItems = await getCache<any[]>(path);
 		if (cachedItems) {
-		        const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
-		        await setCache(path, updatedItems);
+			const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
+			await setCache(path, updatedItems);
 		}
 
 		// Clear individual item caches
 		for (const itemId of itemIds) {
-		        await clearCache(`/feed_items/${itemId}.json`);
+			await clearCache(`/feed_items/${itemId}.json`);
 		}
+		
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';
 		const tree = await getCache<any[]>(treePath);
@@ -148,15 +138,26 @@ export const markAllItemsReadInCache = async (feedId: string | number): Promise<
 	}
 };
 
+export const clearAllCache = async () => {
+	try {
+		const allKeys = await AsyncStorage.getAllKeys();
+		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
+		await AsyncStorage.multiRemove(cacheKeys);
+		localCacheMap.clear();
+	} catch (e) {
+		console.error('Error clearing all cache:', e);
+	}
+};
+
 export const getCacheStats = async () => {
 	try {
 		const allKeys = await AsyncStorage.getAllKeys();
 		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
-		
+
 		let cachedFeeds = 0;
 		let cachedItems = 0;
 		let totalSize = 0;
-		
+
 		const pairs = await AsyncStorage.multiGet(cacheKeys);
 		for (const [key, value] of pairs) {
 			if (value) {
@@ -168,9 +169,9 @@ export const getCacheStats = async () => {
 				}
 			}
 		}
-		
+
 		const lastSyncTime = await AsyncStorage.getItem('lastSyncTime');
-		
+
 		return {
 			cachedFeeds,
 			cachedItems,

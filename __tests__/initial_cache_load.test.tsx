@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { mock, expect, describe, it, beforeEach } from "bun:test";
+import { expect, describe, it, beforeEach } from "bun:test";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import React, { act } from "react";
 import "./setup";

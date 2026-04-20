@@ -25,6 +25,7 @@ describe("Cache Stats", () => {
 	beforeEach(async () => {
 		mocks.resetAll();
 		storageMap.clear();
+		if ((globalThis as any).localCacheMap) (globalThis as any).localCacheMap.clear();
 	});
 
 	it("should calculate correct cache stats", async () => {

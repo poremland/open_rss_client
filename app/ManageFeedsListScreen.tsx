@@ -131,14 +131,16 @@ const ManageFeedsListScreen: React.FC = () => {
 			const menuItems: MenuItem[] = [
 				{
 					label: "Import OPML",
-					icon: "cloud-upload-outline",
+					icon: "upload-outline",
 					onPress: handleImportOpml,
+					testID: "import-opml-button",
 					disabled: !isConnected,
 				},
 				{
 					label: "Export OPML",
-					icon: "cloud-download-outline",
+					icon: "download-outline",
 					onPress: handleExportOpml,
+					testID: "export-opml-button",
 					disabled: !isConnected,
 				},
 				{
