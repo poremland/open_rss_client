@@ -15,18 +15,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { expect, describe, it, beforeEach } from "bun:test";
+import { expect, describe, it, beforeEach, afterEach } from "bun:test";
 import "./setup";
 import { mocks } from "./setup";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import useSync from "../components/useSync";
 import { syncService } from "../helpers/sync_service";
+import { storageMap } from "./setup";
 
 describe("useSync", () => {
 	beforeEach(() => {
+		(globalThis as any).__disableAuthMock = true;
 		mocks.resetAll();
+		storageMap.set("authToken", "test-token");
 	});
 
+	afterEach(() => {
+		(globalThis as any).__disableAuthMock = false;
+	});
 	it("should call syncService.synchronize when connection is restored", async () => {
 		// Start online
 		mocks.useConnectionStatusMock.isConnected = true;

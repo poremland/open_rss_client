@@ -33,14 +33,14 @@ describe("auth helpers", () => {
 	beforeEach(async () => {
 		(globalThis as any).__disableAuthMock = true;
 		(globalThis as any).__disableApiMock = true;
-		
+
 		storageMap.clear();
 		asyncStorageMock.setItem.mockClear();
 		asyncStorageMock.getItem.mockClear();
 		asyncStorageMock.removeItem.mockClear();
 		routerMocks.replace.mockClear();
 		if (alertMock.mockClear) alertMock.mockClear();
-		
+
 		localFetchMock = mock(() => Promise.resolve(createFetchResponse(true, 200, {})));
 
 		// Explicitly inject mocks and isolated Api
@@ -78,10 +78,28 @@ describe("auth helpers", () => {
 		expect(routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 
-	it("should navigate to feed list if logged in", async () => {
+	it("should navigate to feed list if token is valid", async () => {
 		await auth.storeAuthToken("test-token");
+		await asyncStorageMock.setItem("serverUrl", "http://localhost");
+		
+		// Mock valid response
+		localFetchMock.mockResolvedValue(createFetchResponse(true, 200, []));
+		
 		await auth.checkLoggedIn();
-		expect(routerMocks.replace).toHaveBeenCalledWith("FeedListScreen");
+		expect(routerMocks.replace).toHaveBeenCalledWith("/FeedListScreen");
+	});
+
+	it("should handle session expired by clearing data and navigating", async () => {
+		await auth.storeAuthToken("test-token");
+		await asyncStorageMock.setItem("serverUrl", "http://localhost");
+		
+		// Mock expired response
+		localFetchMock.mockResolvedValue(createFetchResponse(false, 401, { error: "Session expired" }));
+		
+		await auth.checkLoggedIn();
+		
+		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+		expect(routerMocks.replace).toHaveBeenCalledWith("/");
 	});
 
 	it("should not navigate if not logged in", async () => {
@@ -92,22 +110,28 @@ describe("auth helpers", () => {
 	it("should refresh token on load", async () => {
 		await asyncStorageMock.setItem("authToken", "old-token");
 		await asyncStorageMock.setItem("serverUrl", "http://localhost");
-		
+
 		localFetchMock.mockResolvedValue(createFetchResponse(true, 200, { token: "new-token" }));
-		
+
 		await auth.refreshTokenOnLoad();
-		
+
 		const token = await auth.getAuthToken();
 		expect(token).toBe("new-token");
 	});
 
-	it("should handle session expired", async () => {
+	it("should handle session expired in handleSessionExpired", async () => {
+		// Mock browser alert
+		const originalAlert = (globalThis as any).alert;
+		(globalThis as any).alert = mock();
+
 		await auth.handleSessionExpired();
-		expect(alertMock).toHaveBeenCalledWith(
-			"Session Expired",
+		
+		expect((globalThis as any).alert).toHaveBeenCalledWith(
 			"Your session has expired. Please log in again.",
 		);
 		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
 		expect(routerMocks.replace).toHaveBeenCalledWith("/");
+		
+		(globalThis as any).alert = originalAlert;
 	});
 });

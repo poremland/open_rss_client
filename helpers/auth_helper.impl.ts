@@ -91,12 +91,29 @@ export class Auth {
 	clearAuthData = async (router?: any) => {
 		const g = (globalThis as any);
 		if (!g.__disableAuthMock && g.authMocks && g.authMocks.clearAuthData) return g.authMocks.clearAuthData(router);
-		
+
 		await this.deps.storage.removeItem('authToken');
 		await this.deps.storage.removeItem('user');
+		
+		const { clearLocalCache } = require('./cache_helper');
+		clearLocalCache();
+
 		if (router) {
+			if (typeof router.dismissAll === 'function') {
+				router.dismissAll();
+			}
 			router.replace('/');
 		} else {
+			// Try to find router from expo-router if not provided
+			try {
+				const { router: expoRouter } = require('expo-router');
+				if (expoRouter && typeof expoRouter.replace === 'function') {
+					expoRouter.replace('/');
+					return;
+				}
+			} catch (e) {
+				// Ignore
+			}
 			this.deps.router.replace('/');
 		}
 	};
@@ -107,10 +124,19 @@ export class Auth {
 
 		const token = await this.getAuthToken();
 		if (token) {
-			if (router) {
-				router.replace('FeedListScreen');
-			} else {
-				this.deps.router.replace('FeedListScreen');
+			try {
+				// Verify token by making a lightweight authenticated request
+				await this.api.getWithAuth('/feeds/tree.json');
+				if (router) {
+					router.replace('/FeedListScreen');
+				} else {
+					this.deps.router.replace('/FeedListScreen');
+				}
+			} catch (e: any) {
+				console.log('auth_helper: token verification failed:', e.message);
+				// On any error (especially 401), we should consider the session invalid
+				// to avoid displaying stale cached data to unauthenticated users.
+				await this.handleSessionExpired(router);
 			}
 		}
 	};
@@ -119,18 +145,28 @@ export class Auth {
 		const g = (globalThis as any);
 		if (!g.__disableAuthMock && g.authMocks && g.authMocks.handleSessionExpired) return g.authMocks.handleSessionExpired(router);
 
-		const { Alert } = require('react-native');
+		const { Alert, Platform } = require('react-native');
 		await this.clearAuthData(router);
-		Alert.alert('Session Expired', 'Your session has expired. Please log in again.');
+		if (Platform.OS === 'web') {
+			alert('Your session has expired. Please log in again.');
+		} else {
+			Alert.alert('Session Expired', 'Your session has expired. Please log in again.');
+		}
 	};
 
-	refreshTokenOnLoad = async () => {
+	refreshTokenOnLoad = async (router?: any) => {
 		const g = (globalThis as any);
-		if (!g.__disableAuthMock && g.authMocks && g.authMocks.refreshTokenOnLoad) return g.authMocks.refreshTokenOnLoad();
+		if (!g.__disableAuthMock && g.authMocks && g.authMocks.refreshTokenOnLoad) return g.authMocks.refreshTokenOnLoad(router);
 
-		const token = await this.api.refreshToken();
-		if (token) {
-			await this.storeAuthToken(token);
+		try {
+			const token = await this.api.refreshToken();
+			if (token) {
+				await this.storeAuthToken(token);
+			}
+		} catch (e: any) {
+			if (e.message === 'Session expired') {
+				await this.handleSessionExpired(router);
+			}
 		}
 	};
 }

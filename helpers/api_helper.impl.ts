@@ -411,11 +411,15 @@ export class Api {
 				await this.deps.storage.setItem('authToken', response.token);
 				return response.token;
 			}
-		} catch (e) {
+		} catch (e: any) {
 			console.error('Error refreshing token:', e);
+			if (e.message === 'Session expired') {
+				throw e;
+			}
 		}
 		return null;
 	};
+
 }
 
 export const api = new Api();
