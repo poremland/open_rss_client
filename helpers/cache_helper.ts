@@ -140,13 +140,10 @@ export const markAllItemsReadInCache = async (feedId: string | number): Promise<
 
 export const clearAllCache = async () => {
 	try {
-		console.log('Cache helper: clearAllCache started');
 		const allKeys = await AsyncStorage.getAllKeys();
 		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
-		console.log('Cache helper: found cache keys:', cacheKeys.length);
 		await AsyncStorage.multiRemove(cacheKeys);
 		localCacheMap.clear();
-		console.log('Cache helper: clearAllCache finished');
 	} catch (e) {
 		console.error('Error clearing all cache:', e);
 	}
@@ -156,7 +153,6 @@ export const getCacheStats = async () => {
 	try {
 		const allKeys = await AsyncStorage.getAllKeys();
 		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
-		console.log('Cache helper: getCacheStats found cache keys:', cacheKeys.length);
 
 		let cachedFeeds = 0;
 		let cachedItems = 0;
@@ -181,7 +177,6 @@ export const getCacheStats = async () => {
 		}
 
 		const lastSyncTime = await AsyncStorage.getItem('lastSyncTime');
-		console.log('Cache helper: getCacheStats returning:', { cachedFeeds, cachedItems, totalSize });
 
 		return {
 			cachedFeeds,

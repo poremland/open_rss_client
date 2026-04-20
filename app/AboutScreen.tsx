@@ -24,6 +24,7 @@ import {
 	Linking,
 	Image,
 	Alert,
+	Platform,
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -92,14 +93,8 @@ const AboutScreen: React.FC = () => {
 
 	const handleClearCache = useCallback(async () => {
 		const clearAction = async () => {
-			console.log('AboutScreen: confirmation received, clearing cache');
 			await clearAllCache();
 			await loadData();
-			if (Platform.OS !== 'web') {
-				Alert.alert("Success", "Cache cleared successfully.");
-			} else {
-				alert("Cache cleared successfully.");
-			}
 		};
 
 		if (Platform.OS === 'web') {

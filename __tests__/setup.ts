@@ -784,3 +784,11 @@ plugin({
 		}));
 	},
 });
+
+// --- Browser Globals Mocks ---
+if (typeof (globalThis as any).window === 'undefined') {
+	(globalThis as any).window = globalThis;
+}
+
+(globalThis as any).confirm = mock(() => true);
+(globalThis as any).alert = mock();

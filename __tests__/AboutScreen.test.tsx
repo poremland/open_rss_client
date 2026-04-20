@@ -17,7 +17,8 @@
  */
 import React, { act } from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { expect, describe, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { expect, describe, it, beforeEach, afterEach, spyOn, mock } from "bun:test";
+import { Platform } from "react-native";
 import "./setup";
 import { mocks } from "./setup";
 import AboutScreen from "../app/AboutScreen";
@@ -70,30 +71,30 @@ describe("AboutScreen", () => {
 		expect(getByText("500 KB")).toBeTruthy(); // total size
 	});
 
-	it("calls clearAllCache when button is pressed", async () => {
+	it("calls clearAllCache when button is pressed (Web)", async () => {
 		const { getByText } = render(<AboutScreen />, { wrapper });
 
 		await waitFor(() => expect(getByText("Clear Cache")).toBeTruthy());
 
+		// Mock window and Platform
+		const originalPlatform = Platform.OS;
+		Platform.OS = 'web';
+		
+		// Setup global window mock for this test
+		const originalWindow = (globalThis as any).window;
+		(globalThis as any).window = {
+			confirm: mock(() => true),
+			alert: mock(),
+		};
+
 		const clearButton = getByText("Clear Cache");
 		fireEvent.press(clearButton);
 
-		// Verify Alert was called
-		expect(mocks.alert).toHaveBeenCalledWith(
-			"Clear Cache",
-			expect.any(String),
-			expect.any(Array)
-		);
-
-		// Extract buttons and find "Clear"
-		const buttons = mocks.alert.mock.calls[0][2];
-		const clearButtonConfig = buttons.find((b: any) => b.text === "Clear");
+		await waitFor(() => expect((globalThis as any).window.confirm).toHaveBeenCalled());
+		await waitFor(() => expect(cacheHelper.clearAllCache).toHaveBeenCalled());
 		
-		// Trigger the clear action
-		await act(async () => {
-			await clearButtonConfig.onPress();
-		});
-
-		expect(cacheHelper.clearAllCache).toHaveBeenCalled();
+		// Restore
+		(globalThis as any).window = originalWindow;
+		Platform.OS = originalPlatform;
 	});
 });
