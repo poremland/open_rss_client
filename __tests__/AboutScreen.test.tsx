@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { act } from "react";
+import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { expect, describe, it, beforeEach, afterEach, spyOn, mock } from "bun:test";
 import { Platform } from "react-native";
@@ -28,8 +28,10 @@ import * as cacheHelper from "../helpers/cache_helper";
 describe("AboutScreen", () => {
 	let getCacheStatsSpy: any;
 	let clearAllCacheSpy: any;
+	let originalOS: any;
 
 	beforeEach(() => {
+		originalOS = Platform.OS;
 		mocks.resetAll();
 		
 		// Mock cacheHelper functions directly
@@ -51,50 +53,78 @@ describe("AboutScreen", () => {
 	afterEach(() => {
 		getCacheStatsSpy.mockRestore();
 		clearAllCacheSpy.mockRestore();
+		Platform.OS = originalOS;
 	});
 
 	const wrapper = ({ children }: { children: React.ReactNode }) => (
 		<ConnectionProvider>{children}</ConnectionProvider>
 	);
 
-	it("renders all required information", async () => {
-		const { getByText } = render(<AboutScreen />, { wrapper });
+	describe("General", () => {
+		it("renders all required information", async () => {
+			const { getByText } = render(<AboutScreen />, { wrapper });
 
-		await waitFor(() => expect(cacheHelper.getCacheStats).toHaveBeenCalled());
+			await waitFor(() => expect(cacheHelper.getCacheStats).toHaveBeenCalled());
 
-		expect(getByText("Open RSS Client")).toBeTruthy();
-		expect(getByText("Version: 1.6.1")).toBeTruthy();
-		expect(getByText("https://rss.example.com")).toBeTruthy();
-		expect(getByText("testuser")).toBeTruthy();
-		expect(getByText("5")).toBeTruthy(); // cached feeds
-		expect(getByText("120")).toBeTruthy(); // cached items
-		expect(getByText("500 KB")).toBeTruthy(); // total size
+			expect(getByText("Open RSS Client")).toBeTruthy();
+			expect(getByText("Version: 1.6.1")).toBeTruthy();
+			expect(getByText("https://rss.example.com")).toBeTruthy();
+			expect(getByText("testuser")).toBeTruthy();
+			expect(getByText("5")).toBeTruthy(); // cached feeds
+			expect(getByText("120")).toBeTruthy(); // cached items
+			expect(getByText("500 KB")).toBeTruthy(); // total size
+		});
 	});
 
-	it("calls clearAllCache when button is pressed (Web)", async () => {
-		const { getByText } = render(<AboutScreen />, { wrapper });
+	describe("Web-specific", () => {
+		let originalWindow: any;
 
-		await waitFor(() => expect(getByText("Clear Cache")).toBeTruthy());
+		beforeEach(() => {
+			Platform.OS = 'web';
+			originalWindow = (globalThis as any).window;
+			(globalThis as any).window = {
+				confirm: mock(() => true),
+				alert: mock(),
+			};
+		});
 
-		// Mock window and Platform
-		const originalPlatform = Platform.OS;
-		Platform.OS = 'web';
-		
-		// Setup global window mock for this test
-		const originalWindow = (globalThis as any).window;
-		(globalThis as any).window = {
-			confirm: mock(() => true),
-			alert: mock(),
-		};
+		afterEach(() => {
+			(globalThis as any).window = originalWindow;
+		});
 
-		const clearButton = getByText("Clear Cache");
-		fireEvent.press(clearButton);
+		it("calls clearAllCache when button is pressed", async () => {
+			const { getByText } = render(<AboutScreen />, { wrapper });
 
-		await waitFor(() => expect((globalThis as any).window.confirm).toHaveBeenCalled());
-		await waitFor(() => expect(cacheHelper.clearAllCache).toHaveBeenCalled());
-		
-		// Restore
-		(globalThis as any).window = originalWindow;
-		Platform.OS = originalPlatform;
+			await waitFor(() => expect(getByText("Clear Cache")).toBeTruthy());
+
+			const clearButton = getByText("Clear Cache");
+			fireEvent.press(clearButton);
+
+			await waitFor(() => expect((globalThis as any).window.confirm).toHaveBeenCalled());
+			await waitFor(() => expect(cacheHelper.clearAllCache).toHaveBeenCalled());
+		});
+	});
+
+	describe("Native-specific", () => {
+		beforeEach(() => {
+			Platform.OS = 'ios';
+		});
+
+		it("calls clearAllCache when button is pressed and confirmed", async () => {
+			const { getByText } = render(<AboutScreen />, { wrapper });
+
+			await waitFor(() => expect(getByText("Clear Cache")).toBeTruthy());
+
+			const clearButton = getByText("Clear Cache");
+			fireEvent.press(clearButton);
+
+			expect(mocks.alert).toHaveBeenCalled();
+			
+			// Simulate confirm
+			const confirmCallback = (mocks.alert as any).mock.calls[0][2][1].onPress;
+			confirmCallback();
+
+			await waitFor(() => expect(cacheHelper.clearAllCache).toHaveBeenCalled());
+		});
 	});
 });

@@ -15,7 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { Platform } from "react-native";
 import { Auth } from "../../helpers/auth_helper.impl";
 import { Api } from "../../helpers/api_helper.impl";
 import { mocks } from "../setup";
@@ -29,8 +30,10 @@ const createFetchResponse = mocks.createFetchResponse;
 describe("auth helpers", () => {
 	let auth: Auth;
 	let localFetchMock: any;
+	let originalOS: any;
 
 	beforeEach(async () => {
+		originalOS = Platform.OS;
 		(globalThis as any).__disableAuthMock = true;
 		(globalThis as any).__disableApiMock = true;
 
@@ -51,87 +54,115 @@ describe("auth helpers", () => {
 	afterEach(() => {
 		(globalThis as any).__disableAuthMock = false;
 		(globalThis as any).__disableApiMock = false;
+		Platform.OS = originalOS;
 	});
 
-	it("should store and retrieve auth token", async () => {
-		await auth.storeAuthToken("test-token");
-		const token = await auth.getAuthToken();
-		expect(token).toBe("test-token");
-		expect(asyncStorageMock.setItem).toHaveBeenCalledWith("authToken", "test-token");
+	describe("General", () => {
+		it("should store and retrieve auth token", async () => {
+			await auth.storeAuthToken("test-token");
+			const token = await auth.getAuthToken();
+			expect(token).toBe("test-token");
+			expect(asyncStorageMock.setItem).toHaveBeenCalledWith("authToken", "test-token");
+		});
+
+		it("should store and retrieve user", async () => {
+			await auth.storeUser("test-user");
+			const user = await auth.getUser();
+			expect(user).toBe("test-user");
+			expect(asyncStorageMock.setItem).toHaveBeenCalledWith("user", "test-user");
+		});
+
+		it("should clear auth data and navigate", async () => {
+			await auth.storeAuthToken("test-token");
+			await auth.storeUser("test-user");
+
+			await auth.clearAuthData();
+
+			expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+			expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("user");
+			expect(routerMocks.replace).toHaveBeenCalledWith("/");
+		});
+
+		it("should navigate to feed list if token is valid", async () => {
+			await auth.storeAuthToken("test-token");
+			await asyncStorageMock.setItem("serverUrl", "http://localhost");
+			
+			// Mock valid response
+			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, []));
+			
+			await auth.checkLoggedIn();
+			expect(routerMocks.replace).toHaveBeenCalledWith("/FeedListScreen");
+		});
+
+		it("should handle session expired by clearing data and navigating", async () => {
+			await auth.storeAuthToken("test-token");
+			await asyncStorageMock.setItem("serverUrl", "http://localhost");
+			
+			// Mock expired response
+			localFetchMock.mockResolvedValue(createFetchResponse(false, 401, { error: "Session expired" }));
+			
+			await auth.checkLoggedIn();
+			
+			expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+			expect(routerMocks.replace).toHaveBeenCalledWith("/");
+		});
+
+		it("should not navigate if not logged in", async () => {
+			await auth.checkLoggedIn();
+			expect(routerMocks.replace).not.toHaveBeenCalled();
+		});
+
+		it("should refresh token on load", async () => {
+			await asyncStorageMock.setItem("authToken", "old-token");
+			await asyncStorageMock.setItem("serverUrl", "http://localhost");
+
+			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, { token: "new-token" }));
+
+			await auth.refreshTokenOnLoad();
+
+			const token = await auth.getAuthToken();
+			expect(token).toBe("new-token");
+		});
 	});
 
-	it("should store and retrieve user", async () => {
-		await auth.storeUser("test-user");
-		const user = await auth.getUser();
-		expect(user).toBe("test-user");
-		expect(asyncStorageMock.setItem).toHaveBeenCalledWith("user", "test-user");
+	describe("Web-specific", () => {
+		let originalAlert: any;
+
+		beforeEach(() => {
+			Platform.OS = "web";
+			originalAlert = (globalThis as any).alert;
+			(globalThis as any).alert = mock();
+		});
+
+		afterEach(() => {
+			(globalThis as any).alert = originalAlert;
+		});
+
+		it("should handle session expired using browser alert", async () => {
+			await auth.handleSessionExpired();
+			
+			expect((globalThis as any).alert).toHaveBeenCalledWith(
+				"Your session has expired. Please log in again.",
+			);
+			expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+			expect(routerMocks.replace).toHaveBeenCalledWith("/");
+		});
 	});
 
-	it("should clear auth data and navigate", async () => {
-		await auth.storeAuthToken("test-token");
-		await auth.storeUser("test-user");
+	describe("Native-specific", () => {
+		beforeEach(() => {
+			Platform.OS = "ios";
+		});
 
-		await auth.clearAuthData();
-
-		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
-		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("user");
-		expect(routerMocks.replace).toHaveBeenCalledWith("/");
-	});
-
-	it("should navigate to feed list if token is valid", async () => {
-		await auth.storeAuthToken("test-token");
-		await asyncStorageMock.setItem("serverUrl", "http://localhost");
-		
-		// Mock valid response
-		localFetchMock.mockResolvedValue(createFetchResponse(true, 200, []));
-		
-		await auth.checkLoggedIn();
-		expect(routerMocks.replace).toHaveBeenCalledWith("/FeedListScreen");
-	});
-
-	it("should handle session expired by clearing data and navigating", async () => {
-		await auth.storeAuthToken("test-token");
-		await asyncStorageMock.setItem("serverUrl", "http://localhost");
-		
-		// Mock expired response
-		localFetchMock.mockResolvedValue(createFetchResponse(false, 401, { error: "Session expired" }));
-		
-		await auth.checkLoggedIn();
-		
-		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
-		expect(routerMocks.replace).toHaveBeenCalledWith("/");
-	});
-
-	it("should not navigate if not logged in", async () => {
-		await auth.checkLoggedIn();
-		expect(routerMocks.replace).not.toHaveBeenCalled();
-	});
-
-	it("should refresh token on load", async () => {
-		await asyncStorageMock.setItem("authToken", "old-token");
-		await asyncStorageMock.setItem("serverUrl", "http://localhost");
-
-		localFetchMock.mockResolvedValue(createFetchResponse(true, 200, { token: "new-token" }));
-
-		await auth.refreshTokenOnLoad();
-
-		const token = await auth.getAuthToken();
-		expect(token).toBe("new-token");
-	});
-
-	it("should handle session expired in handleSessionExpired", async () => {
-		// Mock browser alert
-		const originalAlert = (globalThis as any).alert;
-		(globalThis as any).alert = mock();
-
-		await auth.handleSessionExpired();
-		
-		expect((globalThis as any).alert).toHaveBeenCalledWith(
-			"Your session has expired. Please log in again.",
-		);
-		expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
-		expect(routerMocks.replace).toHaveBeenCalledWith("/");
-		
-		(globalThis as any).alert = originalAlert;
+		it("should handle session expired using Alert.alert", async () => {
+			await auth.handleSessionExpired();
+			
+			expect(alertMock).toHaveBeenCalledWith(
+				"Session Expired",
+				"Your session has expired. Please log in again.",
+			);
+			expect(asyncStorageMock.removeItem).toHaveBeenCalledWith("authToken");
+			expect(routerMocks.replace).toHaveBeenCalledWith("/");
+		});
 	});
 });
