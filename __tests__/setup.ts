@@ -318,6 +318,7 @@ export const mocks = {
 	},
 	opml: opmlMocks,
 	opmlMocks,
+	network: networkMocks,
 	networkMocks,
 	useConnectionStatusMock,
 	localSearchParams: localSearchParamsMock,
@@ -709,7 +710,7 @@ export const resetAll = () => {
 	sharedConnectionState.isConnected = true;
 	resetMocksInObj(routerMocks);
 	resetMocksInObj(navigationMocks);
-	
+
 	// Just clear calls, do not reset implementation for asyncStorageMock
 	resetMocksInObj(asyncStorageMock);
 	asyncStorageMock.setItem.mockImplementation(async (k: string, v: any) => { storageMap.set(k, String(v)); });
@@ -719,7 +720,7 @@ export const resetAll = () => {
 	});
 	asyncStorageMock.removeItem.mockImplementation(async (k: string) => { storageMap.delete(k); });
 	asyncStorageMock.clear.mockImplementation(async () => { storageMap.clear(); });
-	
+
 	resetMocksInObj(apiMocks);
 	apiMocks.getWithAuth.mockImplementation(async (path: string) => {
 		if (path === "/feeds/tree.json" || path === "/feeds/all.json" || path.startsWith("/feeds/")) return Promise.resolve([]);
@@ -737,7 +738,7 @@ export const resetAll = () => {
 	resetMocksInObj(hapticsMock);
 	resetMocksInObj(opmlMocks);
 	resetMocksInObj(networkMocks);
-	
+
 	networkMocks.getNetworkStateAsync.mockImplementation(async () => ({ 
 		isConnected: sharedConnectionState.isConnected, 
 		isInternetReachable: sharedConnectionState.isConnected 
@@ -754,7 +755,7 @@ export const resetAll = () => {
 			}) 
 		};
 	});
-	
+
 	useConnectionStatusMock.updateConnectionStatus.mockClear();
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);

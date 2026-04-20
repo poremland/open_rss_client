@@ -90,25 +90,37 @@ const AboutScreen: React.FC = () => {
 		});
 	}, [router, setMenuItems, onToggleDropdown, navigation]);
 
-	const handleClearCache = async () => {
-		Alert.alert(
-			"Clear Cache",
-			"Are you sure you want to clear all locally cached feeds and items? You will need to re-download them.",
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Clear",
-					style: "destructive",
-					onPress: async () => {
-						await clearAllCache();
-						await loadData();
-						Alert.alert("Success", "Cache cleared successfully.");
-					},
-				},
-			]
-		);
-	};
+	const handleClearCache = useCallback(async () => {
+		const clearAction = async () => {
+			console.log('AboutScreen: confirmation received, clearing cache');
+			await clearAllCache();
+			await loadData();
+			if (Platform.OS !== 'web') {
+				Alert.alert("Success", "Cache cleared successfully.");
+			} else {
+				alert("Cache cleared successfully.");
+			}
+		};
 
+		if (Platform.OS === 'web') {
+			if (window.confirm("Are you sure you want to clear all locally cached feeds and items? You will need to re-download them.")) {
+				await clearAction();
+			}
+		} else {
+			Alert.alert(
+				"Clear Cache",
+				"Are you sure you want to clear all locally cached feeds and items? You will need to re-download them.",
+				[
+					{ text: "Cancel", style: "cancel" },
+					{
+						text: "Clear",
+						style: "destructive",
+						onPress: clearAction,
+					},
+				]
+			);
+		}
+	}, [clearAllCache, loadData]);
 	const formatSize = (bytes: number) => {
 		if (bytes === 0) return "0 B";
 		const k = 1024;
