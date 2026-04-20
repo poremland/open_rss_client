@@ -58,9 +58,12 @@ export class Api {
 	}
 
 	getBaseUrl = async () => {
-		return await this.deps.storage.getItem('serverUrl');
+	        const url = await this.deps.storage.getItem('serverUrl');
+	        if (!url) {
+	                throw new Error('Server URL not set. Please log in again.');
+	        }
+	        return url;
 	};
-
 	post = async <T>(url: string, body: any, contentType: string = 'application/json'): Promise<T> => {
 		const g = (globalThis as any);
 		if (!g.__disableApiMock && g.apiMocks && g.apiMocks.post) return g.apiMocks.post(url, body, contentType);
