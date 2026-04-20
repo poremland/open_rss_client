@@ -56,9 +56,9 @@ const useApi = <T,>(
 
 	// Sync initialData if it changes and we don't have data yet
 	useEffect(() => {
-		if (options.initialData && !dataRef.current) {
-			setData(options.initialData);
-		}
+	        if (options.initialData && !dataRef.current) {
+	                setData(options.initialData);
+	        }
 	}, [options.initialData, setData]);
 
 	const [loading, setLoading] = useState<boolean>(false);
@@ -67,6 +67,20 @@ const useApi = <T,>(
 	const { getCache, setCache } = useCache();
 	const { isConnected, updateConnectionStatus } = useConnectionStatus();
 
+	// Load from cache on mount if applicable
+	useEffect(() => {
+	        const lowerMethod = method.toLowerCase();
+	        const shouldCache = options.useCache !== false && lowerMethod === "get";
+
+	        if (shouldCache && !dataRef.current) {
+	                (async () => {
+	                        const cachedData = await getCache<T>(path);
+	                        if (cachedData && !dataRef.current) {
+	                                setData(cachedData);
+	                        }
+	                })();
+	        }
+	}, [method, path, options.useCache, getCache, setData, path]);
 
 	const execute = useCallback(
 		async (body?: any): Promise<T | null> => {
