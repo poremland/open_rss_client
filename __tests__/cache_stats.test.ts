@@ -28,20 +28,20 @@ describe("Cache Stats", () => {
 		if ((globalThis as any).localCacheMap) (globalThis as any).localCacheMap.clear();
 	});
 
-	it("should calculate correct cache stats", async () => {
+	it("should calculate correct cache stats based on feed item lists", async () => {
 		const feed1 = "/feeds/1.json";
 		const item1 = "/feed_items/101.json";
-		const data1 = [{ id: 101 }];
+		const data1 = [{ id: 101 }, { id: 102 }]; // 2 items in this feed
 		const data2 = { id: 101, content: "full content" };
 
 		await cacheHelper.setCache(feed1, data1);
 		await cacheHelper.setCache(item1, data2);
 		await AsyncStorage.setItem("lastSyncTime", "2026-04-20T10:00:00Z");
 
-		const stats = await (cacheHelper as any).getCacheStats();
+		const stats = await cacheHelper.getCacheStats();
 		
 		expect(stats.cachedFeeds).toBe(1);
-		expect(stats.cachedItems).toBe(1);
+		expect(stats.cachedItems).toBe(2); // Counted from data1
 		expect(stats.lastSyncTime).toBe("2026-04-20T10:00:00Z");
 		expect(stats.totalSize).toBeGreaterThan(0);
 	});

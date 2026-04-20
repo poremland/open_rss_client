@@ -33,7 +33,7 @@ export const clearLocalCache = () => {
 export const getCache = async <T>(url: string): Promise<T | null> => {
 	try {
 		const key = getCacheKey(url);
-		
+
 		// Try local map first
 		const localValue = localCacheMap.get(key);
 		if (localValue) {
@@ -86,7 +86,7 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: Arr
 		for (const itemId of itemIds) {
 			await clearCache(`/feed_items/${itemId}.json`);
 		}
-		
+
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';
 		const tree = await getCache<any[]>(treePath);
@@ -164,8 +164,14 @@ export const getCacheStats = async () => {
 				totalSize += value.length;
 				if (key.includes('/feeds/') && key.endsWith('.json') && !key.includes('tree.json') && !key.includes('all.json')) {
 					cachedFeeds++;
-				} else if (key.includes('/feed_items/')) {
-					cachedItems++;
+					try {
+						const items = JSON.parse(value);
+						if (Array.isArray(items)) {
+							cachedItems += items.length;
+						}
+					} catch (e) {
+						// Not a list, ignore
+					}
 				}
 			}
 		}
