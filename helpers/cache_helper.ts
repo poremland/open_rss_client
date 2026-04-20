@@ -79,7 +79,11 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: (st
 		const cachedItems = await getCache<any[]>(path);
 		if (cachedItems) {
 			const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
-			await setCache(path, updatedItems);
+			if (updatedItems.length > 0) {
+				await setCache(path, updatedItems);
+			} else {
+				await clearCache(path);
+			}
 		}
 
 		// Clear individual item caches
@@ -119,7 +123,7 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: (st
 export const markAllItemsReadInCache = async (feedId: string | number): Promise<void> => {
 	try {
 		const path = `/feeds/${feedId}.json`;
-		await setCache(path, []);
+		await clearCache(path);
 
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';

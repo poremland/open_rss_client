@@ -70,7 +70,7 @@ describe("Cache Cleanup on Mark Read", () => {
 		expect(itemCacheAfter).toBeNull();
 
 		const feedItemsAfter = await cacheHelper.getCache<any[]>(feedUrl);
-		expect(feedItemsAfter).toHaveLength(0);
+		expect(feedItemsAfter).toBeNull();
 	});
 
 	it("should NOT clear cache if syncService.synchronize fails", async () => {

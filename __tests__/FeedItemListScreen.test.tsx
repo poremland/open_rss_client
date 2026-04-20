@@ -214,7 +214,7 @@ describe("FeedItemListScreen", () => {
 
 			// Verify local cache was cleared
 			const newCachedItems = await cacheHelper.getCache<any[]>("/feeds/1.json");
-			expect(newCachedItems).toHaveLength(0);
+			expect(newCachedItems).toBeNull();
 
 			expect(mocks.navigation.goBack).toHaveBeenCalled();
 		});
