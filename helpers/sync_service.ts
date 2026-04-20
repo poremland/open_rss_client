@@ -19,6 +19,7 @@ import * as syncHelper from './sync_helper';
 import { api } from './api_helper';
 import { performProactiveFetch } from './background_sync';
 import * as cacheHelper from './cache_helper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type SyncEvent = 'syncStarted' | 'syncFinished';
 type SyncListener = () => void;
@@ -132,8 +133,11 @@ export const syncService = {
 
 				// 2. Perform proactive fetch to warm the cache
 				await performProactiveFetch();
-			} finally {
+
+				await AsyncStorage.setItem('lastSyncTime', new Date().toISOString());
+				} finally {
 				console.log('Sync service: synchronization finished');
+
 				syncService.isSynchronizing = false;
 				syncService.emit('syncFinished');
 			}

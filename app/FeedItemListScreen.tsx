@@ -1,3 +1,20 @@
+/*
+ * RSS Reader: A mobile application for consuming RSS feeds.
+ * Copyright (C) 2025 Paul Oremland
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 import React, {
 	useState,
 	useCallback,
@@ -60,73 +77,74 @@ const FeedItemListScreen: React.FC = () => {
 	const { markItemsReadInCache, markAllItemsReadInCache } = useCache();
 
 	const handleMarkSelectedAsRead = useCallback(
-	        async (ids: number[]) => {
-	                const response = await markItemsAsRead({ items: JSON.stringify(ids) });
-	                setMultiSelectActive(false);
-	                setSelectedItems([]);
+		async (ids: number[]) => {
+			const response = await markItemsAsRead({ items: JSON.stringify(ids) });
+			setMultiSelectActive(false);
+			setSelectedItems([]);
 
-	                if (response) {
-	                        if (selectedFeed) {
-	                                await markItemsReadInCache(selectedFeed.id, ids);
-	                        }
-	                        if ((response as any).queued) {
-	                                const currentData = listRef.current?.getData() || [];
-	                                const newData = currentData.filter((item) => !ids.includes(item.id));
-	                                listRef.current?.setData(newData);
-	                                if (newData.length === 0) {
-	                                        navigation.goBack();
-	                                }
-	                                return;
-	                        }
-	                }
+			if (response) {
+				if (selectedFeed) {
+					await markItemsReadInCache(selectedFeed.id, ids);
+				}
+				if ((response as any).queued) {
+					const currentData = listRef.current?.getData() || [];
+					const newData = currentData.filter((item) => !ids.includes(item.id));
+					listRef.current?.setData(newData);
+					if (newData.length === 0) {
+						navigation.goBack();
+					}
+					return;
+				}
+			}
 
-	                const refreshedData = await listRef.current?.handleRefresh();
-	                if (refreshedData?.length === 0) {
-	                        navigation.goBack();
-	                }
-	        },
-	        [markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
+			const refreshedData = await listRef.current?.handleRefresh();
+			if (refreshedData?.length === 0) {
+				navigation.goBack();
+			}
+		},
+		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleSwipeMarkAsRead = useCallback(
-	        async (item: FeedItem) => {
-	                const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
+		async (item: FeedItem) => {
+			const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
 
-	                if (response) {
-	                        if (selectedFeed) {
-	                                await markItemsReadInCache(selectedFeed.id, [item.id]);
-	                        }
-	                        if ((response as any).queued) {
-	                                const currentData = listRef.current?.getData() || [];
-	                                const newData = currentData.filter((i) => i.id !== item.id);
-	                                listRef.current?.setData(newData);
-	                                if (newData.length === 0) {
-	                                        navigation.goBack();
-	                                }
-	                                return;
-	                        }
-	                }
+			if (response) {
+				if (selectedFeed) {
+					await markItemsReadInCache(selectedFeed.id, [item.id]);
+				}
+				if ((response as any).queued) {
+					const currentData = listRef.current?.getData() || [];
+					const newData = currentData.filter((i) => i.id !== item.id);
+					listRef.current?.setData(newData);
+					if (newData.length === 0) {
+						navigation.goBack();
+					}
+					return;
+				}
+			}
 
-	                const refreshedData = await listRef.current?.handleRefresh();
-	                if (refreshedData?.length === 0) {
-	                        navigation.goBack();
-	                }
-	        },
-	        [markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
+			const refreshedData = await listRef.current?.handleRefresh();
+			if (refreshedData?.length === 0) {
+				navigation.goBack();
+			}
+		},
+		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
-	        const currentData = listRef.current?.getData() || [];
-	        const allItemIds = currentData.map((item) => item.id) || [];
-	        const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
+		const currentData = listRef.current?.getData() || [];
+		const allItemIds = currentData.map((item) => item.id) || [];
+		const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
 
-	        if (response) {
-	                if (selectedFeed) {
-	                        await markAllItemsReadInCache(selectedFeed.id);
-	                }
-	                navigation.goBack();
-	        }
+		if (response) {
+			if (selectedFeed) {
+				await markAllItemsReadInCache(selectedFeed.id);
+			}
+			navigation.goBack();
+		}
 	}, [markItemsAsRead, navigation, selectedFeed, markAllItemsReadInCache]);
+
 	const markAllAsReadRef = useRef(handleMarkAllAsRead);
 	useEffect(() => {
 		markAllAsReadRef.current = handleMarkAllAsRead;
@@ -204,6 +222,11 @@ const FeedItemListScreen: React.FC = () => {
 					icon: "trash-outline",
 					onPress: () => deleteFeedRef.current(),
 					disabled: !isConnected,
+				},
+				{
+					label: "About",
+					icon: "information-circle-outline",
+					onPress: () => router.push("/AboutScreen"),
 				},
 				{
 					label: "Log-out",
