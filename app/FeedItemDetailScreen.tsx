@@ -80,10 +80,11 @@ const FeedItemDetailScreen: React.FC = () => {
 		if (!item?.id) return;
 		
 		const response = await markItemAsRead();
-		if (response && (response as any).queued) {
-			await markItemsReadInCache(item.feed_id!, [item.id]);
+		if (response) {
+		        await markItemsReadInCache(item.feed_id!, [item.id]);
 		}
 		router.back();
+
 		if (item?.id) {
 			router.setParams({ removedItemId: item.id.toString() });
 		}

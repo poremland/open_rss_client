@@ -18,6 +18,7 @@
 import * as syncHelper from './sync_helper';
 import { api } from './api_helper';
 import { performProactiveFetch } from './background_sync';
+import * as cacheHelper from './cache_helper';
 
 type SyncEvent = 'syncStarted' | 'syncFinished';
 type SyncListener = () => void;
@@ -83,8 +84,10 @@ export const syncService = {
 							const uniqueIds = Array.from(new Set(itemIds));
 							console.log(`Sync service: batch marking ${uniqueIds.length} items as read for feed ${feedId}`);
 							await api.postWithAuth(`/feeds/mark_items_as_read/${feedId}`, {
-								items: JSON.stringify(uniqueIds)
+							        items: JSON.stringify(uniqueIds)
 							});
+							await cacheHelper.markItemsReadInCache(feedId, uniqueIds);
+
 						} catch (e) {
 							console.error(`Sync service: error batch marking read for feed ${feedId}:`, e);
 							// If batch fails, we could potentially re-queue individual items or the whole batch
@@ -103,8 +106,15 @@ export const syncService = {
 						try {
 							console.log(`Sync service: executing ${action.type} ${action.path}`);
 							if (action.type === 'GET') {
-								await api.getWithAuth(action.path);
+							        await api.getWithAuth(action.path);
+							        // If this was an individual mark-read, clear it from cache
+							        const itemMatch = action.path.match(/\/feed_items\/mark_as_read\/(\d+)\.json/);
+							        if (itemMatch) {
+							                const itemId = parseInt(itemMatch[1]);
+							                await cacheHelper.clearCache(`/feed_items/${itemId}.json`);
+							        }
 							} else if (action.type === 'POST') {
+
 								await api.postWithAuth(action.path, action.body);
 							} else if (action.type === 'PUT') {
 								await api.putWithAuth(action.path, action.body);

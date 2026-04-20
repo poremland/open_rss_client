@@ -78,10 +78,14 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: Arr
 		const path = `/feeds/${feedId}.json`;
 		const cachedItems = await getCache<any[]>(path);
 		if (cachedItems) {
-			const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
-			await setCache(path, updatedItems);
+		        const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
+		        await setCache(path, updatedItems);
 		}
-		
+
+		// Clear individual item caches
+		for (const itemId of itemIds) {
+		        await clearCache(`/feed_items/${itemId}.json`);
+		}
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';
 		const tree = await getCache<any[]>(treePath);

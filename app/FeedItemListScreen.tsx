@@ -60,74 +60,73 @@ const FeedItemListScreen: React.FC = () => {
 	const { markItemsReadInCache, markAllItemsReadInCache } = useCache();
 
 	const handleMarkSelectedAsRead = useCallback(
-		async (ids: number[]) => {
-			const response = await markItemsAsRead({ items: JSON.stringify(ids) });
-			setMultiSelectActive(false);
-			setSelectedItems([]);
+	        async (ids: number[]) => {
+	                const response = await markItemsAsRead({ items: JSON.stringify(ids) });
+	                setMultiSelectActive(false);
+	                setSelectedItems([]);
 
-			if (response && (response as any).queued) {
-				const currentData = listRef.current?.getData() || [];
-				const newData = currentData.filter((item) => !ids.includes(item.id));
-				listRef.current?.setData(newData);
-				if (selectedFeed) {
-					await markItemsReadInCache(selectedFeed.id, ids);
-				}
-				if (newData.length === 0) {
-					navigation.goBack();
-				}
-				return;
-			}
+	                if (response) {
+	                        if (selectedFeed) {
+	                                await markItemsReadInCache(selectedFeed.id, ids);
+	                        }
+	                        if ((response as any).queued) {
+	                                const currentData = listRef.current?.getData() || [];
+	                                const newData = currentData.filter((item) => !ids.includes(item.id));
+	                                listRef.current?.setData(newData);
+	                                if (newData.length === 0) {
+	                                        navigation.goBack();
+	                                }
+	                                return;
+	                        }
+	                }
 
-			const refreshedData = await listRef.current?.handleRefresh();
-			if (refreshedData?.length === 0) {
-				navigation.goBack();
-			}
-		},
-		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
+	                const refreshedData = await listRef.current?.handleRefresh();
+	                if (refreshedData?.length === 0) {
+	                        navigation.goBack();
+	                }
+	        },
+	        [markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleSwipeMarkAsRead = useCallback(
-		async (item: FeedItem) => {
-			const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
+	        async (item: FeedItem) => {
+	                const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
 
-			if (response && (response as any).queued) {
-				const currentData = listRef.current?.getData() || [];
-				const newData = currentData.filter((i) => i.id !== item.id);
-				listRef.current?.setData(newData);
-				if (selectedFeed) {
-					await markItemsReadInCache(selectedFeed.id, [item.id]);
-				}
-				if (newData.length === 0) {
-					navigation.goBack();
-				}
-				return;
-			}
+	                if (response) {
+	                        if (selectedFeed) {
+	                                await markItemsReadInCache(selectedFeed.id, [item.id]);
+	                        }
+	                        if ((response as any).queued) {
+	                                const currentData = listRef.current?.getData() || [];
+	                                const newData = currentData.filter((i) => i.id !== item.id);
+	                                listRef.current?.setData(newData);
+	                                if (newData.length === 0) {
+	                                        navigation.goBack();
+	                                }
+	                                return;
+	                        }
+	                }
 
-			const refreshedData = await listRef.current?.handleRefresh();
-			if (refreshedData?.length === 0) {
-				navigation.goBack();
-			}
-		},
-		[markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
+	                const refreshedData = await listRef.current?.handleRefresh();
+	                if (refreshedData?.length === 0) {
+	                        navigation.goBack();
+	                }
+	        },
+	        [markItemsAsRead, navigation, selectedFeed, markItemsReadInCache],
 	);
 
 	const handleMarkAllAsRead = useCallback(async () => {
-		const currentData = listRef.current?.getData() || [];
-		const allItemIds = currentData.map((item) => item.id) || [];
-		const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
+	        const currentData = listRef.current?.getData() || [];
+	        const allItemIds = currentData.map((item) => item.id) || [];
+	        const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
 
-		if (response && (response as any).queued) {
-			listRef.current?.setData([]);
-			if (selectedFeed) {
-				await markAllItemsReadInCache(selectedFeed.id);
-			}
-			navigation.goBack();
-			return;
-		}
-
-		navigation.goBack();
+	        if (response) {
+	                if (selectedFeed) {
+	                        await markAllItemsReadInCache(selectedFeed.id);
+	                }
+	                navigation.goBack();
+	        }
 	}, [markItemsAsRead, navigation, selectedFeed, markAllItemsReadInCache]);
-
 	const markAllAsReadRef = useRef(handleMarkAllAsRead);
 	useEffect(() => {
 		markAllAsReadRef.current = handleMarkAllAsRead;
