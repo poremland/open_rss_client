@@ -27,22 +27,22 @@ interface HeaderRightMenuProps {
 }
 
 const HeaderRightMenu: React.FC<HeaderRightMenuProps> = ({
-        onToggleDropdown,
+	onToggleDropdown,
 }) => {
-        const { isConnected } = useConnectionStatus();
+	const { isConnected } = useConnectionStatus();
 
-        return (
-                <TouchableOpacity
-                        testID="menu"
-                        onPress={onToggleDropdown}
-                        style={styles.container}
-                >
-                        <Ionicons
-                                name={isConnected ? "ellipsis-vertical" : "cloud-offline"}
-                                size={styles.icon.fontSize}
-                                color={isConnected ? styles.icon.color : "#FF3B30"}
-                        />
-                </TouchableOpacity>
-        );
+	return (
+		<TouchableOpacity
+			testID="menu"
+			onPress={onToggleDropdown}
+			style={styles.container}
+		>
+			<Ionicons
+				name={isConnected ? "ellipsis-vertical" : "cloud-offline"}
+				size={styles.icon.fontSize}
+				color={isConnected ? styles.icon.color : "#FF3B30"}
+			/>
+		</TouchableOpacity>
+	);
 };
 export default HeaderRightMenu;

@@ -18,10 +18,10 @@
 
 /**
  * Validates a basic OPML string.
- * 
+ *
  * Note: Since there is no robust XML parser easily available in mobile environments
  * without adding large dependencies, we perform a basic structural check using regex.
- * 
+ *
  * @param content The OPML content to validate.
  * @returns true if valid, throws an error otherwise.
  */

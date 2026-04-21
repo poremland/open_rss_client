@@ -18,37 +18,36 @@
 import "./setup";
 import { mocks } from "./setup";
 import { mock, expect, describe, it, beforeEach } from "bun:test";
-import React from "react";
+import React, { act } from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { act } from "react";
 import AddFeedScreen from "../app/AddFeedScreen";
 
 describe("AddFeedScreen", () => {
-        beforeEach(() => {
-                mocks.resetAll();
-                mocks.auth.getUser.mockResolvedValue("test-user");
-        });
+	beforeEach(() => {
+		mocks.resetAll();
+		mocks.auth.getUser.mockResolvedValue("test-user");
+	});
 
-        it("renders correctly", async () => {
-                const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
-                expect(getByText("Feed Name")).toBeTruthy();
-                expect(getByPlaceholderText("e.g. My Favorite Blog")).toBeTruthy();
-                expect(getByText("Feed URL")).toBeTruthy();
-                expect(getByPlaceholderText("https://example.com/rss.xml")).toBeTruthy();
-                expect(getByText("Add Feed")).toBeTruthy();
-        });
+	it("renders correctly", async () => {
+		const { getByPlaceholderText, getByText } = render(<AddFeedScreen />);
+		expect(getByText("Feed Name")).toBeTruthy();
+		expect(getByPlaceholderText("e.g. My Favorite Blog")).toBeTruthy();
+		expect(getByText("Feed URL")).toBeTruthy();
+		expect(getByPlaceholderText("https://example.com/rss.xml")).toBeTruthy();
+		expect(getByText("Add Feed")).toBeTruthy();
+	});
 
-        it("disables the add button and shows offline message when disconnected", async () => {
-                mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
-                mocks.useConnectionStatusMock.isConnected = false;
-                const { getByTestId, getByText } = render(<AddFeedScreen />);
-                const addButton = getByTestId("addFeedButton");
+	it("disables the add button and shows offline message when disconnected", async () => {
+		mocks.networkMocks.getNetworkStateAsync.mockResolvedValue({ isConnected: false });
+		mocks.useConnectionStatusMock.isConnected = false;
+		const { getByTestId, getByText } = render(<AddFeedScreen />);
+		const addButton = getByTestId("addFeedButton");
 
-                await waitFor(() => expect(addButton.props.disabled).toBe(true));
-                expect(getByText("You are offline. Adding feeds is disabled.")).toBeTruthy();
-        });
+		await waitFor(() => expect(addButton.props.disabled).toBe(true));
+		expect(getByText("You are offline. Adding feeds is disabled.")).toBeTruthy();
+	});
 
-        it("calls addFeed with correct parameters on button press", async () => {		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
+	it("calls addFeed with correct parameters on button press", async () => {		const { getByPlaceholderText, getByTestId } = render(<AddFeedScreen />);
 		const nameInput = getByPlaceholderText("e.g. My Favorite Blog");
 		const uriInput = getByPlaceholderText("https://example.com/rss.xml");
 		const addButton = getByTestId("addFeedButton");

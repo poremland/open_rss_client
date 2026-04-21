@@ -69,18 +69,18 @@ if (!g.storageMap) {
 export const storageMap = g.storageMap;
 
 export const asyncStorageMock = g.asyncStorageMock || {
-	setItem: mock(async (k: string, v: any) => { 
-		storageMap.set(k, String(v)); 
+	setItem: mock(async (k: string, v: any) => {
+		storageMap.set(k, String(v));
 	}),
-	getItem: mock(async (k: string) => { 
+	getItem: mock(async (k: string) => {
 		const val = storageMap.get(k);
 		return val === undefined ? null : val;
 	}),
-	removeItem: mock(async (k: string) => { 
-		storageMap.delete(k); 
+	removeItem: mock(async (k: string) => {
+		storageMap.delete(k);
 	}),
-	clear: mock(async () => { 
-		storageMap.clear(); 
+	clear: mock(async () => {
+		storageMap.clear();
 	}),
 	getAllKeys: mock(async () => Array.from(storageMap.keys())),
 	multiGet: mock(async (keys: string[]) => keys.map(k => [k, storageMap.get(k) || null])),
@@ -223,25 +223,25 @@ export const useApiMock = mock(useApi);
 // --- Shared Connection State for Mocks ---
 g.__sharedConnectionState = g.__sharedConnectionState || {
 	isConnected: true,
-	listeners: [] as Array<(s: { isConnected: boolean }) => void>,
+	listeners: [] as ((s: { isConnected: boolean }) => void)[],
 };
 const sharedConnectionState = g.__sharedConnectionState;
 
 export const networkMocks = g.__networkMocks || {
-	getNetworkStateAsync: mock(async () => ({ 
-		isConnected: sharedConnectionState.isConnected, 
-		isInternetReachable: sharedConnectionState.isConnected 
+	getNetworkStateAsync: mock(async () => ({
+		isConnected: sharedConnectionState.isConnected,
+		isInternetReachable: sharedConnectionState.isConnected
 	})),
 	addNetworkStateListener: mock((cb: any) => {
 		const listener = (s: any) => cb({ isConnected: s.isConnected, type: 'wifi' });
 		sharedConnectionState.listeners.push(listener);
-		return { 
+		return {
 			remove: mock(() => {
 				const index = sharedConnectionState.listeners.indexOf(listener);
 				if (index > -1) {
 					sharedConnectionState.listeners.splice(index, 1);
 				}
-			}) 
+			})
 		};
 	}),
 };
@@ -318,6 +318,7 @@ export const mocks = {
 	},
 	opml: opmlMocks,
 	opmlMocks,
+	network: networkMocks,
 	networkMocks,
 	useConnectionStatusMock,
 	localSearchParams: localSearchParamsMock,
@@ -361,12 +362,12 @@ mock.module("react-native", () => {
 			const React = require("react");
 			const items = props.data || [];
 			if (items.length === 0 && props.ListEmptyComponent) {
-				return React.createElement("FlatList", props, 
+				return React.createElement("FlatList", props,
 					typeof props.ListEmptyComponent === 'function' ? props.ListEmptyComponent() : props.ListEmptyComponent
 				);
 			}
-			return React.createElement("FlatList", props, 
-				items.map((item: any, index: number) => 
+			return React.createElement("FlatList", props,
+				items.map((item: any, index: number) =>
 					React.createElement(React.Fragment, { key: props.keyExtractor ? props.keyExtractor(item, index) : index },
 						props.renderItem({ item, index })
 					)
@@ -378,7 +379,7 @@ mock.module("react-native", () => {
 		Button: (props: any) => {
 			const React = require("react");
 			const { Text, TouchableOpacity } = require("react-native");
-			return React.createElement(TouchableOpacity, { ...props, accessibilityRole: 'button' }, 
+			return React.createElement(TouchableOpacity, { ...props, accessibilityRole: 'button' },
 				React.createElement(Text, {}, props.title)
 			);
 		},
@@ -709,17 +710,17 @@ export const resetAll = () => {
 	sharedConnectionState.isConnected = true;
 	resetMocksInObj(routerMocks);
 	resetMocksInObj(navigationMocks);
-	
+
 	// Just clear calls, do not reset implementation for asyncStorageMock
 	resetMocksInObj(asyncStorageMock);
 	asyncStorageMock.setItem.mockImplementation(async (k: string, v: any) => { storageMap.set(k, String(v)); });
-	asyncStorageMock.getItem.mockImplementation(async (k: string) => { 
+	asyncStorageMock.getItem.mockImplementation(async (k: string) => {
 		const val = storageMap.get(k);
 		return val === undefined ? null : val;
 	});
 	asyncStorageMock.removeItem.mockImplementation(async (k: string) => { storageMap.delete(k); });
 	asyncStorageMock.clear.mockImplementation(async () => { storageMap.clear(); });
-	
+
 	resetMocksInObj(apiMocks);
 	apiMocks.getWithAuth.mockImplementation(async (path: string) => {
 		if (path === "/feeds/tree.json" || path === "/feeds/all.json" || path.startsWith("/feeds/")) return Promise.resolve([]);
@@ -737,24 +738,24 @@ export const resetAll = () => {
 	resetMocksInObj(hapticsMock);
 	resetMocksInObj(opmlMocks);
 	resetMocksInObj(networkMocks);
-	
-	networkMocks.getNetworkStateAsync.mockImplementation(async () => ({ 
-		isConnected: sharedConnectionState.isConnected, 
-		isInternetReachable: sharedConnectionState.isConnected 
+
+	networkMocks.getNetworkStateAsync.mockImplementation(async () => ({
+		isConnected: sharedConnectionState.isConnected,
+		isInternetReachable: sharedConnectionState.isConnected
 	}));
 	networkMocks.addNetworkStateListener.mockImplementation((cb: any) => {
 		const listener = (s: any) => cb({ isConnected: s.isConnected, type: 'wifi' });
 		sharedConnectionState.listeners.push(listener);
-		return { 
+		return {
 			remove: mock(() => {
 				const index = sharedConnectionState.listeners.indexOf(listener);
 				if (index > -1) {
 					sharedConnectionState.listeners.splice(index, 1);
 				}
-			}) 
+			})
 		};
 	});
-	
+
 	useConnectionStatusMock.updateConnectionStatus.mockClear();
 	if (fileSystemMock.StorageAccessFramework) {
 		resetMocksInObj(fileSystemMock.StorageAccessFramework);
@@ -783,3 +784,11 @@ plugin({
 		}));
 	},
 });
+
+// --- Browser Globals Mocks ---
+if (typeof (globalThis as any).window === 'undefined') {
+	(globalThis as any).window = globalThis;
+}
+
+(globalThis as any).confirm = mock(() => true);
+(globalThis as any).alert = mock();

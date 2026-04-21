@@ -19,12 +19,21 @@ import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { api } from './api_helper';
 import * as cacheHelper from './cache_helper';
+import { Platform } from 'react-native';
+import { auth } from './auth_helper';
 
 const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
 
 export const performProactiveFetch = async () => {
 	try {
+		// 0. Check for auth token before proceeding
+		const token = await auth.getAuthToken();
+		if (!token) {
+			return;
+		}
+
 		// 1. Fetch feeds with unread counts
+
 		const tree = await api.getWithAuth<any[]>('/feeds/tree.json');
 		if (tree) {
 			await cacheHelper.setCache('/feeds/tree.json', tree);
@@ -63,7 +72,7 @@ export const performProactiveFetch = async () => {
 export const backgroundSyncTask = async () => {
 	try {
 		console.log('Background sync task started');
-		
+
 		await performProactiveFetch();
 
 		console.log('Background sync task finished successfully');
@@ -75,6 +84,10 @@ export const backgroundSyncTask = async () => {
 };
 
 export const registerBackgroundSync = async () => {
+	if (Platform.OS === 'web') {
+		return;
+	}
+
 	try {
 		if (TaskManager.isTaskDefined(BACKGROUND_SYNC_TASK)) {
 			console.log(`Task ${BACKGROUND_SYNC_TASK} is already defined`);
@@ -90,3 +103,4 @@ export const registerBackgroundSync = async () => {
 		console.error('Task registration failed:', err);
 	}
 };
+

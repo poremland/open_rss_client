@@ -15,16 +15,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { mock, expect, describe, it, beforeEach } from "bun:test";
-import "./setup";
-import { mocks } from "./setup";
+import { mock, expect, describe, it, beforeEach, afterEach } from "bun:test";
+import { Platform } from "react-native";
+import { mocks , storageMap } from "./setup";
 import * as cacheHelper from "../helpers/cache_helper";
 import { backgroundSyncTask } from "../helpers/background_sync";
 
 describe("backgroundSyncTask", () => {
 	beforeEach(() => {
+		(globalThis as any).__disableAuthMock = true;
 		mocks.resetAll();
 		cacheHelper.clearLocalCache();
+		storageMap.set("authToken", "test-token");
+	});
+
+	afterEach(() => {
+		(globalThis as any).__disableAuthMock = false;
 	});
 
 	it("should fetch and cache all unread items for all feeds", async () => {
@@ -54,5 +60,56 @@ describe("backgroundSyncTask", () => {
 
 		const cachedItems2 = await cacheHelper.getCache("/feeds/2.json");
 		expect(cachedItems2).toEqual(items2);
+	});
+});
+
+describe("registerBackgroundSync", () => {
+	let originalOS: any;
+
+	beforeEach(() => {
+		originalOS = Platform.OS;
+		mocks.resetAll();
+	});
+
+	afterEach(() => {
+		Platform.OS = originalOS;
+	});
+
+	describe("Web-specific", () => {
+		beforeEach(() => {
+			Platform.OS = "web";
+		});
+
+		it("should be a no-op on web platform", async () => {
+			const { registerBackgroundSync } = require("../helpers/background_sync");
+			await registerBackgroundSync();
+
+			// TaskManager.defineTask and BackgroundTask.registerTaskAsync should NOT have been called
+			const TaskManager = require("expo-task-manager");
+			const BackgroundTask = require("expo-background-task");
+
+			expect(TaskManager.defineTask).not.toHaveBeenCalled();
+			expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("Native-specific", () => {
+		beforeEach(() => {
+			Platform.OS = "ios";
+		});
+
+		it("should register background sync on native platform", async () => {
+			const TaskManager = require("expo-task-manager");
+			const BackgroundTask = require("expo-background-task");
+
+			// Ensure it's not considered defined so defineTask is called
+			TaskManager.isTaskDefined.mockReturnValue(false);
+
+			const { registerBackgroundSync } = require("../helpers/background_sync");
+			await registerBackgroundSync();
+
+			expect(TaskManager.defineTask).toHaveBeenCalled();
+			expect(BackgroundTask.registerTaskAsync).toHaveBeenCalled();
+		});
 	});
 });

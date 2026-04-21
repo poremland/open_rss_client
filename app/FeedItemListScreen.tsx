@@ -1,3 +1,20 @@
+/*
+ * RSS Reader: A mobile application for consuming RSS feeds.
+ * Copyright (C) 2025 Paul Oremland
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 import React, {
 	useState,
 	useCallback,
@@ -31,7 +48,7 @@ const FeedItemListScreen: React.FC = () => {
 		handleRefresh: () => Promise<FeedItem[] | undefined>;
 		setData: (data: FeedItem[]) => void;
 		getData: () => FeedItem[];
-	}>(null);
+			}>(null);
 	const { setMenuItems, onToggleDropdown } = useMenu();
 	const { feed, removedItemId } = useLocalSearchParams<{
 		feed: string;
@@ -65,17 +82,19 @@ const FeedItemListScreen: React.FC = () => {
 			setMultiSelectActive(false);
 			setSelectedItems([]);
 
-			if (response && (response as any).queued) {
-				const currentData = listRef.current?.getData() || [];
-				const newData = currentData.filter((item) => !ids.includes(item.id));
-				listRef.current?.setData(newData);
+			if (response) {
 				if (selectedFeed) {
 					await markItemsReadInCache(selectedFeed.id, ids);
 				}
-				if (newData.length === 0) {
-					navigation.goBack();
+				if ((response as any).queued) {
+					const currentData = listRef.current?.getData() || [];
+					const newData = currentData.filter((item) => !ids.includes(item.id));
+					listRef.current?.setData(newData);
+					if (newData.length === 0) {
+						navigation.goBack();
+					}
+					return;
 				}
-				return;
 			}
 
 			const refreshedData = await listRef.current?.handleRefresh();
@@ -90,17 +109,19 @@ const FeedItemListScreen: React.FC = () => {
 		async (item: FeedItem) => {
 			const response = await markItemsAsRead({ items: JSON.stringify([item.id]) });
 
-			if (response && (response as any).queued) {
-				const currentData = listRef.current?.getData() || [];
-				const newData = currentData.filter((i) => i.id !== item.id);
-				listRef.current?.setData(newData);
+			if (response) {
 				if (selectedFeed) {
 					await markItemsReadInCache(selectedFeed.id, [item.id]);
 				}
-				if (newData.length === 0) {
-					navigation.goBack();
+				if ((response as any).queued) {
+					const currentData = listRef.current?.getData() || [];
+					const newData = currentData.filter((i) => i.id !== item.id);
+					listRef.current?.setData(newData);
+					if (newData.length === 0) {
+						navigation.goBack();
+					}
+					return;
 				}
-				return;
 			}
 
 			const refreshedData = await listRef.current?.handleRefresh();
@@ -116,16 +137,12 @@ const FeedItemListScreen: React.FC = () => {
 		const allItemIds = currentData.map((item) => item.id) || [];
 		const response = await markItemsAsRead({ items: JSON.stringify(allItemIds) });
 
-		if (response && (response as any).queued) {
-			listRef.current?.setData([]);
+		if (response) {
 			if (selectedFeed) {
 				await markAllItemsReadInCache(selectedFeed.id);
 			}
 			navigation.goBack();
-			return;
 		}
-
-		navigation.goBack();
 	}, [markItemsAsRead, navigation, selectedFeed, markAllItemsReadInCache]);
 
 	const markAllAsReadRef = useRef(handleMarkAllAsRead);
@@ -151,7 +168,7 @@ const FeedItemListScreen: React.FC = () => {
 		(item: FeedItem) => {
 			router.push({
 				pathname: "/FeedItemDetailScreen",
-				params: { 
+				params: {
 					feedItemId: item.id.toString(),
 					feedItem: JSON.stringify(item),
 				},
@@ -205,6 +222,11 @@ const FeedItemListScreen: React.FC = () => {
 					icon: "trash-outline",
 					onPress: () => deleteFeedRef.current(),
 					disabled: !isConnected,
+				},
+				{
+					label: "About",
+					icon: "information-circle-outline",
+					onPress: () => router.push("/AboutScreen"),
 				},
 				{
 					label: "Log-out",

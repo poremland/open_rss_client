@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import "./setup";
 import { mocks } from "./setup";
 import { expect, describe, it, beforeEach } from "bun:test";
 import React from "react";

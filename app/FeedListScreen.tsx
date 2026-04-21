@@ -67,6 +67,11 @@ const FeedListScreen: React.FC = () => {
 					disabled: !isConnected,
 				},
 				{
+					label: "About",
+					icon: "information-circle-outline",
+					onPress: () => router.push("/AboutScreen"),
+				},
+				{
 					label: "Log-out",
 					icon: "log-out-outline",
 					onPress: () => authHelper.clearAuthData(router),

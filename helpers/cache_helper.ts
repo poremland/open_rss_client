@@ -33,7 +33,7 @@ export const clearLocalCache = () => {
 export const getCache = async <T>(url: string): Promise<T | null> => {
 	try {
 		const key = getCacheKey(url);
-		
+
 		// Try local map first
 		const localValue = localCacheMap.get(key);
 		if (localValue) {
@@ -54,6 +54,10 @@ export const getCache = async <T>(url: string): Promise<T | null> => {
 
 export const setCache = async (url: string, data: any): Promise<void> => {
 	try {
+		if (Array.isArray(data) && data.length === 0 && url.includes('/feeds/') && !url.includes('tree.json') && !url.includes('all.json')) {
+			await clearCache(url);
+			return;
+		}
 		const key = getCacheKey(url);
 		const value = JSON.stringify(data);
 		localCacheMap.set(key, value);
@@ -73,15 +77,24 @@ export const clearCache = async (url: string): Promise<void> => {
 	}
 };
 
-export const markItemsReadInCache = async (feedId: string | number, itemIds: Array<string | number>): Promise<void> => {
+export const markItemsReadInCache = async (feedId: string | number, itemIds: (string | number)[]): Promise<void> => {
 	try {
 		const path = `/feeds/${feedId}.json`;
 		const cachedItems = await getCache<any[]>(path);
 		if (cachedItems) {
 			const updatedItems = cachedItems.filter(item => !itemIds.includes(item.id));
-			await setCache(path, updatedItems);
+			if (updatedItems.length > 0) {
+				await setCache(path, updatedItems);
+			} else {
+				await clearCache(path);
+			}
 		}
-		
+
+		// Clear individual item caches
+		for (const itemId of itemIds) {
+			await clearCache(`/feed_items/${itemId}.json`);
+		}
+
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';
 		const tree = await getCache<any[]>(treePath);
@@ -114,7 +127,7 @@ export const markItemsReadInCache = async (feedId: string | number, itemIds: Arr
 export const markAllItemsReadInCache = async (feedId: string | number): Promise<void> => {
 	try {
 		const path = `/feeds/${feedId}.json`;
-		await setCache(path, []);
+		await clearCache(path);
 
 		// Update feed tree if it exists
 		const treePath = '/feeds/tree.json';
@@ -130,5 +143,66 @@ export const markAllItemsReadInCache = async (feedId: string | number): Promise<
 		}
 	} catch (e) {
 		console.error('Error marking all items read in cache:', e);
+	}
+};
+
+export const clearAllCache = async () => {
+	try {
+		const allKeys = await AsyncStorage.getAllKeys();
+		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
+		await AsyncStorage.multiRemove(cacheKeys);
+		localCacheMap.clear();
+	} catch (e) {
+		console.error('Error clearing all cache:', e);
+	}
+};
+
+export const getCacheStats = async () => {
+	try {
+		const allKeys = await AsyncStorage.getAllKeys();
+		const cacheKeys = allKeys.filter(k => k.startsWith('cache:'));
+
+		let cachedFeeds = 0;
+		let cachedItems = 0;
+		let totalSize = 0;
+
+		const pairs = await AsyncStorage.multiGet(cacheKeys);
+		for (const [key, value] of pairs) {
+			if (value) {
+				totalSize += value.length;
+				if (key.includes('/feeds/') && key.endsWith('.json') && !key.includes('tree.json') && !key.includes('all.json')) {
+					try {
+						const items = JSON.parse(value);
+						if (Array.isArray(items)) {
+							if (items.length > 0) {
+								cachedFeeds++;
+								cachedItems += items.length;
+							}
+						} else {
+							cachedFeeds++;
+						}
+					} catch {
+						cachedFeeds++;
+					}
+				}
+			}
+		}
+
+		const lastSyncTime = await AsyncStorage.getItem('lastSyncTime');
+
+		return {
+			cachedFeeds,
+			cachedItems,
+			totalSize,
+			lastSyncTime
+		};
+	} catch (e) {
+		console.error('Error getting cache stats:', e);
+		return {
+			cachedFeeds: 0,
+			cachedItems: 0,
+			totalSize: 0,
+			lastSyncTime: null
+		};
 	}
 };

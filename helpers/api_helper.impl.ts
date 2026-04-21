@@ -58,7 +58,11 @@ export class Api {
 	}
 
 	getBaseUrl = async () => {
-		return await this.deps.storage.getItem('serverUrl');
+		const url = await this.deps.storage.getItem('serverUrl');
+		if (!url) {
+			throw new Error('Server URL not set. Please log in again.');
+		}
+		return url;
 	};
 
 	post = async <T>(url: string, body: any, contentType: string = 'application/json'): Promise<T> => {
@@ -407,11 +411,15 @@ export class Api {
 				await this.deps.storage.setItem('authToken', response.token);
 				return response.token;
 			}
-		} catch (e) {
+		} catch (e: any) {
 			console.error('Error refreshing token:', e);
+			if (e.message === 'Session expired') {
+				throw e;
+			}
 		}
 		return null;
 	};
+
 }
 
 export const api = new Api();

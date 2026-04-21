@@ -48,7 +48,7 @@ const useApi = <T,>(
 ): ApiResponse<T> => {
 	const [data, setDataState] = useState<T | null>(options.initialData || null);
 	const dataRef = useRef<T | null>(options.initialData || null);
-	
+
 	const setData = useCallback((newData: T | null) => {
 		dataRef.current = newData;
 		setDataState(newData);
@@ -66,6 +66,22 @@ const useApi = <T,>(
 	const router = useRouter();
 	const { getCache, setCache } = useCache();
 	const { isConnected, updateConnectionStatus } = useConnectionStatus();
+
+	// Load from cache on mount if applicable
+	useEffect(() => {
+		const lowerMethod = method.toLowerCase();
+		const shouldCache = options.useCache !== false && lowerMethod === "get";
+
+		if (shouldCache && !dataRef.current) {
+			(async () => {
+				const cachedData = await getCache<T>(path);
+				if (cachedData && !dataRef.current) {
+					setData(cachedData);
+				}
+			})();
+		}
+	}, [method, path, options.useCache, getCache, setData]);
+
 
 
 	const execute = useCallback(
@@ -141,7 +157,7 @@ const useApi = <T,>(
 				return result;
 			} catch (err: any) {
 				const errorMessage = err.message || "An unknown error occurred";
-				
+
 				// If we get a network error, force an update of the connection status
 				if (errorMessage.includes("Network request failed") || errorMessage.includes("network")) {
 					if (updateConnectionStatus) {

@@ -15,18 +15,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { expect, describe, it, mock, beforeEach } from "bun:test";
-import { mocks } from "./setup";
+import { expect, describe, it, mock, beforeEach, afterEach } from "bun:test";
+import { mocks , storageMap } from "./setup";
 import { backgroundSyncTask } from "../helpers/background_sync";
 import * as cacheHelper from "../helpers/cache_helper";
 import { syncService } from "../helpers/sync_service";
 
 describe("Proactive Caching", () => {
 	beforeEach(() => {
+		(globalThis as any).__disableAuthMock = true;
 		mocks.resetAll();
 		cacheHelper.clearLocalCache();
+		storageMap.set("authToken", "test-token");
 	});
 
+	afterEach(() => {
+		(globalThis as any).__disableAuthMock = false;
+	});
 	it("should fetch and cache unread items for all feeds in the tree", async () => {
 		const mockTree = [
 			{ feed: { id: 1, name: "Feed 1" }, unread_count: 5 },
@@ -48,13 +53,13 @@ describe("Proactive Caching", () => {
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/tree.json");
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/1.json");
 		expect(mocks.api.getWithAuth).toHaveBeenCalledWith("/feeds/2.json");
-		
+
 		const treeCache = await cacheHelper.getCache("/feeds/tree.json");
 		expect(treeCache).toEqual(mockTree);
-		
+
 		const items1Cache = await cacheHelper.getCache("/feeds/1.json");
 		expect(items1Cache).toEqual(mockItems1);
-		
+
 		const items2Cache = await cacheHelper.getCache("/feeds/2.json");
 		expect(items2Cache).toEqual(mockItems2);
 	});

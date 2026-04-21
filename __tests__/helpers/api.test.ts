@@ -15,7 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { Platform } from "react-native";
 import { Api } from "../../helpers/api_helper.impl";
 import { mocks } from "../setup";
 
@@ -30,14 +31,16 @@ const MOCK_BASE_URL = "http://localhost:3000";
 describe("API Helper", () => {
 	let api: Api;
 	let localFetchMock: any;
+	let originalOS: any;
 
 	beforeEach(async () => {
+		originalOS = Platform.OS;
 		(globalThis as any).__disableApiMock = true;
 		storageMap.clear();
-		
+
 		// Use a locally created fetch mock for ultimate isolation
 		localFetchMock = mock(() => Promise.resolve(createFetchResponse(true, 200, {})));
-		
+
 		sharingMock.shareAsync.mockClear();
 		if (fileSystemMock.StorageAccessFramework) {
 			Object.values(fileSystemMock.StorageAccessFramework).forEach((fn: any) => fn.mockClear && fn.mockClear());
@@ -54,256 +57,298 @@ describe("API Helper", () => {
 		delete (globalThis as any).window;
 		delete (globalThis as any).document;
 		delete (globalThis as any).URL;
+		Platform.OS = originalOS;
 	});
 
-	describe("getBaseUrl", () => {
-		it("should return the server URL from storage", async () => {
-			const baseUrl = await api.getBaseUrl();
-			expect(baseUrl).toBe(MOCK_BASE_URL);
+	describe("General", () => {
+		describe("getBaseUrl", () => {
+			it("should return the server URL from storage", async () => {
+				const baseUrl = await api.getBaseUrl();
+				expect(baseUrl).toBe(MOCK_BASE_URL);
+			});
+		});
+
+		describe("post", () => {
+			it("should make a POST request and return JSON data", async () => {
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				const result = await api.post("/test", { foo: "bar" });
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify({ foo: "bar" }),
+				});
+				expect(result).toEqual(mockData);
+			});
+
+			it("should throw an error if the request fails", async () => {
+				localFetchMock.mockResolvedValue(createFetchResponse(false, 500, "Internal Server Error", "text/plain"));
+
+				await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
+					"Request failed with status 500: Internal Server Error",
+				);
+			});
+
+			it("should throw 'Session expired' error if status is 401", async () => {
+				localFetchMock.mockResolvedValue(createFetchResponse(false, 401, "Unauthorized", "text/plain"));
+
+				await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
+					"Session expired",
+				);
+			});
+
+			it("should support JSON content type", async () => {
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				await api.post("/test", { foo: "bar" }, "application/json");
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+					},
+					body: JSON.stringify({ foo: "bar" }),
+				});
+			});
+
+			it("should return text if response is not JSON", async () => {
+				const mockText = "not json content";
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockText, "text/plain"));
+
+				const result = await api.post("/test", { foo: "bar" });
+				expect(result).toBe(mockText);
+			});
+		});
+
+		describe("postWithAuth", () => {
+			it("should make an authenticated POST request with form data", async () => {
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				const result = await api.postWithAuth("/test", { foo: "bar" });
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+						Authorization: "Bearer test-token",
+					},
+					body: JSON.stringify({ foo: "bar" }),
+				});
+				expect(result).toEqual(mockData);
+			});
+
+			it("should make an authenticated POST request with JSON data", async () => {
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				const result = await api.postWithAuth(
+					"/test",
+					{ foo: "bar" },
+					"application/json",
+				);
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+						Authorization: "Bearer test-token",
+					},
+					body: JSON.stringify({ foo: "bar" }),
+				});
+				expect(result).toEqual(mockData);
+			});
+
+			it("should throw an error if no auth token is found", async () => {
+				await asyncStorageMock.removeItem("authToken");
+				await expect(api.postWithAuth("/test", { foo: "bar" })).rejects.toThrow(
+					"No authentication token found.",
+				);
+			});
+		});
+
+		describe("get", () => {
+			it("should make a GET request without auth", async () => {
+				await asyncStorageMock.removeItem("authToken");
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				const result = await api.get("/test");
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "GET",
+					headers: {},
+				});
+				expect(result).toEqual(mockData);
+			});
+
+			it("should make a GET request with auth if token exists", async () => {
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				const result = await api.get("/test");
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "GET",
+					headers: {
+						Authorization: "Bearer test-token",
+						"Content-Type": "application/json",
+						Accept: "application/json",
+					},
+				});
+				expect(result).toEqual(mockData);
+			});
+
+			it("should retry a failed GET request up to 3 times", async () => {
+				const mockError = new Error("Network error");
+				localFetchMock.mockRejectedValue(mockError);
+
+				await expect(api.get("/test")).rejects.toThrow("Network error");
+				expect(localFetchMock).toHaveBeenCalledTimes(3);
+			});
+
+			it("should succeed if one of the retry attempts is successful", async () => {
+				const mockData = { message: "Success" };
+				localFetchMock
+					.mockRejectedValueOnce(new Error("Fail 1"))
+					.mockRejectedValueOnce(new Error("Fail 2"))
+					.mockResolvedValueOnce(createFetchResponse(true, 200, mockData));
+
+				const result = await api.get("/test");
+
+				expect(result).toEqual(mockData);
+				expect(localFetchMock).toHaveBeenCalledTimes(3);
+			});
+		});
+
+		describe("getWithAuth", () => {
+			it("should make an authenticated GET request", async () => {
+				const mockData = { success: true };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
+
+				const result = await api.getWithAuth("/test");
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "GET",
+					headers: {
+						Authorization: "Bearer test-token",
+						"Content-Type": "application/json",
+						Accept: "application/json",
+					},
+				});
+				expect(result).toEqual(mockData);
+			});
+
+			it("should throw an error if no auth token is found", async () => {
+				await asyncStorageMock.removeItem("authToken");
+				await expect(api.getWithAuth("/test")).rejects.toThrow(
+					"No authentication token found.",
+				);
+			});
+
+			it("should retry a failed GET request up to 3 times", async () => {
+				const mockError = new Error("Network error");
+				await asyncStorageMock.setItem("authToken", "test-token");
+				localFetchMock.mockRejectedValue(mockError);
+
+				await expect(api.getWithAuth("/test")).rejects.toThrow("Network error");
+				expect(localFetchMock).toHaveBeenCalledTimes(3);
+			});
+
+			it("should succeed if one of the retry attempts is successful", async () => {
+				const mockData = { message: "Success" };
+				localFetchMock
+					.mockRejectedValueOnce(new Error("Fail 1"))
+					.mockRejectedValueOnce(new Error("Fail 2"))
+					.mockResolvedValueOnce(createFetchResponse(true, 200, mockData));
+
+				const result = await api.getWithAuth("/test");
+
+				expect(result).toEqual(mockData);
+				expect(localFetchMock).toHaveBeenCalledTimes(3);
+			});
+		});
+
+		describe("getBlobWithAuth", () => {
+			it("should make an authenticated GET request and return a blob", async () => {
+				const mockBlob = new Blob(['test'], { type: 'image/png' });
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockBlob));
+
+				const result = await api.getBlobWithAuth("/test");
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+					method: "GET",
+					headers: {
+						Authorization: "Bearer test-token",
+					},
+				});
+				expect(result).toEqual(mockBlob as any);
+			});
+
+			it("should throw an error if no auth token is found", async () => {
+				await asyncStorageMock.removeItem("authToken");
+				await expect(api.getBlobWithAuth("/test")).rejects.toThrow(
+					"No authentication token found.",
+				);
+			});
+		});
+
+		describe("exportOpml", () => {
+			it("should throw an error if export fails", async () => {
+				localFetchMock.mockResolvedValue(createFetchResponse(false, 500, "Internal Server Error", "text/plain"));
+
+				await expect(api.exportOpml()).rejects.toThrow(
+					"Request failed with status 500: Internal Server Error",
+				);
+			});
+		});
+
+		describe("importOpml", () => {
+			const mockUri = "file:///test.opml";
+
+			it("should upload an OPML file and return success", async () => {
+				const mockResponse = { message: "Import started" };
+				localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockResponse));
+
+				const result = await api.importOpml(mockUri);
+
+				expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/import`, {
+					method: "POST",
+					headers: {
+						Authorization: "Bearer test-token",
+						Accept: "application/json",
+					},
+					body: expect.any(Object),
+				});
+				expect(result).toEqual(mockResponse);
+			});
+
+			it("should throw an error if import fails", async () => {
+				localFetchMock.mockResolvedValue(createFetchResponse(false, 422, JSON.stringify({ error: "No valid feeds found" }), "application/json"));
+
+				await expect(api.importOpml(mockUri)).rejects.toThrow(
+					"Request failed with status 422",
+				);
+			});
 		});
 	});
 
-	describe("post", () => {
-		it("should make a POST request and return JSON data", async () => {
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			const result = await api.post("/test", { foo: "bar" });
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Accept': 'application/json',
-				},
-				body: JSON.stringify({ foo: "bar" }),
-			});
-			expect(result).toEqual(mockData);
+	describe("iOS-specific", () => {
+		beforeEach(() => {
+			Platform.OS = "ios";
 		});
-
-		it("should throw an error if the request fails", async () => {
-			localFetchMock.mockResolvedValue(createFetchResponse(false, 500, "Internal Server Error", "text/plain"));
-
-			await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
-				"Request failed with status 500: Internal Server Error",
-			);
-		});
-
-		it("should throw 'Session expired' error if status is 401", async () => {
-			localFetchMock.mockResolvedValue(createFetchResponse(false, 401, "Unauthorized", "text/plain"));
-
-			await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
-				"Session expired",
-			);
-		});
-
-		it("should support JSON content type", async () => {
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			await api.post("/test", { foo: "bar" }, "application/json");
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json",
-				},
-				body: JSON.stringify({ foo: "bar" }),
-			});
-		});
-
-		it("should return text if response is not JSON", async () => {
-			const mockText = "not json content";
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockText, "text/plain"));
-
-			const result = await api.post("/test", { foo: "bar" });
-			expect(result).toBe(mockText);
-		});
-	});
-
-	describe("postWithAuth", () => {
-		it("should make an authenticated POST request with form data", async () => {
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			const result = await api.postWithAuth("/test", { foo: "bar" });
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					Authorization: "Bearer test-token",
-				},
-				body: JSON.stringify({ foo: "bar" }),
-			});
-			expect(result).toEqual(mockData);
-		});
-
-		it("should make an authenticated POST request with JSON data", async () => {
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			const result = await api.postWithAuth(
-				"/test",
-				{ foo: "bar" },
-				"application/json",
-			);
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json",
-					Authorization: "Bearer test-token",
-				},
-				body: JSON.stringify({ foo: "bar" }),
-			});
-			expect(result).toEqual(mockData);
-		});
-
-		it("should throw an error if no auth token is found", async () => {
-			await asyncStorageMock.removeItem("authToken");
-			await expect(api.postWithAuth("/test", { foo: "bar" })).rejects.toThrow(
-				"No authentication token found.",
-			);
-		});
-	});
-
-	describe("get", () => {
-		it("should make a GET request without auth", async () => {
-			await asyncStorageMock.removeItem("authToken");
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			const result = await api.get("/test");
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "GET",
-				headers: {},
-			});
-			expect(result).toEqual(mockData);
-		});
-
-		it("should make a GET request with auth if token exists", async () => {
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			const result = await api.get("/test");
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "GET",
-				headers: {
-					Authorization: "Bearer test-token",
-					"Content-Type": "application/json",
-					Accept: "application/json",
-				},
-			});
-			expect(result).toEqual(mockData);
-		});
-
-		it("should retry a failed GET request up to 3 times", async () => {
-			const mockError = new Error("Network error");
-			localFetchMock.mockRejectedValue(mockError);
-
-			await expect(api.get("/test")).rejects.toThrow("Network error");
-			expect(localFetchMock).toHaveBeenCalledTimes(3);
-		});
-
-		it("should succeed if one of the retry attempts is successful", async () => {
-			const mockData = { message: "Success" };
-			localFetchMock
-				.mockRejectedValueOnce(new Error("Fail 1"))
-				.mockRejectedValueOnce(new Error("Fail 2"))
-				.mockResolvedValueOnce(createFetchResponse(true, 200, mockData));
-
-			const result = await api.get("/test");
-
-			expect(result).toEqual(mockData);
-			expect(localFetchMock).toHaveBeenCalledTimes(3);
-		});
-	});
-
-	describe("getWithAuth", () => {
-		it("should make an authenticated GET request", async () => {
-			const mockData = { success: true };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockData));
-
-			const result = await api.getWithAuth("/test");
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "GET",
-				headers: {
-					Authorization: "Bearer test-token",
-					"Content-Type": "application/json",
-					Accept: "application/json",
-				},
-			});
-			expect(result).toEqual(mockData);
-		});
-
-		it("should throw an error if no auth token is found", async () => {
-			await asyncStorageMock.removeItem("authToken");
-			await expect(api.getWithAuth("/test")).rejects.toThrow(
-				"No authentication token found.",
-			);
-		});
-
-		it("should retry a failed GET request up to 3 times", async () => {
-			const mockError = new Error("Network error");
-			await asyncStorageMock.setItem("authToken", "test-token");
-			localFetchMock.mockRejectedValue(mockError);
-
-			await expect(api.getWithAuth("/test")).rejects.toThrow("Network error");
-			expect(localFetchMock).toHaveBeenCalledTimes(3);
-		});
-
-		it("should succeed if one of the retry attempts is successful", async () => {
-			const mockData = { message: "Success" };
-			localFetchMock
-				.mockRejectedValueOnce(new Error("Fail 1"))
-				.mockRejectedValueOnce(new Error("Fail 2"))
-				.mockResolvedValueOnce(createFetchResponse(true, 200, mockData));
-
-			const result = await api.getWithAuth("/test");
-
-			expect(result).toEqual(mockData);
-			expect(localFetchMock).toHaveBeenCalledTimes(3);
-		});
-	});
-
-	describe("getBlobWithAuth", () => {
-		it("should make an authenticated GET request and return a blob", async () => {
-			const mockBlob = new Blob(['test'], { type: 'image/png' });
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockBlob));
-
-			const result = await api.getBlobWithAuth("/test");
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
-				method: "GET",
-				headers: {
-					Authorization: "Bearer test-token",
-				},
-			});
-			expect(result).toEqual(mockBlob as any);
-		});
-
-		it("should throw an error if no auth token is found", async () => {
-			await asyncStorageMock.removeItem("authToken");
-			await expect(api.getBlobWithAuth("/test")).rejects.toThrow(
-				"No authentication token found.",
-			);
-		});
-	});
-
-	describe("exportOpml", () => {
-		const mockOpml = "<opml>test</opml>";
 
 		it("should fetch OPML text and share it on iOS", async () => {
-			const RN = require("react-native");
-			RN.Platform.OS = "ios";
-
+			const mockOpml = "<opml>test</opml>";
 			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockOpml, "text/plain"));
 
 			await api.exportOpml();
@@ -312,30 +357,30 @@ describe("API Helper", () => {
 				expect.stringContaining("subscriptions")
 			);
 		});
+	});
+
+	describe("Android-specific", () => {
+		beforeEach(() => {
+			Platform.OS = "android";
+		});
 
 		it("should fetch OPML text and save to folder on Android", async () => {
-			const RN = require("react-native");
-			RN.Platform.OS = "android";
-
+			const mockOpml = "<opml>test</opml>";
 			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockOpml, "text/plain"));
 
 			await api.exportOpml();
 
 			expect(fileSystemMock.StorageAccessFramework.requestDirectoryPermissionsAsync).toHaveBeenCalled();
 		});
+	});
 
-		it("should throw an error if export fails", async () => {
-			localFetchMock.mockResolvedValue(createFetchResponse(false, 500, "Internal Server Error", "text/plain"));
-
-			await expect(api.exportOpml()).rejects.toThrow(
-				"Request failed with status 500: Internal Server Error",
-			);
+	describe("Web-specific", () => {
+		beforeEach(() => {
+			Platform.OS = "web";
 		});
 
-		it("should trigger a browser download on web", async () => {
-			const RN = require("react-native");
-			RN.Platform.OS = "web";
-
+		it("should trigger a browser download for export on web", async () => {
+			const mockOpml = "<opml>test</opml>";
 			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockOpml, "text/plain"));
 
 			const mockElement = {
@@ -361,40 +406,8 @@ describe("API Helper", () => {
 				expect.any(Object)
 			);
 		});
-	});
 
-	describe("importOpml", () => {
-		const mockUri = "file:///test.opml";
-
-		it("should upload an OPML file and return success", async () => {
-			const mockResponse = { message: "Import started" };
-			localFetchMock.mockResolvedValue(createFetchResponse(true, 200, mockResponse));
-
-			const result = await api.importOpml(mockUri);
-
-			expect(localFetchMock).toHaveBeenCalledWith(`${MOCK_BASE_URL}/feeds/import`, {
-				method: "POST",
-				headers: {
-					Authorization: "Bearer test-token",
-					Accept: "application/json",
-				},
-				body: expect.any(Object),
-			});
-			expect(result).toEqual(mockResponse);
-		});
-
-		it("should throw an error if import fails", async () => {
-			localFetchMock.mockResolvedValue(createFetchResponse(false, 422, JSON.stringify({ error: "No valid feeds found" }), "application/json"));
-
-			await expect(api.importOpml(mockUri)).rejects.toThrow(
-				"Request failed with status 422",
-			);
-		});
-
-		it("should read file and upload on web", async () => {
-			const RN = require("react-native");
-			RN.Platform.OS = "web";
-
+		it("should read file and upload for import on web", async () => {
 			const mockResponse = { message: "Import started", count: 10 };
 			const mockBlob = new Blob(['test'], { type: 'text/xml' });
 
@@ -413,4 +426,3 @@ describe("API Helper", () => {
 		});
 	});
 });
-;
