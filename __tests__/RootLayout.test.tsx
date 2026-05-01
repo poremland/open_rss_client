@@ -54,4 +54,17 @@ describe("RootLayout", () => {
 			expect(SplashScreen.hideAsync).toHaveBeenCalled();
 		});
 	});
+
+	it("should hide splash screen even if initialization fails", async () => {
+		const refreshTokenSpy = spyOn(authHelper, "refreshTokenOnLoad").mockRejectedValue(new Error("Token refresh failed"));
+		const proactiveFetchSpy = spyOn(backgroundSync, "performProactiveFetch");
+		
+		render(<RootLayout />);
+		
+		await waitFor(() => {
+			expect(SplashScreen.hideAsync).toHaveBeenCalled();
+		});
+		
+		refreshTokenSpy.mockRestore();
+	});
 });
