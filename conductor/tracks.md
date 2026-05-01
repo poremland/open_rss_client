@@ -8,5 +8,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Add splash screen to make the initial state loading more seamless and less jarring.**
+- [x] **Track: Add splash screen to make the initial state loading more seamless and less jarring.**
 *Link: [./tracks/splash_screen_20260501/](./tracks/splash_screen_20260501/)*
