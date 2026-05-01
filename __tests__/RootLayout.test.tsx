@@ -17,20 +17,34 @@
  */
 
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { render, waitFor, act } from "@testing-library/react-native";
 import RootLayout from "../app/_layout";
 import * as SplashScreen from "expo-splash-screen";
-import { describe, it, expect, mock, beforeEach, spyOn } from "bun:test";
+import { describe, it, expect, mock, beforeEach, afterEach, spyOn } from "bun:test";
 import { mocks } from "./setup";
 import * as authHelper from "../helpers/auth_helper";
 import * as backgroundSync from "../helpers/background_sync";
 
 describe("RootLayout", () => {
+	let consoleSpy: any;
+
 	beforeEach(() => {
 		mocks.resetAll();
+		consoleSpy = spyOn(console, "error").mockImplementation((msg) => {
+			if (msg && typeof msg === 'string') {
+				if (msg.includes("was not wrapped in act")) return;
+				if (msg.includes("react-test-renderer is deprecated")) return;
+				if (msg.includes("Initialization failed")) return;
+			}
+			console.log("Console error:", msg);
+		});
 	});
 
-	it("should call SplashScreen.preventAutoHideAsync", () => {
+	afterEach(() => {
+		consoleSpy.mockRestore();
+	});
+
+	it("should call SplashScreen.preventAutoHideAsync", async () => {
 		render(<RootLayout />);
 		expect(mocks.splashScreen.preventAutoHideAsync).toHaveBeenCalled();
 	});
@@ -80,7 +94,9 @@ describe("RootLayout", () => {
 		expect(mocks.splashScreen.hideAsync).not.toHaveBeenCalled();
 		
 		// Resolve the promise
-		resolveInit();
+		await act(async () => {
+			resolveInit();
+		});
 		
 		await waitFor(() => {
 			expect(mocks.splashScreen.hideAsync).toHaveBeenCalled();
