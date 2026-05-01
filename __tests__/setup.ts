@@ -320,6 +320,10 @@ export const mocks = {
 	opmlMocks,
 	network: networkMocks,
 	networkMocks,
+	splashScreen: {
+		preventAutoHideAsync: mock(async () => true),
+		hideAsync: mock(async () => true),
+	},
 	useConnectionStatusMock,
 	localSearchParams: localSearchParamsMock,
 	resetAll: () => {} // Placeholder
@@ -678,8 +682,8 @@ mock.module("expo-system-ui", () => ({
 }));
 
 mock.module("expo-splash-screen", () => ({
-	preventAutoHideAsync: mock(async () => true),
-	hideAsync: mock(async () => true),
+	preventAutoHideAsync: mocks.splashScreen.preventAutoHideAsync,
+	hideAsync: mocks.splashScreen.hideAsync,
 	__esModule: true,
 }));
 
@@ -741,6 +745,7 @@ export const resetAll = () => {
 
 	resetMocksInObj(authMocks);
 	resetMocksInObj(useMenuMock);
+	resetMocksInObj(mocks.splashScreen);
 	resetMocksInObj(fileSystemMock);
 	resetMocksInObj(sharingMock);
 	resetMocksInObj(documentPickerMock);

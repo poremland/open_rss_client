@@ -32,7 +32,7 @@ describe("RootLayout", () => {
 
 	it("should call SplashScreen.preventAutoHideAsync", () => {
 		render(<RootLayout />);
-		expect(SplashScreen.preventAutoHideAsync).toHaveBeenCalled();
+		expect(mocks.splashScreen.preventAutoHideAsync).toHaveBeenCalled();
 	});
 
 	it("should perform initialization sequence", async () => {
@@ -51,7 +51,7 @@ describe("RootLayout", () => {
 		render(<RootLayout />);
 		
 		await waitFor(() => {
-			expect(SplashScreen.hideAsync).toHaveBeenCalled();
+			expect(mocks.splashScreen.hideAsync).toHaveBeenCalled();
 		});
 	});
 
@@ -62,7 +62,28 @@ describe("RootLayout", () => {
 		render(<RootLayout />);
 		
 		await waitFor(() => {
-			expect(SplashScreen.hideAsync).toHaveBeenCalled();
+			expect(mocks.splashScreen.hideAsync).toHaveBeenCalled();
+		});
+		
+		refreshTokenSpy.mockRestore();
+	});
+
+	it("should NOT hide splash screen until initialization is complete (simulated slow connection)", async () => {
+		let resolveInit: any;
+		const initPromise = new Promise((resolve) => { resolveInit = resolve; });
+		const refreshTokenSpy = spyOn(authHelper, "refreshTokenOnLoad").mockReturnValue(initPromise as any);
+		
+		render(<RootLayout />);
+		
+		// Wait a bit to ensure it hasn't hidden yet
+		await new Promise(r => setTimeout(r, 100));
+		expect(mocks.splashScreen.hideAsync).not.toHaveBeenCalled();
+		
+		// Resolve the promise
+		resolveInit();
+		
+		await waitFor(() => {
+			expect(mocks.splashScreen.hideAsync).toHaveBeenCalled();
 		});
 		
 		refreshTokenSpy.mockRestore();

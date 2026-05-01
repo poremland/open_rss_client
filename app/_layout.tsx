@@ -27,15 +27,14 @@ import useSync from "../components/useSync";
 import { registerBackgroundSync, performProactiveFetch } from "../helpers/background_sync";
 import { ConnectionProvider } from "../components/useConnectionStatus";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
 const SyncHandler = () => {
 	useSync();
 	return null;
 };
 
 const RootLayout = () => {
+	SplashScreen.preventAutoHideAsync();
+
 	useEffect(() => {
 		const init = async () => {
 			try {
