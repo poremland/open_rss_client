@@ -384,6 +384,7 @@ mock.module("react-native", () => {
 			);
 		},
 		Image: mockComponent("Image"),
+		StatusBar: mockComponent("StatusBar"),
 		KeyboardAvoidingView: mockComponent("KeyboardAvoidingView"),
 		ActivityIndicator: mockComponent("ActivityIndicator"),
 		Modal: mockComponent("Modal"),
@@ -505,11 +506,15 @@ mock.module("@react-navigation/native", () => ({
 	useNavigation: () => navigationMocks,
 }));
 
-mock.module("expo-router", () => ({
-	useRouter: () => routerMocks,
-	useNavigation: () => navigationMocks,
-	useLocalSearchParams: () => localSearchParamsMock.params,
-}));
+mock.module("expo-router", () => {
+	const React = require("react");
+	return {
+		useRouter: () => routerMocks,
+		useNavigation: () => navigationMocks,
+		useLocalSearchParams: () => localSearchParamsMock.params,
+		Stack: (props: any) => React.createElement("Stack", props),
+	};
+});
 
 mock.module("@react-native-async-storage/async-storage", () => ({
 	default: asyncStorageMock,
@@ -542,10 +547,14 @@ mock.module("expo-font", () => ({
 // We don't use mock.module for project helpers to avoid re-evaluation SyntaxErrors.
 // Instead, they check globalThis.apiMocks/authMocks/opmlMocks in their implementation.
 
-mock.module(resolveModule("../components/GlobalDropdownMenu"), () => ({
-	useMenu: () => useMenuMock,
-	__esModule: true,
-}));
+mock.module(resolveModule("../components/GlobalDropdownMenu"), () => {
+	const React = require("react");
+	return {
+		useMenu: () => useMenuMock,
+		default: ({ children }: any) => React.createElement("GlobalDropdownMenu", {}, children),
+		__esModule: true,
+	};
+});
 
 mock.module("react-native-gesture-handler", () => {
 	const React = require("react");

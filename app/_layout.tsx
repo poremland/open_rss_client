@@ -19,12 +19,16 @@
 import React, { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import GlobalDropdownMenu from "../components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
-import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import useSync from "../components/useSync";
 import { registerBackgroundSync } from "../helpers/background_sync";
 import { ConnectionProvider } from "../components/useConnectionStatus";
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 const SyncHandler = () => {
 	useSync();
@@ -42,12 +46,12 @@ const RootLayout = () => {
 			<SyncHandler />
 			<GlobalDropdownMenu>
 				<GestureHandlerRootView style={{ flex: 1 }}>
-					{/* Wrap content with GestureHandlerRootView */}
 					<StatusBar hidden={false} barStyle="dark-content" />
 					<Stack />
 				</GestureHandlerRootView>
 			</GlobalDropdownMenu>
 		</ConnectionProvider>
-	);};
+	);
+};
 
 export default RootLayout;
