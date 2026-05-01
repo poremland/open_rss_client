@@ -29,6 +29,7 @@ The Open RSS Client is a lightweight, mobile-first RSS reader designed for seaml
 - **Connection-Aware UI:** Real-time detection and visual indication of connectivity status, with automated restriction of online-only actions.
 - **Dynamic Content:** Automatic HTML entity decoding for clean title and description rendering.
 - **About & Status:** Dedicated screen for application information, synchronization status, and manual cache management.
+- **Seamless App Initialization:** Orchestrated splash screen that stays visible until all critical initial states (auth, cache, sync) are resolved, providing a professional and flicker-free startup experience.
 
 ## Success Metrics
 - **Performance:** App initialization and feed loading in under 2 seconds.

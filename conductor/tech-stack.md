@@ -10,7 +10,7 @@
 - **Icons:** `@expo/vector-icons` (Ionicons, AntDesign, MaterialIcons) and `expo-symbols` for SF Symbols on iOS.
 - **Gestures:** `rn-gesture-swipeable-flatlist` for performant swipe-to-delete and swipe-to-read interactions.
 - **Feedback:** `expo-haptics` for tactile user confirmation.
-- **Visuals:** `expo-blur` for backdrop filtering and visual depth.
+- **Visuals:** `expo-blur` for backdrop filtering and visual depth, and `expo-splash-screen` for controlled app initialization.
 
 ## State & Data Management
 - **Local Storage:** `@react-native-async-storage/async-storage` for storing JWT tokens, server configuration, and the sync queue.
