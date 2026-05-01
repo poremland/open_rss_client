@@ -19,23 +19,48 @@ import "./setup";
 import { mocks, storageMap } from "./setup";
 import { expect, describe, it, beforeEach, afterEach } from "bun:test";
 import * as apiHelper from "../helpers/api_helper";
+import * as cacheHelper from "../helpers/cache_helper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 describe("Cache Resilience", () => {
-	beforeEach(() => {
-		(globalThis as any).__disableApiMock = true;
-		(globalThis as any).__disableAuthMock = true;
-		mocks.resetAll();
-		storageMap.clear();
-	});
+        beforeEach(() => {
+                (globalThis as any).__disableApiMock = true;
+                (globalThis as any).__disableAuthMock = true;
+                mocks.resetAll();
+                storageMap.clear();
+                cacheHelper.clearLocalCache();
+        });
 
-	afterEach(() => {
-		(globalThis as any).__disableApiMock = false;
-		(globalThis as any).__disableAuthMock = false;
-	});
+        afterEach(() => {
+                (globalThis as any).__disableApiMock = false;
+                (globalThis as any).__disableAuthMock = false;
+        });
 
-	it("should throw a descriptive error when serverUrl is missing in getBaseUrl", async () => {
-		await expect(apiHelper.api.getBaseUrl()).rejects.toThrow("Server URL not set. Please log in again.");
+        it("should return null and log an error when cache data is corrupted", async () => {
+                const url = "/corrupted";
+                const key = cacheHelper.getCacheKey(url);
+                await AsyncStorage.setItem(key, "invalid json {");
+
+                // Mock console.error to avoid noise but verify it was called
+                const originalConsoleError = console.error;
+                let errorLogged = false;
+                console.error = () => { errorLogged = true; };
+
+                try {
+                        const result = await cacheHelper.getCache(url);
+                        expect(result).toBeNull();
+                        expect(errorLogged).toBe(true);
+                } finally {
+                        console.error = originalConsoleError;
+                }
+        });
+
+        it("should return null when cache is missing", async () => {
+                const result = await cacheHelper.getCache("/missing");
+                expect(result).toBeNull();
+        });
+
+        it("should throw a descriptive error when serverUrl is missing in getBaseUrl", async () => {		await expect(apiHelper.api.getBaseUrl()).rejects.toThrow("Server URL not set. Please log in again.");
 	});
 
 	it("should throw a meaningful error when making a request without a serverUrl", async () => {

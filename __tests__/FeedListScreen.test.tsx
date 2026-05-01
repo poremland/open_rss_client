@@ -66,20 +66,30 @@ describe("FeedListScreen", () => {
 	});
 
 	it("should call clearAuthData when Log-out is pressed", async () => {
-		mocks.api.getWithAuth.mockResolvedValue([]);
+	        mocks.api.getWithAuth.mockResolvedValue([]);
 
-		render(<FeedListScreen />);
+	        render(<FeedListScreen />);
 
-		await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
-		const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
-		const logoutAction = menuItems.find((item: any) => item.label === "Log-out");
-		logoutAction.onPress();
+	        await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+	        const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+	        const logoutAction = menuItems.find((item: any) => item.label === "Log-out");
+	        logoutAction.onPress();
 
-		expect(mocks.auth.clearAuthData).toHaveBeenCalled();
+	        expect(mocks.auth.clearAuthData).toHaveBeenCalled();
 	});
 
-	it("should display error message when api call fails", async () => {
-		mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
+	it("should navigate to AboutScreen when About is pressed", async () => {
+	        render(<FeedListScreen />);
+
+	        await waitFor(() => expect(mocks.useMenu.setMenuItems).toHaveBeenCalled());
+	        const menuItems = mocks.useMenu.setMenuItems.mock.calls[0][0];
+	        const aboutAction = menuItems.find((item: any) => item.label === "About");
+	        aboutAction.onPress();
+
+	        expect(mocks.router.push).toHaveBeenCalledWith("/AboutScreen");
+	});
+
+	it("should display error message when api call fails", async () => {		mocks.api.getWithAuth.mockRejectedValue(new Error("API Error"));
 
 		const { getByText } = render(<FeedListScreen />);
 		await waitFor(() => expect(getByText("API Error")).toBeTruthy());
