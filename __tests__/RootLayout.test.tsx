@@ -17,11 +17,13 @@
  */
 
 import React from "react";
-import { render } from "@testing-library/react-native";
+import { render, waitFor } from "@testing-library/react-native";
 import RootLayout from "../app/_layout";
 import * as SplashScreen from "expo-splash-screen";
-import { describe, it, expect, mock, beforeEach } from "bun:test";
+import { describe, it, expect, mock, beforeEach, spyOn } from "bun:test";
 import { mocks } from "./setup";
+import * as authHelper from "../helpers/auth_helper";
+import * as backgroundSync from "../helpers/background_sync";
 
 describe("RootLayout", () => {
 	beforeEach(() => {
@@ -31,5 +33,25 @@ describe("RootLayout", () => {
 	it("should call SplashScreen.preventAutoHideAsync", () => {
 		render(<RootLayout />);
 		expect(SplashScreen.preventAutoHideAsync).toHaveBeenCalled();
+	});
+
+	it("should perform initialization sequence", async () => {
+		const refreshTokenSpy = spyOn(authHelper, "refreshTokenOnLoad");
+		const proactiveFetchSpy = spyOn(backgroundSync, "performProactiveFetch");
+		
+		render(<RootLayout />);
+		
+		await waitFor(() => {
+			expect(refreshTokenSpy).toHaveBeenCalled();
+			expect(proactiveFetchSpy).toHaveBeenCalled();
+		});
+	});
+
+	it("should hide splash screen when initialization is complete", async () => {
+		render(<RootLayout />);
+		
+		await waitFor(() => {
+			expect(SplashScreen.hideAsync).toHaveBeenCalled();
+		});
 	});
 });

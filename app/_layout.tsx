@@ -24,7 +24,7 @@ import GlobalDropdownMenu from "../components/GlobalDropdownMenu";
 import { refreshTokenOnLoad } from "../helpers/auth_helper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import useSync from "../components/useSync";
-import { registerBackgroundSync } from "../helpers/background_sync";
+import { registerBackgroundSync, performProactiveFetch } from "../helpers/background_sync";
 import { ConnectionProvider } from "../components/useConnectionStatus";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -37,8 +37,18 @@ const SyncHandler = () => {
 
 const RootLayout = () => {
 	useEffect(() => {
-		refreshTokenOnLoad();
-		registerBackgroundSync();
+		const init = async () => {
+			try {
+				await refreshTokenOnLoad();
+				await performProactiveFetch();
+				registerBackgroundSync();
+			} catch (e) {
+				console.error("Initialization failed:", e);
+			} finally {
+				await SplashScreen.hideAsync();
+			}
+		};
+		init();
 	}, []);
 
 	return (
