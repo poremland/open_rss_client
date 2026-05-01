@@ -1,0 +1,8 @@
+{
+  "track_id": "splash_screen_20260501",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-05-01T17:48:47Z",
+  "updated_at": "2026-05-01T17:48:47Z",
+  "description": "Add splash screen to make the initial state loading more seamless and less jarring."
+}

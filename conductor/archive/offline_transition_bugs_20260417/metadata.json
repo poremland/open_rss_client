@@ -1,0 +1,8 @@
+{
+  "track_id": "offline_transition_bugs_20260417",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-04-17T00:00:00Z",
+  "updated_at": "2026-04-17T00:00:00Z",
+  "description": "Bug fixes related to offline and online state transitions, unread count synchronization, and offline actions queueing."
+}
