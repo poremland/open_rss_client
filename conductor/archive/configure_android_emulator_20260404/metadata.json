@@ -1,0 +1,8 @@
+{
+  "track_id": "configure_android_emulator_20260404",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-04-04T12:00:00Z",
+  "updated_at": "2026-04-04T12:00:00Z",
+  "description": "Configure Android emulator so gemini agent can use it to test"
+}
