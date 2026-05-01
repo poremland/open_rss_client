@@ -1,8 +1,8 @@
 # Plan: Splash Screen Implementation
 
 ## Phase 1: Setup and Infrastructure
-- [ ] Task: Install `expo-splash-screen` dependency
-    - [ ] Run `bun add expo-splash-screen`
+- [ ] Task: Verify `expo-splash-screen` dependency
+    - [ ] Confirm version in `package.json`
 - [ ] Task: Verify splash screen configuration in `app.config.base.json`
 - [ ] Task: Conductor - User Manual Verification 'Setup and Infrastructure' (Protocol in workflow.md)
 
@@ -20,7 +20,10 @@
     - [ ] Call `SplashScreen.hideAsync()` once checks are complete
 - [ ] Task: Conductor - User Manual Verification 'App Initialization Logic' (Protocol in workflow.md)
 
-## Phase 3: Testing and Verification
+## Phase 3: Versioning and Finalization
+- [ ] Task: Bump application version
+    - [ ] Update `version` to `1.7.0` in `package.json`
+    - [ ] Update `Current Version` to `1.7.0` in `conductor/product.md`
 - [ ] Task: Write unit tests for initialization logic in `app/_layout.tsx`
 - [ ] Task: Verify UI behavior on slow connections (simulated)
-- [ ] Task: Conductor - User Manual Verification 'Testing and Verification' (Protocol in workflow.md)
+- [ ] Task: Conductor - User Manual Verification 'Versioning and Finalization' (Protocol in workflow.md)
