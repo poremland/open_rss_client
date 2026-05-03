@@ -690,6 +690,7 @@ mock.module("expo-splash-screen", () => ({
 mock.module("expo-constants", () => ({
 	default: {
 		expoConfig: {
+			version: "1.7.0",
 			extra: {
 				eas: {
 					projectId: "mock-id",

@@ -28,6 +28,7 @@ import {
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import Screen from "../components/Screen";
 import useCache from "../components/useCache";
 import { styles } from "../styles/AboutScreen.styles";
@@ -146,7 +147,7 @@ const AboutScreen: React.FC = () => {
 						style={styles.logo}
 					/>
 					<Text style={styles.title}>Open RSS Client</Text>
-					<Text style={styles.version}>Version: 1.6.1</Text>
+					<Text style={styles.version}>Version: {Constants.expoConfig?.version || Constants.manifest?.version || "Unknown"}</Text>
 				</View>
 
 				<View style={styles.section}>
