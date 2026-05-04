@@ -66,9 +66,8 @@ describe("AboutScreen", () => {
 			await waitFor(() => expect(cacheHelper.getCacheStats).toHaveBeenCalled());
 
 			expect(getByText("Open RSS Client")).toBeTruthy();
-			expect(getByText("Version: 1.6.1")).toBeTruthy();
-			expect(getByText("https://rss.example.com")).toBeTruthy();
-			expect(getByText("testuser")).toBeTruthy();
+			expect(getByText("Version: 1.7.0")).toBeTruthy();
+			expect(getByText("https://rss.example.com")).toBeTruthy();			expect(getByText("testuser")).toBeTruthy();
 			expect(getByText("5")).toBeTruthy(); // cached feeds
 			expect(getByText("120")).toBeTruthy(); // cached items
 			expect(getByText("500 KB")).toBeTruthy(); // total size
