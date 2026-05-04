@@ -1,6 +1,6 @@
 # Open RSS Client: Product Definition
 
-**Current Version:** 1.7.0
+**Current Version:** 1.7.1
 
 ## Vision
 The Open RSS Client is a lightweight, mobile-first RSS reader designed for seamless consumption of feeds from the [Open RSS Aggregator](https://github.com/poremland/open_rss_aggregator). It empowers users to stay informed by providing a unified, cross-platform experience (Android, iOS, Web) with a focus on speed, offline accessibility, and a clean, distraction-free interface.
