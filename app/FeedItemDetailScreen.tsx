@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Platform, Linking, Share, Alert } from "react-native";
+import { View, Platform, Linking, Share, Alert, ScrollView, Text } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
@@ -38,6 +38,7 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
+	const [webViewHeight, setWebViewHeight] = useState(400);
 	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{
 		feedItemId: string;
 		feedItem?: string;
@@ -163,6 +164,20 @@ const FeedItemDetailScreen: React.FC = () => {
 		return staticHtml;
 	}, [selectedFeedItem?.id]); // Use id to avoid re-calculating on every object change
 
+	const onWebViewMessage = useCallback((event: any) => {
+		const height = Number(event.nativeEvent.data);
+		if (height > 0) {
+			setWebViewHeight(height);
+		}
+	}, []);
+
+	const heightInformer = `
+		setTimeout(function() {
+			window.ReactNativeWebView.postMessage(document.body.scrollHeight);
+		}, 500);
+		true;
+	`;
+
 	useEffect(() => {
 		if (!selectedFeedItem && !loading && !feedItemId) {
 			navigation.goBack();
@@ -184,17 +199,27 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	return (
 		<Screen loading={loading} error={error} style={styles.container}>
-			<View testID="webViewContainer" style={styles.webViewContainer}>
-				{Platform.OS === "web" ? (
-					<iframe src={webViewSource} style={styles.iframe} title="Content" />
-				) : (
-					<WebView
-						originWhitelist={["*"]}
-						source={{ html: webViewSource }}
-						style={styles.webview}
-					/>
+			<ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
+				{selectedFeedItem?.title && (
+					<Text style={styles.title} numberOfLines={2}>
+						{decode(selectedFeedItem.title)}
+					</Text>
 				)}
-			</View>
+				<View testID="webViewContainer" style={styles.webViewContainer}>
+					{Platform.OS === "web" ? (
+						<iframe src={webViewSource} style={styles.iframe} title="Content" />
+					) : (
+						<WebView
+							originWhitelist={["*"]}
+							source={{ html: webViewSource }}
+							style={[styles.webview, { height: webViewHeight }]}
+							scrollEnabled={false}
+							onMessage={onWebViewMessage}
+							injectedJavaScript={heightInformer}
+						/>
+					)}
+				</View>
+			</ScrollView>
 		</Screen>
 	);
 };

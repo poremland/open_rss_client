@@ -60,6 +60,47 @@ describe("FeedItemDetailScreen", () => {
 		});
 	});
 
+	it("should display the feed item title in a Text component", async () => {
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { getByText } = render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			const titleElement = getByText("Test Item");
+			expect(titleElement).toBeTruthy();
+			expect(titleElement.props.numberOfLines).toBe(2);
+		});
+	});
+
+	it("should decode HTML entities in the title", async () => {
+		const itemWithEntities = {
+			...mockFeedItem,
+			title: "Test &amp; Item",
+		};
+		useApiConfig.data = itemWithEntities;
+		mocks.api.getWithAuth.mockResolvedValue(itemWithEntities);
+
+		const { getByText } = render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			expect(getByText("Test & Item")).toBeTruthy();
+		});
+	});
+
+	it("should enable vertical scroll indicator on the main ScrollView", async () => {
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { ScrollView } = require("react-native");
+
+		await waitFor(() => {
+			const scrollView = UNSAFE_getByType(ScrollView);
+			expect(scrollView.props.showsVerticalScrollIndicator).toBe(true);
+		});
+	});
+
 	it("should apply webViewContainer style", async () => {
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
