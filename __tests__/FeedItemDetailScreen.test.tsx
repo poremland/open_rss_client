@@ -35,7 +35,7 @@ describe("FeedItemDetailScreen", () => {
 
 	beforeEach(() => {
 		mocks.resetAll();
-		mocks.localSearchParams.params = { feedItemId: "1" };
+		mocks.localSearchParams.params = { feedItemId: "1", feedName: "Test Feed" };
 	});
 
 	afterEach(async () => {
@@ -44,8 +44,11 @@ describe("FeedItemDetailScreen", () => {
 		});
 	});
 
-	it("should display feed item details (via header title)", async () => {
-		// Set initial data to avoid immediate state update warning
+	it("should display back button with feed name in header", async () => {
+		mocks.localSearchParams.params = {
+			feedItemId: "1",
+			feedName: "Test Feed"
+		};
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
@@ -54,7 +57,7 @@ describe("FeedItemDetailScreen", () => {
 		await waitFor(() => {
 			expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
 				expect.objectContaining({
-					headerTitle: "Test Item",
+					headerTitle: "Back to Test Feed",
 				}),
 			);
 		});
@@ -101,15 +104,16 @@ describe("FeedItemDetailScreen", () => {
 		});
 	});
 
-	it("should apply webViewContainer style", async () => {
+	it("should render the WebView", async () => {
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
-		const { getByTestId } = render(<FeedItemDetailScreen />);
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
 
 		await waitFor(() => {
-			const webViewContainer = getByTestId("webViewContainer");
-			expect(webViewContainer).toBeTruthy();
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView).toBeTruthy();
 		});
 	});
 
@@ -152,7 +156,7 @@ describe("FeedItemDetailScreen", () => {
 
 		// Wait for the screen to load and the header to update
 		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		));
 
 		// Wait for any pending effects/renders
@@ -188,7 +192,8 @@ describe("FeedItemDetailScreen", () => {
 		mocks.useConnectionStatusMock.isConnected = false;
 		mocks.localSearchParams.params = {
 			feedItemId: "1",
-			feedItem: JSON.stringify(item)
+			feedItem: JSON.stringify(item),
+			feedName: "Test Feed"
 		};
 
 		const cachedItems = [item, { id: 2, title: "Other Item", feed_id: 10 }];
@@ -198,7 +203,7 @@ describe("FeedItemDetailScreen", () => {
 		render(<FeedItemDetailScreen />);
 
 		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		));
 
 		// Wait for useConnectionStatus to update to offline state
@@ -235,7 +240,8 @@ describe("FeedItemDetailScreen", () => {
 		const item = { ...mockFeedItem, feed_id: 10 };
 		mocks.localSearchParams.params = {
 			feedItemId: "1",
-			feedItem: JSON.stringify(item)
+			feedItem: JSON.stringify(item),
+			feedName: "Test Feed"
 		};
 
 		// Mock offline state
@@ -250,7 +256,7 @@ describe("FeedItemDetailScreen", () => {
 		await waitFor(() => {
 			expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
 				expect.objectContaining({
-					headerTitle: "Test Item",
+					headerTitle: "Back to Test Feed",
 				}),
 			);
 		});
@@ -258,7 +264,7 @@ describe("FeedItemDetailScreen", () => {
 		// Verify that useApi used the initialData and didn't show error immediately
 		// (Actually useApi might still call execute, but it should not overwrite the data if it fails)
 		expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		);
 	});
 
@@ -269,7 +275,7 @@ describe("FeedItemDetailScreen", () => {
 
 		// Wait for the screen to load and the header to update
 		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		));
 
 		// Wait a bit more to ensure no automatic call happens

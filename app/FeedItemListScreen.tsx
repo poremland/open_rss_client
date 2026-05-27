@@ -171,10 +171,11 @@ const FeedItemListScreen: React.FC = () => {
 				params: {
 					feedItemId: item.id.toString(),
 					feedItem: JSON.stringify(item),
+					feedName: selectedFeed?.name || "Feed",
 				},
 			});
 		},
-		[router],
+		[router, selectedFeed?.name],
 	);
 
 	useEffect(() => {

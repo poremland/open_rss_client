@@ -38,10 +38,11 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const [webViewHeight, setWebViewHeight] = useState(400);
-	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{
+	const [webViewHeight, setWebViewHeight] = useState(1);
+	const { feedItemId, feedItem: feedItemParam, feedName } = useLocalSearchParams<{
 		feedItemId: string;
 		feedItem?: string;
+		feedName?: string;
 	}>();
 	const initialData = useMemo(() => {
 		try {
@@ -153,17 +154,6 @@ const FeedItemDetailScreen: React.FC = () => {
 		setMenuItems(menuItems);
 	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 
-	const webViewSource = useMemo(() => {
-		if (!selectedFeedItem) return "";
-		const decodedItem = { ...selectedFeedItem };
-		decodedItem.title = decode(decodedItem.title || "");
-		const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
-		if (Platform.OS === "web") {
-			return `data:text/html;charset=utf-8,${encodeURIComponent(staticHtml)}`;
-		}
-		return staticHtml;
-	}, [selectedFeedItem?.id]); // Use id to avoid re-calculating on every object change
-
 	const onWebViewMessage = useCallback((event: any) => {
 		const height = Number(event.nativeEvent.data);
 		if (height > 0) {
@@ -172,11 +162,62 @@ const FeedItemDetailScreen: React.FC = () => {
 	}, []);
 
 	const heightInformer = `
-		setTimeout(function() {
-			window.ReactNativeWebView.postMessage(document.body.scrollHeight);
-		}, 500);
+		(function() {
+			var lastHeight = 0;
+			function reportHeight() {
+				var height = document.body.scrollHeight;
+				if (height !== lastHeight && height > 0) {
+					lastHeight = height;
+					window.ReactNativeWebView.postMessage(height.toString());
+				}
+			}
+			reportHeight();
+			window.addEventListener('load', reportHeight);
+			window.addEventListener('resize', reportHeight);
+			var observer = new MutationObserver(reportHeight);
+			observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+			// Periodically check in case of dynamic content loading without mutation
+			var interval = setInterval(reportHeight, 500);
+			setTimeout(function() { clearInterval(interval); }, 5000);
+		})();
 		true;
 	`;
+
+	const webViewSource = useMemo(() => {
+		if (!selectedFeedItem) return "";
+		const decodedItem = { ...selectedFeedItem };
+		decodedItem.title = decode(decodedItem.title || "");
+		const staticHtml = `
+			<html>
+				<head>
+					<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+					<style>
+						body {
+							font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
+							font-size: 18px;
+							line-height: 1.6;
+							padding: 0;
+							margin: 0;
+							color: #333;
+						}
+						img {
+							max-width: 100%;
+							height: auto;
+						}
+						p {
+							margin-bottom: 1em;
+						}
+					</style>
+				</head>
+				<body>
+					${decodedItem.description}
+					<br/><br/>
+					[<a href="${decodedItem.link}">View Full Article</a>]
+				</body>
+			</html>
+		`;
+		return staticHtml;
+	}, [selectedFeedItem?.id]);
 
 	useEffect(() => {
 		if (!selectedFeedItem && !loading && !feedItemId) {
@@ -184,39 +225,66 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 
 		navigation.setOptions({
-			headerTitle: selectedFeedItem?.title ? decode(selectedFeedItem.title) : "Feed Item",
+			headerTitle: feedName ? `Back to ${feedName}` : "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
 			),
 		});
 	}, [
-		selectedFeedItem?.id, // Use id here too
+		selectedFeedItem?.id,
 		loading,
 		feedItemId,
 		navigation,
 		onToggleDropdown,
+		feedName,
 	]);
 
 	return (
 		<Screen loading={loading} error={error} style={styles.container}>
-			<ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
-				{selectedFeedItem?.title && (
-					<Text style={styles.title} numberOfLines={2}>
-						{decode(selectedFeedItem.title)}
-					</Text>
-				)}
-				<View testID="webViewContainer" style={styles.webViewContainer}>
+			<ScrollView
+				showsVerticalScrollIndicator={true}
+				style={styles.scrollView}
+				contentContainerStyle={styles.scrollContent}
+			>
+				<View style={styles.contentContainer}>
+					{selectedFeedItem?.title && (
+						<Text style={styles.title} numberOfLines={2}>
+							{decode(selectedFeedItem.title)}
+						</Text>
+					)}
 					{Platform.OS === "web" ? (
-						<iframe src={webViewSource} style={styles.iframe} title="Content" />
+						<View style={styles.webContentWrapper}>
+							<div
+								style={{
+									fontSize: 18,
+									lineHeight: 1.6,
+									color: "#333",
+									fontFamily: '-apple-system, system-ui, sans-serif'
+								}}
+								dangerouslySetInnerHTML={{ __html: selectedFeedItem?.description || "" }}
+							/>
+							<Text
+								style={styles.fullArticleLink}
+								onPress={() => selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link)}
+							>
+								[View Full Article]
+							</Text>
+						</View>
 					) : (
-						<WebView
-							originWhitelist={["*"]}
-							source={{ html: webViewSource }}
-							style={[styles.webview, { height: webViewHeight }]}
-							scrollEnabled={false}
-							onMessage={onWebViewMessage}
-							injectedJavaScript={heightInformer}
-						/>
+						<View style={{ height: webViewHeight, width: "100%", paddingHorizontal: 20, paddingBottom: 20 }}>
+							<WebView
+								originWhitelist={["*"]}
+								source={{ html: webViewSource }}
+								style={styles.webview}
+								scrollEnabled={false}
+								onMessage={onWebViewMessage}
+								injectedJavaScript={heightInformer}
+								javaScriptEnabled={true}
+								domStorageEnabled={true}
+								scalesPageToFit={false}
+								overScrollMode="never"
+							/>
+						</View>
 					)}
 				</View>
 			</ScrollView>
