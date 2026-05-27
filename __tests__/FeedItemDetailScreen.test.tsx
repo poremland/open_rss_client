@@ -63,7 +63,11 @@ describe("FeedItemDetailScreen", () => {
 		});
 	});
 
-	it("should display the feed item title in a Text component", async () => {
+	it("should display the feed item title in a Text component (Web)", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+		
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
@@ -74,9 +78,34 @@ describe("FeedItemDetailScreen", () => {
 			expect(titleElement).toBeTruthy();
 			expect(titleElement.props.numberOfLines).toBe(2);
 		});
+		
+		Platform.OS = originalPlatform;
+	});
+
+	it("should render title in WebView on Native", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+		
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView.props.source.html).toContain('class="title">Test Item</div>');
+		});
+		
+		Platform.OS = originalPlatform;
 	});
 
 	it("should decode HTML entities in the title", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+
 		const itemWithEntities = {
 			...mockFeedItem,
 			title: "Test &amp; Item",
@@ -89,9 +118,15 @@ describe("FeedItemDetailScreen", () => {
 		await waitFor(() => {
 			expect(getByText("Test & Item")).toBeTruthy();
 		});
+
+		Platform.OS = originalPlatform;
 	});
 
-	it("should enable vertical scroll indicator on the main ScrollView", async () => {
+	it("should enable vertical scroll indicator on Web", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
@@ -102,6 +137,8 @@ describe("FeedItemDetailScreen", () => {
 			const scrollView = UNSAFE_getByType(ScrollView);
 			expect(scrollView.props.showsVerticalScrollIndicator).toBe(true);
 		});
+
+		Platform.OS = originalPlatform;
 	});
 
 	it("should render the WebView", async () => {

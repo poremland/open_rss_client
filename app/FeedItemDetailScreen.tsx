@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Platform, Linking, Share, Alert, ScrollView, Text } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
-import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { decode } from "he";
 import useApi from "../components/useApi";
@@ -38,7 +38,6 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const [webViewHeight, setWebViewHeight] = useState(1);
 	const { feedItemId, feedItem: feedItemParam, feedName } = useLocalSearchParams<{
 		feedItemId: string;
 		feedItem?: string;
@@ -154,39 +153,9 @@ const FeedItemDetailScreen: React.FC = () => {
 		setMenuItems(menuItems);
 	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 
-	const onWebViewMessage = useCallback((event: any) => {
-		const height = Number(event.nativeEvent.data);
-		if (height > 0) {
-			setWebViewHeight(height);
-		}
-	}, []);
-
-	const heightInformer = `
-		(function() {
-			var lastHeight = 0;
-			function reportHeight() {
-				var height = document.body.scrollHeight;
-				if (height !== lastHeight && height > 0) {
-					lastHeight = height;
-					window.ReactNativeWebView.postMessage(height.toString());
-				}
-			}
-			reportHeight();
-			window.addEventListener('load', reportHeight);
-			window.addEventListener('resize', reportHeight);
-			var observer = new MutationObserver(reportHeight);
-			observer.observe(document.body, { attributes: true, childList: true, subtree: true });
-			// Periodically check in case of dynamic content loading without mutation
-			var interval = setInterval(reportHeight, 500);
-			setTimeout(function() { clearInterval(interval); }, 5000);
-		})();
-		true;
-	`;
-
 	const webViewSource = useMemo(() => {
 		if (!selectedFeedItem) return "";
-		const decodedItem = { ...selectedFeedItem };
-		decodedItem.title = decode(decodedItem.title || "");
+		const decodedTitle = decode(selectedFeedItem.title || "");
 		const staticHtml = `
 			<html>
 				<head>
@@ -196,9 +165,19 @@ const FeedItemDetailScreen: React.FC = () => {
 							font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
 							font-size: 18px;
 							line-height: 1.6;
-							padding: 0;
+							padding: 20px;
 							margin: 0;
 							color: #333;
+						}
+						.title {
+							font-size: 24px;
+							font-weight: bold;
+							margin-bottom: 10px;
+							color: black;
+							display: -webkit-box;
+							-webkit-line-clamp: 2;
+							-webkit-box-orient: vertical;
+							overflow: hidden;
 						}
 						img {
 							max-width: 100%;
@@ -210,9 +189,10 @@ const FeedItemDetailScreen: React.FC = () => {
 					</style>
 				</head>
 				<body>
-					${decodedItem.description}
+					<div class="title">${decodedTitle}</div>
+					${selectedFeedItem.description}
 					<br/><br/>
-					[<a href="${decodedItem.link}">View Full Article</a>]
+					[<a href="${selectedFeedItem.link}">View Full Article</a>]
 				</body>
 			</html>
 		`;
@@ -241,18 +221,18 @@ const FeedItemDetailScreen: React.FC = () => {
 
 	return (
 		<Screen loading={loading} error={error} style={styles.container}>
-			<ScrollView
-				showsVerticalScrollIndicator={true}
-				style={styles.scrollView}
-				contentContainerStyle={styles.scrollContent}
-			>
-				<View style={styles.contentContainer}>
-					{selectedFeedItem?.title && (
-						<Text style={styles.title} numberOfLines={2}>
-							{decode(selectedFeedItem.title)}
-						</Text>
-					)}
-					{Platform.OS === "web" ? (
+			{Platform.OS === "web" ? (
+				<ScrollView
+					showsVerticalScrollIndicator={true}
+					style={styles.scrollView}
+					contentContainerStyle={styles.scrollContent}
+				>
+					<View style={styles.contentContainer}>
+						{selectedFeedItem?.title && (
+							<Text style={styles.title} numberOfLines={2}>
+								{decode(selectedFeedItem.title)}
+							</Text>
+						)}
 						<View style={styles.webContentWrapper}>
 							<div
 								style={{
@@ -270,24 +250,18 @@ const FeedItemDetailScreen: React.FC = () => {
 								[View Full Article]
 							</Text>
 						</View>
-					) : (
-						<View style={{ height: webViewHeight, width: "100%", paddingHorizontal: 20, paddingBottom: 20 }}>
-							<WebView
-								originWhitelist={["*"]}
-								source={{ html: webViewSource }}
-								style={styles.webview}
-								scrollEnabled={false}
-								onMessage={onWebViewMessage}
-								injectedJavaScript={heightInformer}
-								javaScriptEnabled={true}
-								domStorageEnabled={true}
-								scalesPageToFit={false}
-								overScrollMode="never"
-							/>
-						</View>
-					)}
-				</View>
-			</ScrollView>
+					</View>
+				</ScrollView>
+			) : (
+				<WebView
+					originWhitelist={["*"]}
+					source={{ html: webViewSource }}
+					style={styles.webview}
+					javaScriptEnabled={true}
+					domStorageEnabled={true}
+					scalesPageToFit={false}
+				/>
+			)}
 		</Screen>
 	);
 };
