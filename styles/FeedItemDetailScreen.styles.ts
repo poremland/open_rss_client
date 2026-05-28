@@ -46,6 +46,16 @@ export const styles = StyleSheet.create({
 	webview: {
 		width: "100%",
 	},
+	progressBarContainer: {
+		height: 4,
+		width: "100%",
+		backgroundColor: "rgba(0, 0, 0, 0.05)",
+		zIndex: 10,
+	},
+	progressBar: {
+		height: "100%",
+		backgroundColor: "#007AFF",
+	},
 	webContentWrapper: {
 		paddingHorizontal: 20,
 		paddingBottom: 20,

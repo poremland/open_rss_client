@@ -153,6 +153,8 @@ const FeedItemDetailScreen: React.FC = () => {
 		setMenuItems(menuItems);
 	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 
+	const [scrollProgress, setScrollProgress] = React.useState(0);
+
 	const webViewSource = useMemo(() => {
 		if (!selectedFeedItem) return "";
 		const decodedTitle = decode(selectedFeedItem.title || "");
@@ -168,6 +170,7 @@ const FeedItemDetailScreen: React.FC = () => {
 							padding: 20px;
 							margin: 0;
 							color: #333;
+							background-color: white;
 						}
 						.title {
 							font-size: 24px;
@@ -224,6 +227,12 @@ const FeedItemDetailScreen: React.FC = () => {
 			{Platform.OS === "web" ? (
 				<ScrollView
 					showsVerticalScrollIndicator={true}
+					onScroll={(event) => {
+						const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+						const progress = contentOffset.y / (contentSize.height - layoutMeasurement.height);
+						setScrollProgress(isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+					}}
+					scrollEventThrottle={16}
 					style={styles.scrollView}
 					contentContainerStyle={styles.scrollContent}
 				>
@@ -253,14 +262,25 @@ const FeedItemDetailScreen: React.FC = () => {
 					</View>
 				</ScrollView>
 			) : (
-				<WebView
-					originWhitelist={["*"]}
-					source={{ html: webViewSource }}
-					style={styles.webview}
-					javaScriptEnabled={true}
-					domStorageEnabled={true}
-					scalesPageToFit={false}
-				/>
+				<>
+					<View style={styles.progressBarContainer}>
+						<View style={[styles.progressBar, { width: `${scrollProgress * 100}%` }]} />
+					</View>
+					<WebView
+						originWhitelist={["*"]}
+						source={{ html: webViewSource }}
+						style={styles.webview}
+						javaScriptEnabled={true}
+						domStorageEnabled={true}
+						scalesPageToFit={false}
+						showsVerticalScrollIndicator={false}
+						onScroll={(event) => {
+							const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+							const progress = contentOffset.y / (contentSize.height - layoutMeasurement.height);
+							setScrollProgress(isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+						}}
+						scrollEventThrottle={16}
+						/>				</>
 			)}
 		</Screen>
 	);

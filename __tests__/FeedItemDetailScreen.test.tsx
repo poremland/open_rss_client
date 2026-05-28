@@ -154,6 +154,117 @@ describe("FeedItemDetailScreen", () => {
 		});
 	});
 
+	it("should disable native vertical scroll indicator on mobile", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView.props.showsVerticalScrollIndicator).toBe(false);
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
+	it("should render native progress bar on mobile and update accurately on scroll", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType, UNSAFE_getAllByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+		const { View } = require("react-native");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			const views = UNSAFE_getAllByType(View);
+			const progressBar = views.find(v => v.props.style && v.props.style[1] && v.props.style[1].width !== undefined);
+			expect(progressBar).toBeTruthy();
+			expect(progressBar?.props.style[1].width).toBe("0%");
+
+			// 1. Simulate scroll to 25%
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 25 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("25%");
+
+			// 2. Simulate scroll to 75%
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 75 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("75%");
+
+			// 3. Simulate scroll to bottom (100%)
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 100 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("100%");
+			
+			// 4. Test boundary (negative scroll)
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: -10 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("0%");
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
+	it("should NOT render native progress bar on web", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getAllByType } = render(<FeedItemDetailScreen />);
+		const { View } = require("react-native");
+
+		await waitFor(() => {
+			const views = UNSAFE_getAllByType(View);
+			// On web, there should be no View with a width percentage style related to scroll progress
+			const progressBar = views.find(v => v.props.style && v.props.style[1] && typeof v.props.style[1].width === 'string' && v.props.style[1].width.endsWith('%'));
+			expect(progressBar).toBeFalsy();
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
 	it("should NOT call goBack on mount when feedItemId is present", async () => {
 		// Mock API to stay in loading state or return nothing yet
 		mocks.api.getWithAuth.mockReturnValue(new Promise(() => {})); // Never resolves
@@ -161,7 +272,9 @@ describe("FeedItemDetailScreen", () => {
 		render(<FeedItemDetailScreen />);
 
 		// Check that goBack was not called
-		expect(mocks.navigation.goBack).not.toHaveBeenCalled();
+		await waitFor(() => {
+			expect(mocks.navigation.goBack).not.toHaveBeenCalled();
+		});
 	});
 
 	it("should set the correct menu items", async () => {
