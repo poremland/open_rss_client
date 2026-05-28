@@ -248,8 +248,6 @@ const FeedItemListScreen: React.FC = () => {
 			selectedFeed,
 			navigation,
 			router,
-			handleMarkAllAsRead,
-			handleDeleteFeed,
 			setMenuItems,
 			onToggleDropdown,
 			isConnected,

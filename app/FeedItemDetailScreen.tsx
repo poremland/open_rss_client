@@ -52,7 +52,7 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [feedItemParam]);
 
-	const { getCache, setCache, markItemsReadInCache } = useCache();
+	const { markItemsReadInCache } = useCache();
 	const {
 		data: selectedFeedItem,
 		loading,
@@ -200,7 +200,7 @@ const FeedItemDetailScreen: React.FC = () => {
 			</html>
 		`;
 		return staticHtml;
-	}, [selectedFeedItem?.id]);
+	}, [selectedFeedItem]);
 
 	useEffect(() => {
 		if (!selectedFeedItem && !loading && !feedItemId) {
@@ -214,7 +214,7 @@ const FeedItemDetailScreen: React.FC = () => {
 			),
 		});
 	}, [
-		selectedFeedItem?.id,
+		selectedFeedItem,
 		loading,
 		feedItemId,
 		navigation,
@@ -280,7 +280,8 @@ const FeedItemDetailScreen: React.FC = () => {
 							setScrollProgress(isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress)));
 						}}
 						scrollEventThrottle={16}
-						/>				</>
+					/>
+				</>
 			)}
 		</Screen>
 	);

@@ -19,13 +19,13 @@ import { useCallback } from 'react';
 import * as cacheHelper from '../helpers/cache_helper';
 
 export default function useCache() {
-	const getCache = useCallback(cacheHelper.getCache, []);
-	const setCache = useCallback(cacheHelper.setCache, []);
-	const clearCache = useCallback(cacheHelper.clearCache, []);
-	const markItemsReadInCache = useCallback(cacheHelper.markItemsReadInCache, []);
-	const markAllItemsReadInCache = useCallback(cacheHelper.markAllItemsReadInCache, []);
-	const getCacheStats = useCallback(cacheHelper.getCacheStats, []);
-	const clearAllCache = useCallback(cacheHelper.clearAllCache, []);
+	const getCache = useCallback(<T>(url: string) => cacheHelper.getCache<T>(url), []);
+	const setCache = useCallback((url: string, data: any) => cacheHelper.setCache(url, data), []);
+	const clearCache = useCallback((url: string) => cacheHelper.clearCache(url), []);
+	const markItemsReadInCache = useCallback((feedId: string | number, itemIds: (string | number)[]) => cacheHelper.markItemsReadInCache(feedId, itemIds), []);
+	const markAllItemsReadInCache = useCallback((feedId: string | number) => cacheHelper.markAllItemsReadInCache(feedId), []);
+	const getCacheStats = useCallback(() => cacheHelper.getCacheStats(), []);
+	const clearAllCache = useCallback(() => cacheHelper.clearAllCache(), []);
 
 	return {
 		getCache,

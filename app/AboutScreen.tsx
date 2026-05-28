@@ -129,7 +129,7 @@ const AboutScreen: React.FC = () => {
 		if (!isoString) return "Never";
 		try {
 			return new Date(isoString).toLocaleString();
-		} catch (e) {
+		} catch {
 			return "Unknown";
 		}
 	};
