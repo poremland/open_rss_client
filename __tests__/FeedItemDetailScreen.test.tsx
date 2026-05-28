@@ -35,7 +35,7 @@ describe("FeedItemDetailScreen", () => {
 
 	beforeEach(() => {
 		mocks.resetAll();
-		mocks.localSearchParams.params = { feedItemId: "1" };
+		mocks.localSearchParams.params = { feedItemId: "1", feedName: "Test Feed" };
 	});
 
 	afterEach(async () => {
@@ -44,8 +44,11 @@ describe("FeedItemDetailScreen", () => {
 		});
 	});
 
-	it("should display feed item details (via header title)", async () => {
-		// Set initial data to avoid immediate state update warning
+	it("should display back button with feed name in header", async () => {
+		mocks.localSearchParams.params = {
+			feedItemId: "1",
+			feedName: "Test Feed"
+		};
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
@@ -54,22 +57,212 @@ describe("FeedItemDetailScreen", () => {
 		await waitFor(() => {
 			expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
 				expect.objectContaining({
-					headerTitle: "Test Item",
+					headerTitle: "Back to Test Feed",
 				}),
 			);
 		});
 	});
 
-	it("should apply webViewContainer style", async () => {
+	it("should display the feed item title in a Text component (Web)", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+		
 		useApiConfig.data = mockFeedItem;
 		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
 
-		const { getByTestId } = render(<FeedItemDetailScreen />);
+		const { getByText } = render(<FeedItemDetailScreen />);
 
 		await waitFor(() => {
-			const webViewContainer = getByTestId("webViewContainer");
-			expect(webViewContainer).toBeTruthy();
+			const titleElement = getByText("Test Item");
+			expect(titleElement).toBeTruthy();
+			expect(titleElement.props.numberOfLines).toBe(2);
 		});
+		
+		Platform.OS = originalPlatform;
+	});
+
+	it("should render title in WebView on Native", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+		
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView.props.source.html).toContain('class="title">Test Item</div>');
+		});
+		
+		Platform.OS = originalPlatform;
+	});
+
+	it("should decode HTML entities in the title", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+
+		const itemWithEntities = {
+			...mockFeedItem,
+			title: "Test &amp; Item",
+		};
+		useApiConfig.data = itemWithEntities;
+		mocks.api.getWithAuth.mockResolvedValue(itemWithEntities);
+
+		const { getByText } = render(<FeedItemDetailScreen />);
+
+		await waitFor(() => {
+			expect(getByText("Test & Item")).toBeTruthy();
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
+	it("should enable vertical scroll indicator on Web", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { ScrollView } = require("react-native");
+
+		await waitFor(() => {
+			const scrollView = UNSAFE_getByType(ScrollView);
+			expect(scrollView.props.showsVerticalScrollIndicator).toBe(true);
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
+	it("should render the WebView", async () => {
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView).toBeTruthy();
+		});
+	});
+
+	it("should disable native vertical scroll indicator on mobile", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView.props.showsVerticalScrollIndicator).toBe(false);
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
+	it("should render native progress bar on mobile and update accurately on scroll", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType, UNSAFE_getAllByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+		const { View } = require("react-native");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			const views = UNSAFE_getAllByType(View);
+			const progressBar = views.find(v => v.props.style && v.props.style[1] && v.props.style[1].width !== undefined);
+			expect(progressBar).toBeTruthy();
+			expect(progressBar?.props.style[1].width).toBe("0%");
+
+			// 1. Simulate scroll to 25%
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 25 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("25%");
+
+			// 2. Simulate scroll to 75%
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 75 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("75%");
+
+			// 3. Simulate scroll to bottom (100%)
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 100 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("100%");
+			
+			// 4. Test boundary (negative scroll)
+			act(() => {
+				webView.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: -10 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("0%");
+		});
+
+		Platform.OS = originalPlatform;
+	});
+
+	it("should NOT render native progress bar on web", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "web";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getAllByType } = render(<FeedItemDetailScreen />);
+		const { View } = require("react-native");
+
+		await waitFor(() => {
+			const views = UNSAFE_getAllByType(View);
+			// On web, there should be no View with a width percentage style related to scroll progress
+			const progressBar = views.find(v => v.props.style && v.props.style[1] && typeof v.props.style[1].width === 'string' && v.props.style[1].width.endsWith('%'));
+			expect(progressBar).toBeFalsy();
+		});
+
+		Platform.OS = originalPlatform;
 	});
 
 	it("should NOT call goBack on mount when feedItemId is present", async () => {
@@ -79,7 +272,9 @@ describe("FeedItemDetailScreen", () => {
 		render(<FeedItemDetailScreen />);
 
 		// Check that goBack was not called
-		expect(mocks.navigation.goBack).not.toHaveBeenCalled();
+		await waitFor(() => {
+			expect(mocks.navigation.goBack).not.toHaveBeenCalled();
+		});
 	});
 
 	it("should set the correct menu items", async () => {
@@ -111,7 +306,7 @@ describe("FeedItemDetailScreen", () => {
 
 		// Wait for the screen to load and the header to update
 		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		));
 
 		// Wait for any pending effects/renders
@@ -147,7 +342,8 @@ describe("FeedItemDetailScreen", () => {
 		mocks.useConnectionStatusMock.isConnected = false;
 		mocks.localSearchParams.params = {
 			feedItemId: "1",
-			feedItem: JSON.stringify(item)
+			feedItem: JSON.stringify(item),
+			feedName: "Test Feed"
 		};
 
 		const cachedItems = [item, { id: 2, title: "Other Item", feed_id: 10 }];
@@ -157,7 +353,7 @@ describe("FeedItemDetailScreen", () => {
 		render(<FeedItemDetailScreen />);
 
 		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		));
 
 		// Wait for useConnectionStatus to update to offline state
@@ -194,7 +390,8 @@ describe("FeedItemDetailScreen", () => {
 		const item = { ...mockFeedItem, feed_id: 10 };
 		mocks.localSearchParams.params = {
 			feedItemId: "1",
-			feedItem: JSON.stringify(item)
+			feedItem: JSON.stringify(item),
+			feedName: "Test Feed"
 		};
 
 		// Mock offline state
@@ -209,7 +406,7 @@ describe("FeedItemDetailScreen", () => {
 		await waitFor(() => {
 			expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
 				expect.objectContaining({
-					headerTitle: "Test Item",
+					headerTitle: "Back to Test Feed",
 				}),
 			);
 		});
@@ -217,7 +414,7 @@ describe("FeedItemDetailScreen", () => {
 		// Verify that useApi used the initialData and didn't show error immediately
 		// (Actually useApi might still call execute, but it should not overwrite the data if it fails)
 		expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		);
 	});
 
@@ -228,7 +425,7 @@ describe("FeedItemDetailScreen", () => {
 
 		// Wait for the screen to load and the header to update
 		await waitFor(() => expect(mocks.navigation.setOptions).toHaveBeenCalledWith(
-			expect.objectContaining({ headerTitle: "Test Item" })
+			expect.objectContaining({ headerTitle: "Back to Test Feed" })
 		));
 
 		// Wait a bit more to ensure no automatic call happens

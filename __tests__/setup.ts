@@ -786,6 +786,21 @@ export const resetAll = () => {
 
 	alertMock.mockClear().mockImplementation(() => {});
 	fetchMock.mockClear().mockImplementation(() => Promise.resolve(createFetchResponse(true, 200, {})));
+
+	const TaskManager = require("expo-task-manager");
+	const BackgroundTask = require("expo-background-task");
+	if (TaskManager.defineTask && typeof TaskManager.defineTask.mockClear === "function") {
+		TaskManager.defineTask.mockClear();
+	}
+	if (TaskManager.isTaskDefined && typeof TaskManager.isTaskDefined.mockClear === "function") {
+		TaskManager.isTaskDefined.mockClear();
+	}
+	if (BackgroundTask.registerTaskAsync && typeof BackgroundTask.registerTaskAsync.mockClear === "function") {
+		BackgroundTask.registerTaskAsync.mockClear();
+	}
+	if (BackgroundTask.unregisterTaskAsync && typeof BackgroundTask.unregisterTaskAsync.mockClear === "function") {
+		BackgroundTask.unregisterTaskAsync.mockClear();
+	}
 };
 
 mocks.resetAll = resetAll;

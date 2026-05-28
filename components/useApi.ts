@@ -201,7 +201,7 @@ const useApi = <T,>(
 				setLoading(false);
 			}
 		},
-		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache, updateConnectionStatus, setData],
+		[method, path, contentType, router, isConnected, getCache, setCache, options.useCache, options.shouldQueue, updateConnectionStatus, setData],
 	);
 
 	return {

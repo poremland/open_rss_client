@@ -17,27 +17,53 @@
  */
 
 import { StyleSheet } from "react-native";
-import { commonStyles } from "./commonStyles";
 
 export const styles = StyleSheet.create({
-	container: {},
-	webViewContainer: {
-		...commonStyles.card,
+	container: {
 		flex: 1,
+		backgroundColor: "white",
+	},
+	scrollView: {
+		flex: 1,
+	},
+	scrollContent: {
+		flexGrow: 1,
+		backgroundColor: "white",
+	},
+	contentContainer: {
+		flex: 1,
+		width: "100%",
 	},
 	title: {
-		...commonStyles.card,
-		fontSize: 18,
+		fontSize: 24,
 		fontWeight: "bold",
-		padding: 10,
-		marginVertical: 0,
-	},
-	iframe: {
-		width: "100%",
-		height: "100%",
-		borderWidth: 0,
+		paddingHorizontal: 20,
+		paddingTop: 20,
+		paddingBottom: 10,
+		color: "black",
+		backgroundColor: "white",
 	},
 	webview: {
-		flex: 1,
+		width: "100%",
+	},
+	progressBarContainer: {
+		height: 4,
+		width: "100%",
+		backgroundColor: "rgba(0, 0, 0, 0.05)",
+		zIndex: 10,
+	},
+	progressBar: {
+		height: "100%",
+		backgroundColor: "#007AFF",
+	},
+	webContentWrapper: {
+		paddingHorizontal: 20,
+		paddingBottom: 20,
+	},
+	fullArticleLink: {
+		color: "blue",
+		marginTop: 20,
+		fontSize: 16,
+		textDecorationLine: "underline",
 	},
 });

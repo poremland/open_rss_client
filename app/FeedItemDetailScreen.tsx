@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Platform, Linking, Share, Alert } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { View, Platform, Linking, Share, Alert, ScrollView, Text } from "react-native";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
-import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { decode } from "he";
 import useApi from "../components/useApi";
@@ -38,9 +38,10 @@ const FeedItemDetailScreen: React.FC = () => {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const isFocused = useIsFocused();
-	const { feedItemId, feedItem: feedItemParam } = useLocalSearchParams<{
+	const { feedItemId, feedItem: feedItemParam, feedName } = useLocalSearchParams<{
 		feedItemId: string;
 		feedItem?: string;
+		feedName?: string;
 	}>();
 	const initialData = useMemo(() => {
 		try {
@@ -51,7 +52,7 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 	}, [feedItemParam]);
 
-	const { getCache, setCache, markItemsReadInCache } = useCache();
+	const { markItemsReadInCache } = useCache();
 	const {
 		data: selectedFeedItem,
 		loading,
@@ -152,16 +153,54 @@ const FeedItemDetailScreen: React.FC = () => {
 		setMenuItems(menuItems);
 	}, [isFocused, router, selectedFeedItem?.id, selectedFeedItem?.link, setMenuItems]);
 
+	const [scrollProgress, setScrollProgress] = React.useState(0);
+
 	const webViewSource = useMemo(() => {
 		if (!selectedFeedItem) return "";
-		const decodedItem = { ...selectedFeedItem };
-		decodedItem.title = decode(decodedItem.title || "");
-		const staticHtml = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style> body { font-size: 18px; line-height: 1.5; padding: 20px; } img { max-width: 100%; height: auto; } </style></head><body>${decodedItem.description}<br/><br/>[<a href="${decodedItem.link}">View Full Article</a>]</body></html>`;
-		if (Platform.OS === "web") {
-			return `data:text/html;charset=utf-8,${encodeURIComponent(staticHtml)}`;
-		}
+		const decodedTitle = decode(selectedFeedItem.title || "");
+		const staticHtml = `
+			<html>
+				<head>
+					<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+					<style>
+						body {
+							font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
+							font-size: 18px;
+							line-height: 1.6;
+							padding: 20px;
+							margin: 0;
+							color: #333;
+							background-color: white;
+						}
+						.title {
+							font-size: 24px;
+							font-weight: bold;
+							margin-bottom: 10px;
+							color: black;
+							display: -webkit-box;
+							-webkit-line-clamp: 2;
+							-webkit-box-orient: vertical;
+							overflow: hidden;
+						}
+						img {
+							max-width: 100%;
+							height: auto;
+						}
+						p {
+							margin-bottom: 1em;
+						}
+					</style>
+				</head>
+				<body>
+					<div class="title">${decodedTitle}</div>
+					${selectedFeedItem.description}
+					<br/><br/>
+					[<a href="${selectedFeedItem.link}">View Full Article</a>]
+				</body>
+			</html>
+		`;
 		return staticHtml;
-	}, [selectedFeedItem?.id]); // Use id to avoid re-calculating on every object change
+	}, [selectedFeedItem]);
 
 	useEffect(() => {
 		if (!selectedFeedItem && !loading && !feedItemId) {
@@ -169,32 +208,81 @@ const FeedItemDetailScreen: React.FC = () => {
 		}
 
 		navigation.setOptions({
-			headerTitle: selectedFeedItem?.title ? decode(selectedFeedItem.title) : "Feed Item",
+			headerTitle: feedName ? `Back to ${feedName}` : "Feed Item",
 			headerRight: () => (
 				<HeaderRightMenu onToggleDropdown={onToggleDropdown} />
 			),
 		});
 	}, [
-		selectedFeedItem?.id, // Use id here too
+		selectedFeedItem,
 		loading,
 		feedItemId,
 		navigation,
 		onToggleDropdown,
+		feedName,
 	]);
 
 	return (
 		<Screen loading={loading} error={error} style={styles.container}>
-			<View testID="webViewContainer" style={styles.webViewContainer}>
-				{Platform.OS === "web" ? (
-					<iframe src={webViewSource} style={styles.iframe} title="Content" />
-				) : (
+			{Platform.OS === "web" ? (
+				<ScrollView
+					showsVerticalScrollIndicator={true}
+					onScroll={(event) => {
+						const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+						const progress = contentOffset.y / (contentSize.height - layoutMeasurement.height);
+						setScrollProgress(isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+					}}
+					scrollEventThrottle={16}
+					style={styles.scrollView}
+					contentContainerStyle={styles.scrollContent}
+				>
+					<View style={styles.contentContainer}>
+						{selectedFeedItem?.title && (
+							<Text style={styles.title} numberOfLines={2}>
+								{decode(selectedFeedItem.title)}
+							</Text>
+						)}
+						<View style={styles.webContentWrapper}>
+							<div
+								style={{
+									fontSize: 18,
+									lineHeight: 1.6,
+									color: "#333",
+									fontFamily: '-apple-system, system-ui, sans-serif'
+								}}
+								dangerouslySetInnerHTML={{ __html: selectedFeedItem?.description || "" }}
+							/>
+							<Text
+								style={styles.fullArticleLink}
+								onPress={() => selectedFeedItem?.link && Linking.openURL(selectedFeedItem.link)}
+							>
+								[View Full Article]
+							</Text>
+						</View>
+					</View>
+				</ScrollView>
+			) : (
+				<>
+					<View style={styles.progressBarContainer}>
+						<View style={[styles.progressBar, { width: `${scrollProgress * 100}%` }]} />
+					</View>
 					<WebView
 						originWhitelist={["*"]}
 						source={{ html: webViewSource }}
 						style={styles.webview}
+						javaScriptEnabled={true}
+						domStorageEnabled={true}
+						scalesPageToFit={false}
+						showsVerticalScrollIndicator={false}
+						onScroll={(event) => {
+							const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+							const progress = contentOffset.y / (contentSize.height - layoutMeasurement.height);
+							setScrollProgress(isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+						}}
+						scrollEventThrottle={16}
 					/>
-				)}
-			</View>
+				</>
+			)}
 		</Screen>
 	);
 };
