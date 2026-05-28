@@ -74,10 +74,10 @@ module.exports = ({ config }) => {
 		...baseConfig,
 	};
 
-	// ABI splits configuration
-	const { withAppBuildGradle } = require("@expo/config-plugins");
+	// ABI splits and Gradle properties configuration
+	const { withAppBuildGradle, withGradleProperties } = require("@expo/config-plugins");
 
-	return withAppBuildGradle(finalConfig, (config) => {
+	const configWithBuildGradle = withAppBuildGradle(finalConfig, (config) => {
 		if (config.modResults.language === "groovy") {
 			const splitsConfig = `
 	splits {
@@ -96,6 +96,28 @@ module.exports = ({ config }) => {
 				);
 			}
 		}
+		return config;
+	});
+
+	return withGradleProperties(configWithBuildGradle, (config) => {
+		const targetProperties = [
+			{ key: "android.enableMinifyInReleaseBuilds", value: "true" },
+			{ key: "android.enableShrinkResourcesInReleaseBuilds", value: "true" }
+		];
+
+		targetProperties.forEach(({ key, value }) => {
+			const index = config.modResults.findIndex(item => item.key === key);
+			if (index > -1) {
+				config.modResults[index].value = value;
+			} else {
+				config.modResults.push({
+					type: "property",
+					key,
+					value,
+				});
+			}
+		});
+
 		return config;
 	});
 };
