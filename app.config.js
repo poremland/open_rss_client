@@ -95,6 +95,37 @@ module.exports = ({ config }) => {
 					`android {${splitsConfig}`
 				);
 			}
+
+			const customTask = `
+// Custom task to delete unused vector icon fonts in release builds to save app size
+tasks.register("deleteUnusedVectorIcons") {
+	doLast {
+		def rawDir = file("\${buildDir}/generated/res/createBundleReleaseJsAndAssets/raw")
+		if (rawDir.exists()) {
+			rawDir.listFiles().each { file ->
+				if (file.name.endsWith(".ttf") && 
+					file.name.contains("vectoricons") && 
+					!file.name.contains("ionicons")) {
+					println "Deleting unused font asset: \${file.name}"
+					file.delete()
+				}
+			}
+		}
+	}
+}
+
+tasks.configureEach { task ->
+	if (task.name == "mergeReleaseResources") {
+		task.dependsOn("deleteUnusedVectorIcons")
+	}
+	if (task.name == "deleteUnusedVectorIcons") {
+		task.mustRunAfter("createBundleReleaseJsAndAssets")
+	}
+}
+`;
+			if (!config.modResults.contents.includes("deleteUnusedVectorIcons")) {
+				config.modResults.contents += customTask;
+			}
 		}
 		return config;
 	});
@@ -102,7 +133,8 @@ module.exports = ({ config }) => {
 	return withGradleProperties(configWithBuildGradle, (config) => {
 		const targetProperties = [
 			{ key: "android.enableMinifyInReleaseBuilds", value: "true" },
-			{ key: "android.enableShrinkResourcesInReleaseBuilds", value: "true" }
+			{ key: "android.enableShrinkResourcesInReleaseBuilds", value: "true" },
+			{ key: "org.gradle.jvmargs", value: "-Xmx3072m -XX:MaxMetaspaceSize=1024m" }
 		];
 
 		targetProperties.forEach(({ key, value }) => {
