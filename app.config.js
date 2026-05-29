@@ -74,10 +74,10 @@ module.exports = ({ config }) => {
 		...baseConfig,
 	};
 
-	// ABI splits configuration
-	const { withAppBuildGradle } = require("@expo/config-plugins");
+	// ABI splits and Gradle properties configuration
+	const { withAppBuildGradle, withGradleProperties } = require("@expo/config-plugins");
 
-	return withAppBuildGradle(finalConfig, (config) => {
+	const configWithBuildGradle = withAppBuildGradle(finalConfig, (config) => {
 		if (config.modResults.language === "groovy") {
 			const splitsConfig = `
 	splits {
@@ -95,7 +95,61 @@ module.exports = ({ config }) => {
 					`android {${splitsConfig}`
 				);
 			}
+
+			const customTask = `
+// Custom task to delete unused vector icon fonts in release builds to save app size
+tasks.register("deleteUnusedVectorIcons") {
+	doLast {
+		def rawDir = file("\${buildDir}/generated/res/createBundleReleaseJsAndAssets/raw")
+		if (rawDir.exists()) {
+			rawDir.listFiles().each { file ->
+				if (file.name.endsWith(".ttf") && 
+					file.name.contains("vectoricons") && 
+					!file.name.contains("ionicons")) {
+					println "Deleting unused font asset: \${file.name}"
+					file.delete()
+				}
+			}
 		}
+	}
+}
+
+tasks.configureEach { task ->
+	if (task.name == "mergeReleaseResources") {
+		task.dependsOn("deleteUnusedVectorIcons")
+	}
+	if (task.name == "deleteUnusedVectorIcons") {
+		task.mustRunAfter("createBundleReleaseJsAndAssets")
+	}
+}
+`;
+			if (!config.modResults.contents.includes("deleteUnusedVectorIcons")) {
+				config.modResults.contents += customTask;
+			}
+		}
+		return config;
+	});
+
+	return withGradleProperties(configWithBuildGradle, (config) => {
+		const targetProperties = [
+			{ key: "android.enableMinifyInReleaseBuilds", value: "true" },
+			{ key: "android.enableShrinkResourcesInReleaseBuilds", value: "true" },
+			{ key: "org.gradle.jvmargs", value: "-Xmx3072m -XX:MaxMetaspaceSize=1024m" }
+		];
+
+		targetProperties.forEach(({ key, value }) => {
+			const index = config.modResults.findIndex(item => item.key === key);
+			if (index > -1) {
+				config.modResults[index].value = value;
+			} else {
+				config.modResults.push({
+					type: "property",
+					key,
+					value,
+				});
+			}
+		});
+
 		return config;
 	});
 };
