@@ -9,7 +9,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Add scroll indicator similar to the feed item detail scroll indicator to the feed item list so you can get a visual indication of progress as you scroll through feed items.**
+- [x] **Track: Add scroll indicator similar to the feed item detail scroll indicator to the feed item list so you can get a visual indication of progress as you scroll through feed items.**
 *Link: [./tracks/feed_item_list_scroll_indicator_20260602/](./tracks/feed_item_list_scroll_indicator_20260602/)*
 
 
