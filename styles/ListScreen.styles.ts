@@ -47,4 +47,14 @@ export const styles = StyleSheet.create({
 	contentContainer: {
 		flex: 1,
 	},
+	progressBarContainer: {
+		height: 4,
+		width: "100%",
+		backgroundColor: "rgba(0, 0, 0, 0.05)",
+		zIndex: 10,
+	},
+	progressBar: {
+		height: "100%",
+		backgroundColor: "#007AFF",
+	},
 });
