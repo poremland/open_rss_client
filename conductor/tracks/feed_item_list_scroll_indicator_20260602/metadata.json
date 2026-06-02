@@ -1,0 +1,8 @@
+{
+  "track_id": "feed_item_list_scroll_indicator_20260602",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-06-02T16:55:00Z",
+  "updated_at": "2026-06-02T16:55:00Z",
+  "description": "Add scroll indicator similar to the feed item detail scroll indicator to the feed item list so you can get a visual indication of progress as you scroll through feed items."
+}
