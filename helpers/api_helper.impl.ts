@@ -89,12 +89,20 @@ export class Api {
 			body: formattedBody,
 		});
 
-		if (response.status === 401) {
-			throw new Error('Session expired');
-		}
-
 		if (!response.ok) {
 			const errorText = await response.text();
+			let errorJson: any = null;
+			try {
+				errorJson = JSON.parse(errorText);
+			} catch (e) {
+				// Ignore JSON parse error
+			}
+			if (errorJson) {
+				const errorMsg = errorJson.message || errorJson.error;
+				if (typeof errorMsg === 'string') {
+					throw new Error(errorMsg);
+				}
+			}
 			throw new Error(`Request failed with status ${response.status}: ${errorText}`);
 		}
 

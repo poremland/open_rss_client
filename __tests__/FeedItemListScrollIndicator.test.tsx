@@ -140,4 +140,55 @@ describe("FeedItemListScreen - Scroll Progress Indicator", () => {
 
 		Platform.OS = originalPlatform;
 	});
+
+	it("should update progress bar when content size changes (e.g. items removed)", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+
+		const { getByTestId, UNSAFE_getAllByType } = render(<FeedItemListScreen />);
+		const { View } = require("react-native");
+
+		await waitFor(() => {
+			const list = getByTestId("selectable-flat-list");
+			const views = UNSAFE_getAllByType(View);
+			const progressBar = views.find(v => v.props.style && v.props.style[1] && v.props.style[1].width !== undefined);
+			expect(progressBar).toBeTruthy();
+
+			// 1. Scroll to Y=50 on content height of 200, layout height 100 (progress = 50%)
+			act(() => {
+				list.props.onScroll({
+					nativeEvent: {
+						contentOffset: { y: 50 },
+						contentSize: { height: 200 },
+						layoutMeasurement: { height: 100 }
+					}
+				});
+			});
+			expect(progressBar?.props.style[1].width).toBe("50%");
+
+			// 2. Simulate layout change where list height changes
+			act(() => {
+				list.props.onLayout({
+					nativeEvent: {
+						layout: { height: 100 }
+					}
+				});
+			});
+
+			// 3. Simulate content shunting to 150 (one item removed, maxScroll is now 50, Y=50 is now 100%)
+			act(() => {
+				list.props.onContentSizeChange(100, 150);
+			});
+			expect(progressBar?.props.style[1].width).toBe("100%");
+
+			// 4. Simulate list fitting screen (contentHeight 100, maxScroll <= 0, progress should be 0%)
+			act(() => {
+				list.props.onContentSizeChange(100, 100);
+			});
+			expect(progressBar?.props.style[1].width).toBe("0%");
+		});
+
+		Platform.OS = originalPlatform;
+	});
 });

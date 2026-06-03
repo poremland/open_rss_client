@@ -49,6 +49,8 @@ interface SelectableFlatListProps<T> {
 	showsVerticalScrollIndicator?: boolean;
 	onScroll?: (event: any) => void;
 	scrollEventThrottle?: number;
+	onContentSizeChange?: (w: number, h: number) => void;
+	onLayout?: (event: any) => void;
 }
 
 const SelectableFlatList = <T extends { id: number }>({
@@ -69,6 +71,8 @@ const SelectableFlatList = <T extends { id: number }>({
 	showsVerticalScrollIndicator,
 	onScroll,
 	scrollEventThrottle,
+	onContentSizeChange,
+	onLayout,
 }: SelectableFlatListProps<T>) => {
 	const toggleSelection = useCallback(
 		(itemId: number) => {
@@ -123,6 +127,8 @@ const SelectableFlatList = <T extends { id: number }>({
 			showsVerticalScrollIndicator={showsVerticalScrollIndicator}
 			onScroll={onScroll}
 			scrollEventThrottle={scrollEventThrottle}
+			onContentSizeChange={onContentSizeChange}
+			onLayout={onLayout}
 		/>
 	);
 };

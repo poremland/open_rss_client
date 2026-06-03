@@ -106,6 +106,19 @@ const ListScreen = React.forwardRef(
 		}, [rawData, transformData]);
 		const [refreshing, setRefreshing] = useState<boolean>(false);
 		const [scrollProgress, setScrollProgress] = useState<number>(0);
+		const currentOffsetY = React.useRef(0);
+		const layoutHeight = React.useRef(0);
+
+		const updateProgress = useCallback((offsetY: number, contentHeight: number, containerHeight: number) => {
+			const maxScroll = contentHeight - containerHeight;
+			if (maxScroll <= 0) {
+				setScrollProgress(0);
+			} else {
+				const progress = offsetY / maxScroll;
+				setScrollProgress(isNaN(progress) || !isFinite(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+			}
+		}, []);
+
 		const [internalSelectedItems, setInternalSelectedItems] = useState<
 			number[]
 		>([]);
@@ -237,10 +250,18 @@ const ListScreen = React.forwardRef(
 						showsVerticalScrollIndicator={Platform.OS === "web" || !showScrollIndicator}
 						onScroll={showScrollIndicator ? (event: any) => {
 							const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-							const progress = contentOffset.y / (contentSize.height - layoutMeasurement.height);
-							setScrollProgress(isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+							currentOffsetY.current = contentOffset.y;
+							layoutHeight.current = layoutMeasurement.height;
+							updateProgress(contentOffset.y, contentSize.height, layoutMeasurement.height);
 						} : undefined}
 						scrollEventThrottle={showScrollIndicator ? 16 : undefined}
+						onContentSizeChange={showScrollIndicator ? (width: number, height: number) => {
+							updateProgress(currentOffsetY.current, height, layoutHeight.current);
+						} : undefined}
+						onLayout={showScrollIndicator ? (event: any) => {
+							const { height } = event.nativeEvent.layout;
+							layoutHeight.current = height;
+						} : undefined}
 					/>
 				</View>
 			</Screen>
