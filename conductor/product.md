@@ -28,7 +28,7 @@ The Open RSS Client is a lightweight, mobile-first RSS reader designed for seaml
 - **Proactive Caching:** Automatically fetches and caches unread items for all feeds upon connection, ensuring full offline availability without manual navigation.
 - **Connection-Aware UI:** Real-time detection and visual indication of connectivity status, with automated restriction of online-only actions.
 - **Dynamic Content:** Automatic HTML entity decoding for clean title and description rendering.
-- **Scroll Progress Feedback:** Native, high-contrast progress indicator on mobile platforms to track reading position within article details.
+- **Scroll Progress Feedback:** Native, high-contrast progress indicator on mobile platforms to track reading position within article details and feed item list.
 - **About & Status:** Dedicated screen for application information, synchronization status, and manual cache management.
 - **Seamless App Initialization:** Orchestrated splash screen that stays visible until all critical initial states (auth, cache, sync) are resolved, providing a professional and flicker-free startup experience.
 

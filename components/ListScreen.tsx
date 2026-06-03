@@ -21,6 +21,7 @@ import {
 	View,
 	Text,
 	TouchableOpacity,
+	Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import useApi from "./useApi";
@@ -57,6 +58,7 @@ interface ListScreenProps<T, U = T> {
 	onSwipeAction?: (item: U) => void;
 	swipeActionRequiresConfirmation?: boolean;
 	swipeConfirmationMessage?: string;
+	showScrollIndicator?: boolean;
 }
 
 const ListScreen = React.forwardRef(
@@ -83,6 +85,7 @@ const ListScreen = React.forwardRef(
 			onSwipeAction,
 			swipeActionRequiresConfirmation,
 			swipeConfirmationMessage,
+			showScrollIndicator = false,
 		} = props;
 
 		const {
@@ -102,6 +105,20 @@ const ListScreen = React.forwardRef(
 				: (dataToTransform as unknown as U[]);
 		}, [rawData, transformData]);
 		const [refreshing, setRefreshing] = useState<boolean>(false);
+		const [scrollProgress, setScrollProgress] = useState<number>(0);
+		const currentOffsetY = React.useRef(0);
+		const layoutHeight = React.useRef(0);
+
+		const updateProgress = useCallback((offsetY: number, contentHeight: number, containerHeight: number) => {
+			const maxScroll = contentHeight - containerHeight;
+			if (maxScroll <= 0) {
+				setScrollProgress(0);
+			} else {
+				const progress = offsetY / maxScroll;
+				setScrollProgress(isNaN(progress) || !isFinite(progress) ? 0 : Math.max(0, Math.min(1, progress)));
+			}
+		}, []);
+
 		const [internalSelectedItems, setInternalSelectedItems] = useState<
 			number[]
 		>([]);
@@ -183,6 +200,11 @@ const ListScreen = React.forwardRef(
 				style={styles.container}
 			>
 				<View style={styles.contentContainer}>
+					{Platform.OS !== "web" && showScrollIndicator && (
+						<View style={styles.progressBarContainer}>
+							<View style={[styles.progressBar, { width: `${scrollProgress * 100}%` }]} />
+						</View>
+					)}
 					{isMultiSelectActive && multiSelectActions && (
 						<MultiSelectBar>
 							<TouchableOpacity
@@ -225,6 +247,21 @@ const ListScreen = React.forwardRef(
 						onSwipeAction={onSwipeAction}
 						swipeActionRequiresConfirmation={swipeActionRequiresConfirmation}
 						swipeConfirmationMessage={swipeConfirmationMessage}
+						showsVerticalScrollIndicator={Platform.OS === "web" || !showScrollIndicator}
+						onScroll={showScrollIndicator ? (event: any) => {
+							const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+							currentOffsetY.current = contentOffset.y;
+							layoutHeight.current = layoutMeasurement.height;
+							updateProgress(contentOffset.y, contentSize.height, layoutMeasurement.height);
+						} : undefined}
+						scrollEventThrottle={showScrollIndicator ? 16 : undefined}
+						onContentSizeChange={showScrollIndicator ? (width: number, height: number) => {
+							updateProgress(currentOffsetY.current, height, layoutHeight.current);
+						} : undefined}
+						onLayout={showScrollIndicator ? (event: any) => {
+							const { height } = event.nativeEvent.layout;
+							layoutHeight.current = height;
+						} : undefined}
 					/>
 				</View>
 			</Screen>

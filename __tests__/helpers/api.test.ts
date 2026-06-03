@@ -89,17 +89,55 @@ describe("API Helper", () => {
 			it("should throw an error if the request fails", async () => {
 				localFetchMock.mockResolvedValue(createFetchResponse(false, 500, "Internal Server Error", "text/plain"));
 
-				await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
-					"Request failed with status 500: Internal Server Error",
-				);
+				let error: Error | null = null;
+				try {
+					await api.post("/test", { foo: "bar" });
+				} catch (e: any) {
+					error = e;
+				}
+				expect(error).not.toBeNull();
+				expect(error!.message).toBe("Request failed with status 500: Internal Server Error");
 			});
 
-			it("should throw 'Session expired' error if status is 401", async () => {
+			it("should throw custom error message if present in response JSON", async () => {
+				const errorResponse = { message: "Email domain is not on the allow list." };
+				localFetchMock.mockResolvedValue(createFetchResponse(false, 401, errorResponse, "application/json"));
+
+				let error: Error | null = null;
+				try {
+					await api.post("/test", { foo: "bar" });
+				} catch (e: any) {
+					error = e;
+				}
+				expect(error).not.toBeNull();
+				expect(error!.message).toBe("Email domain is not on the allow list.");
+			});
+
+			it("should throw custom error field if present in response JSON", async () => {
+				const errorResponse = { error: "Custom domain error message." };
+				localFetchMock.mockResolvedValue(createFetchResponse(false, 401, errorResponse, "application/json"));
+
+				let error: Error | null = null;
+				try {
+					await api.post("/test", { foo: "bar" });
+				} catch (e: any) {
+					error = e;
+				}
+				expect(error).not.toBeNull();
+				expect(error!.message).toBe("Custom domain error message.");
+			});
+
+			it("should throw standard error if no custom message is present", async () => {
 				localFetchMock.mockResolvedValue(createFetchResponse(false, 401, "Unauthorized", "text/plain"));
 
-				await expect(api.post("/test", { foo: "bar" })).rejects.toThrow(
-					"Session expired",
-				);
+				let error: Error | null = null;
+				try {
+					await api.post("/test", { foo: "bar" });
+				} catch (e: any) {
+					error = e;
+				}
+				expect(error).not.toBeNull();
+				expect(error!.message).toBe("Request failed with status 401: Unauthorized");
 			});
 
 			it("should support JSON content type", async () => {

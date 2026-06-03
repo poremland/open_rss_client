@@ -46,6 +46,11 @@ interface SelectableFlatListProps<T> {
 	onSwipeAction?: (item: T) => void;
 	swipeActionRequiresConfirmation?: boolean;
 	swipeConfirmationMessage?: string;
+	showsVerticalScrollIndicator?: boolean;
+	onScroll?: (event: any) => void;
+	scrollEventThrottle?: number;
+	onContentSizeChange?: (w: number, h: number) => void;
+	onLayout?: (event: any) => void;
 }
 
 const SelectableFlatList = <T extends { id: number }>({
@@ -63,6 +68,11 @@ const SelectableFlatList = <T extends { id: number }>({
 	onSwipeAction,
 	swipeActionRequiresConfirmation = false,
 	swipeConfirmationMessage = "Are you sure you want to perform this action?",
+	showsVerticalScrollIndicator,
+	onScroll,
+	scrollEventThrottle,
+	onContentSizeChange,
+	onLayout,
 }: SelectableFlatListProps<T>) => {
 	const toggleSelection = useCallback(
 		(itemId: number) => {
@@ -114,6 +124,11 @@ const SelectableFlatList = <T extends { id: number }>({
 			}
 			ListEmptyComponent={ListEmptyComponent}
 			contentContainerStyle={contentContainerStyle}
+			showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+			onScroll={onScroll}
+			scrollEventThrottle={scrollEventThrottle}
+			onContentSizeChange={onContentSizeChange}
+			onLayout={onLayout}
 		/>
 	);
 };

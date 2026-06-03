@@ -299,6 +299,7 @@ const FeedItemListScreen: React.FC = () => {
 			onSwipeAction={handleSwipeMarkAsRead}
 			swipeActionRequiresConfirmation={false}
 			swipeConfirmationMessage=""
+			showScrollIndicator={true}
 		/>
 	);
 };
