@@ -161,7 +161,7 @@ const FeedItemDetailScreen: React.FC = () => {
 		const staticHtml = `
 			<html>
 				<head>
-					<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
 					<style>
 						body {
 							font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
@@ -272,7 +272,7 @@ const FeedItemDetailScreen: React.FC = () => {
 						style={styles.webview}
 						javaScriptEnabled={true}
 						domStorageEnabled={true}
-						scalesPageToFit={false}
+						scalesPageToFit={true}
 						showsVerticalScrollIndicator={false}
 						onScroll={(event) => {
 							const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;

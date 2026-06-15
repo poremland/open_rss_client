@@ -448,4 +448,29 @@ describe("FeedItemDetailScreen", () => {
 			expect(mocks.navigation.goBack).toHaveBeenCalled();
 		});
 	});
+
+	it("should support pinch to zoom in WebView (viewport metadata and scalesPageToFit)", async () => {
+		const { Platform } = require("react-native");
+		const originalPlatform = Platform.OS;
+		Platform.OS = "ios";
+
+		useApiConfig.data = mockFeedItem;
+		mocks.api.getWithAuth.mockResolvedValue(mockFeedItem);
+
+		const { UNSAFE_getByType } = render(<FeedItemDetailScreen />);
+		const { WebView } = require("react-native-webview");
+
+		await waitFor(() => {
+			const webView = UNSAFE_getByType(WebView);
+			expect(webView.props.scalesPageToFit).toBe(true);
+			const viewportMeta = /<meta\s+name=["']viewport["']\s+content=["']([^"']+)["']/i.exec(webView.props.source.html);
+			expect(viewportMeta).toBeTruthy();
+			const content = viewportMeta![1];
+			expect(content).not.toContain("maximum-scale=1.0");
+			expect(content).not.toContain("user-scalable=no");
+			expect(content).not.toContain("user-scalable=0");
+		});
+
+		Platform.OS = originalPlatform;
+	});
 });
